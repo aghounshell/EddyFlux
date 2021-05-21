@@ -2,6 +2,11 @@
 ### Following McClure et al. 2018
 ### 21 May 2021, A Hounshell
 
+# Following code from 2019
+# https://github.com/aghounshell/GHG/blob/master/Scripts/GHG_Flux.R
+# https://github.com/aghounshell/GHG/blob/master/Scripts/WindComps.R
+# https://github.com/aghounshell/GHG/blob/master/Scripts/Atm_CH4.R
+
 # Set working directory
 wd <- getwd()
 setwd(wd)
