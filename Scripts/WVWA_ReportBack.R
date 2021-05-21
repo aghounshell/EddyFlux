@@ -22,7 +22,7 @@ flux <- flux %>%
 flux_year <- flux %>% 
   filter(DateTime>=as.POSIXct("2020-05-06")&DateTime<as.POSIXct("2021-05-06")) %>% 
   select(NEE_uStar_f,ch4_flux_uStar_f) %>% 
-  summarize_all(sum)*85000/1000000 # convert to mol C/year (summed each 30 min interval*area)
+  summarize_all(sum)*85000/1000000*60*30*12.111/1000 # convert to kg C/year (summed each 30 min interval*area) converted to 30 min intervals
 
 flux_co2 <- ggplot(flux,mapping=aes(x=DateTime,y=NEE_uStar_f))+
   geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dashed",color="navyblue")+ #Turnover FCR; operationally defined
@@ -31,7 +31,7 @@ flux_co2 <- ggplot(flux,mapping=aes(x=DateTime,y=NEE_uStar_f))+
   ylab(expression(paste("CO"[2]*" (",mu,"mol C m"^-2*" s"^-1*")")))+
   xlab("")+
   annotate(geom="text",x=as.POSIXct("2020-10-12"),y=50, label = "Turnover")+
-  annotate(geom="text",x=as.POSIXct("2021-03-01"),y=50, label = expression(paste("2,414 mol C yr"^-2*"")))+
+  annotate(geom="text",x=as.POSIXct("2021-03-01"),y=50, label = expression(paste("52,626 kg C")))+
   theme_classic(base_size = 15)
 
 flux_ch4 <- ggplot(flux,mapping=aes(x=DateTime,y=ch4_flux_uStar_f))+
@@ -41,7 +41,7 @@ flux_ch4 <- ggplot(flux,mapping=aes(x=DateTime,y=ch4_flux_uStar_f))+
   ylab(expression(paste("CH"[4]*" (",mu,"mol C m"^-2*" s"^-1*")")))+
   xlab("Time")+
   annotate(geom="text",x=as.POSIXct("2020-10-12"),y=0.10, label = "Turnover")+
-  annotate(geom="text",x=as.POSIXct("2021-03-01"),y=0.10, label = expression(paste("3.15 mol C yr"^-2*"")))+
+  annotate(geom="text",x=as.POSIXct("2021-03-01"),y=0.10, label = expression(paste("69 kg C")))+
   theme_classic(base_size = 15)
 
 ggarrange(flux_co2,flux_ch4,nrow=2,ncol=1)
