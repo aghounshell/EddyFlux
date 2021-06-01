@@ -124,7 +124,7 @@ fluxes_2 <- left_join(fluxes,ghg_2,by=c("DateTime","Reservoir","Site")) %>%
   mutate(co2_umolL = na.fill(na.approx(co2_umolL,na.rm=FALSE),"extend")) %>% 
   rename(ch4_umolL_rep2 = ch4_umolL, co2_umolL_rep2 = co2_umolL)
 
-# Calculate fluxes: in umol/m2/d
+# Calculate fluxes: in umol/m2/s
 fluxes_2 <- fluxes_2 %>% 
   mutate(nv = (BP_Average_kPa*0.00986923/(0.0820573660809596*(AirTemp_Average_C + 273.15)))) %>% # units = mols/L
   mutate(ch4_umolL_atm = 1893.4/1e9*nv*1e6) %>% # units = umol/L
@@ -149,19 +149,17 @@ fluxes_all <- rbind(fluxes_rep1,fluxes_rep2)
 fluxes_all <- fluxes_all %>% 
   arrange(DateTime,Rep) %>% 
   group_by(DateTime) %>% 
-  summarise_all(list(mean,sd)) %>% 
-  select(-c(Rep_fn1,Rep_fn2)) %>% 
-  rename(ch4_umolm2s = ch4_flux_umolm2s_fn1, co2_umolm2s = co2_flux_umolm2s_fn1, ch4_umolm2s_sd = ch4_flux_umolm2s_fn2,
-         co2_umolm2s_sd = co2_flux_umolm2s_fn2)
+  summarise_all(funs(mean,sd),na.rm=TRUE) #%>% 
+  select(-c(Rep_mean,Rep_sd))
 
 # Plot to check?
 ggplot()+
-  geom_line(fluxes_all,mapping=aes(DateTime,ch4_umolm2s))+
+  geom_line(fluxes_all,mapping=aes(DateTime,ch4_flux_umolm2s_mean))+
   #geom_ribbon(fluxes_all,mapping=aes(DateTime,ymin = ch4_umolm2s-ch4_umolm2s_sd,ymax = ch4_umolm2s+ch4_umolm2s_sd),fill="grey")+
   theme_classic(base_size =15 )
 
 ggplot()+
-  geom_line(fluxes_all,mapping=aes(DateTime,co2_umolm2s))+
+  geom_line(fluxes_all,mapping=aes(DateTime,co2_flux_umolm2s_mean))+
   theme_classic(base_size=15)
 
 # Select dates where we actually have GHG concentrations
@@ -175,25 +173,117 @@ eddy_flux <- eddy_flux %>%
   select(DateTime,NEE_uStar_f,ch4_flux_uStar_f)
 
 # Plot Eddy flux data and GHG flux data
-ggplot()+
+flux_co2 <- ggplot()+
   geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dashed",color="navyblue")+ #Turnover FCR; operationally defined
   geom_line(eddy_flux,mapping=aes(x=DateTime,y=NEE_uStar_f))+
   geom_hline(yintercept = 0, linetype = "dashed", color="darkgrey", size = 0.8)+
-  geom_point(ghg_fluxes,mapping=aes(x=DateTime,y=co2_umolm2s,color="GHGs"))+
+  geom_point(ghg_fluxes,mapping=aes(x=DateTime,y=co2_flux_umolm2s_mean,color="GHGs"))+
+  geom_line(ghg_fluxes,mapping=aes(x=DateTime,y=co2_flux_umolm2s_mean,color="GHGs"))+
+  geom_errorbar(ghg_fluxes,mapping=aes(x=DateTime,ymin=co2_flux_umolm2s_mean - co2_flux_umolm2s_sd, ymax = co2_flux_umolm2s_mean+co2_flux_umolm2s_sd,color="GHGs"))+
   ylab(expression(paste("CO"[2]*" (",mu,"mol C m"^-2*" s"^-1*")")))+
   xlab("")+
   xlim(as.POSIXct("2020-05-01"),as.POSIXct("2021-04-29"))+
   theme_classic(base_size = 15)
 
-ggplot()+
+flux_ch4 <- ggplot()+
   geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dashed",color="navyblue")+ #Turnover FCR; operationally defined
   geom_line(eddy_flux,mapping=aes(x=DateTime,y=ch4_flux_uStar_f))+
   geom_hline(yintercept = 0, linetype = "dashed", color="darkgrey", size = 0.8)+
-  geom_point(ghg_fluxes,mapping=aes(x=DateTime,y=ch4_umolm2s,color="GHGs"))+
+  geom_point(ghg_fluxes,mapping=aes(x=DateTime,y=ch4_flux_umolm2s_mean,color="GHGs"))+
+  geom_line(ghg_fluxes,mapping=aes(x=DateTime,y=ch4_flux_umolm2s_mean,color="GHGs"))+
+  geom_errorbar(ghg_fluxes,mapping=aes(x=DateTime,ymin=ch4_flux_umolm2s_mean - ch4_flux_umolm2s_sd, ymax = ch4_flux_umolm2s_mean+ch4_flux_umolm2s_sd,color="GHGs"))+
   ylab(expression(paste("CH"[4]*" (",mu,"mol C m"^-2*" s"^-1*")")))+
   xlab("Time")+
   xlim(as.POSIXct("2020-05-01"),as.POSIXct("2021-04-29"))+
   theme_classic(base_size = 15)
+
+ggarrange(flux_co2,flux_ch4,nrow=2,ncol=1)
+
+ggsave("./Fig_Output/Fluxes.jpg",width = 10, height=7, units="in",dpi=320)
+
+### Thinking about other visualizations ----
+# Plotting cumulative Co2 and Ch4 throughout the study period
+# From 2020-04-04 to 2021-04-03
+eddy_flux <- eddy_flux %>% 
+  mutate(co2_sum = NA) %>% 
+  mutate(ch4_sum = NA)
+
+for (i in 1:length(eddy_flux$DateTime)){
+  eddy_flux$co2_sum[i] <- sum(eddy_flux$NEE_uStar_f[1:i])
+}
+
+for (i in 1:length(eddy_flux$DateTime)){
+  eddy_flux$ch4_sum[i] <- sum(eddy_flux$ch4_flux_uStar_f[1:i])
+}
+
+cumulative_fluxes <- fluxes_all %>% 
+  filter(DateTime >= as.POSIXct("2020-04-04 01:00:00")) %>% 
+  mutate(co2_sum = NA) %>% 
+  mutate(ch4_sum = NA)
+
+for (i in 1:length(cumulative_fluxes$DateTime)){
+  cumulative_fluxes$co2_sum[i] <- sum(cumulative_fluxes$co2_flux_umolm2s_mean[1:i],na.rm=TRUE)
+}
+
+for (i in 1:length(cumulative_fluxes$DateTime)){
+  cumulative_fluxes$ch4_sum[i] <- sum(cumulative_fluxes$ch4_flux_umolm2s_mean[1:i],na.rm=TRUE)
+}
+
+# Compare cumulative fluxes
+sum_co2 <- ggplot()+
+  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dashed",color="navyblue")+ #Turnover FCR; operationally defined
+  geom_hline(yintercept = 0, linetype = "dashed", color="darkgrey", size = 0.8)+
+  geom_line(eddy_flux,mapping=aes(x=DateTime,y=co2_sum/1e6*44.009*60*30,color="EC"),size=1)+
+  geom_line(cumulative_fluxes,mapping=aes(x=DateTime,y=co2_sum/1e6*44.009*60*30,color="GHGs"),size=1)+
+  ylab(expression(paste("CO"[2]*" (g C m"^-2*")")))+
+  xlim(as.POSIXct("2020-04-04"),as.POSIXct("2021-04-05"))+
+  theme_classic(base_size = 15)
+
+sum_ch4 <- ggplot()+
+  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dashed",color="navyblue")+ #Turnover FCR; operationally defined
+  geom_hline(yintercept = 0, linetype = "dashed", color="darkgrey", size = 0.8)+
+  geom_line(eddy_flux,mapping=aes(x=DateTime,y=ch4_sum/1e6*16.04*60*30,color="EC"),size=1)+
+  geom_line(cumulative_fluxes,mapping=aes(x=DateTime,y=ch4_sum/1e6*16.04*60*30,color="GHGs"),size=1)+
+  ylab(expression(paste("CH"[4]*" (g C m"^-2*")")))+
+  xlim(as.POSIXct("2020-04-04"),as.POSIXct("2021-04-05"))+
+  theme_classic(base_size = 15)
+
+ggarrange(sum_co2,sum_ch4,nrow=1,ncol=2,common.legend = TRUE)
+
+ggsave("./Fig_Output/Summed_Fluxes.jpg",width = 10, height=5, units="in",dpi=320)
+
+### Think about winter variability (especially with ice!)
+ice <- read_csv("./Data/Ice_Data.csv")
+ice$Date <- as.POSIXct(strptime(ice$Date,"%Y-%m-%d"))
+ice_on <- ice %>% 
+  filter(Date>"2020-01-01" & IceOn == 1)
+ice_off <- ice %>% 
+  filter(Date>"2020-01-01" & IceOff == 1)
+
+# Create graph to look at ice on/off
+winter_ch4 <- ggplot()+
+  geom_vline(data = ice_on,mapping=aes(xintercept = Date), linetype = "dashed", color="blue")+
+  geom_vline(data = ice_off,mapping=aes(xintercept = Date), linetype = "dashed", color="red")+
+  geom_line(eddy_flux,mapping=aes(x=DateTime,y=ch4_flux_uStar_f))+
+  geom_hline(yintercept = 0, linetype = "dashed", color="darkgrey", size = 0.8)+
+  xlim(as.POSIXct("2020-12-20"),as.POSIXct("2021-03-01"))+
+  ylab(expression(paste("CH"[4]*" (",mu,"mol C m"^-2*" s"^-1*")")))+
+  ylim(-0.02,0.03)+
+  theme_classic(base_size = 15)
+
+winter_co2 <- ggplot()+
+  geom_vline(data = ice_on,mapping=aes(xintercept = Date), linetype = "dashed", color="blue")+
+  geom_vline(data = ice_off,mapping=aes(xintercept = Date), linetype = "dashed", color="red")+
+  geom_line(eddy_flux,mapping=aes(x=DateTime,y=NEE_uStar_f))+
+  geom_hline(yintercept = 0, linetype = "dashed", color="darkgrey", size = 0.8)+
+  xlim(as.POSIXct("2020-12-20"),as.POSIXct("2021-03-01"))+
+  ylab(expression(paste("CO"[2]*" (",mu,"mol C m"^-2*" s"^-1*")")))+
+  ylim(-7,7)+
+  theme_classic(base_size = 15)
+
+ggarrange(winter_co2,winter_ch4,nrow=2,ncol=1)
+
+ggsave("./Fig_Output/Winter_Fluxes.jpg",width = 10, height=7, units="in",dpi=320)
 
 ### OLD CODE ----
 ### Load in atmospheric CH4 and CO2 data from Beech Island, SC, USA ----
@@ -226,4 +316,22 @@ ch4_avg <- methane %>%
   summarize_all(funs(mean)) %>% 
   arrange(datetime)
 
+# CO2
+co2_atm <- nc_open('./Data/co2_sct_tower-insitu_1_ccgg_HourlyData.nc')
+
+# Export metadata out as text file
+{sink('./Data/co2_sct.txt')
+  print(ch4_atm)
+  sink()}
+
+# Extract date/time, elevation, and CH4 (ppb)
+datetime <- ncvar_get(co2_atm,"time")
+datetime <- as.POSIXct(datetime, origin = "1970-01-01", tz="UTC")
+elevation <- ncvar_get(co2_atm,"elevation")
+co2 <- ncvar_get(co2_atm,"value")
+
+# Combine datetime and CH4 into one data frame
+carbondioxide <- cbind.data.frame(datetime,co2)
+carbondioxide <- carbondioxide %>% 
+  mutate(datetime = format(as.POSIXct(datetime,"%Y-%m-%d %H:%M:%S",tz="UTC"),format="%Y-%m-%d"))
 
