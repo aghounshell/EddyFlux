@@ -2,7 +2,7 @@
 ### Following McClure et al. 2018
 ### 21 May 2021, A Hounshell
 
-# Following code from 2019
+# Following code from 2019: for calculating fluxes
 # https://github.com/aghounshell/GHG/blob/master/Scripts/GHG_Flux.R
 # https://github.com/aghounshell/GHG/blob/master/Scripts/WindComps.R
 # https://github.com/aghounshell/GHG/blob/master/Scripts/Atm_CH4.R
@@ -149,7 +149,7 @@ fluxes_all <- rbind(fluxes_rep1,fluxes_rep2)
 fluxes_all <- fluxes_all %>% 
   arrange(DateTime,Rep) %>% 
   group_by(DateTime) %>% 
-  summarise_all(funs(mean,sd),na.rm=TRUE) #%>% 
+  summarise_all(funs(mean,sd),na.rm=TRUE) %>% 
   select(-c(Rep_mean,Rep_sd))
 
 # Plot to check?
@@ -262,8 +262,12 @@ ice_off <- ice %>%
 
 # Create graph to look at ice on/off
 winter_ch4 <- ggplot()+
-  geom_vline(data = ice_on,mapping=aes(xintercept = Date), linetype = "dashed", color="blue")+
-  geom_vline(data = ice_off,mapping=aes(xintercept = Date), linetype = "dashed", color="red")+
+  geom_vline(xintercept = as.POSIXct("2020-12-27"), linetype = "dashed", color="blue")+
+  geom_vline(xintercept = as.POSIXct("2020-12-30"), linetype = "dashed", color="red")+
+  geom_vline(xintercept = as.POSIXct("2021-01-10"), linetype = "dashed", color="blue")+
+  geom_vline(xintercept = as.POSIXct("2021-02-09"), linetype = "dashed", color="red")+
+  geom_vline(xintercept = as.POSIXct("2021-02-11"), linetype = "dashed", color="blue")+
+  geom_vline(xintercept = as.POSIXct("2021-02-23"), linetype = "dashed", color="red")+
   geom_line(eddy_flux,mapping=aes(x=DateTime,y=ch4_flux_uStar_f))+
   geom_hline(yintercept = 0, linetype = "dashed", color="darkgrey", size = 0.8)+
   xlim(as.POSIXct("2020-12-20"),as.POSIXct("2021-03-01"))+
@@ -272,8 +276,12 @@ winter_ch4 <- ggplot()+
   theme_classic(base_size = 15)
 
 winter_co2 <- ggplot()+
-  geom_vline(data = ice_on,mapping=aes(xintercept = Date), linetype = "dashed", color="blue")+
-  geom_vline(data = ice_off,mapping=aes(xintercept = Date), linetype = "dashed", color="red")+
+  geom_vline(xintercept = as.POSIXct("2020-12-27"), linetype = "dashed", color="blue")+
+  geom_vline(xintercept = as.POSIXct("2020-12-30"), linetype = "dashed", color="red")+
+  geom_vline(xintercept = as.POSIXct("2021-01-10"), linetype = "dashed", color="blue")+
+  geom_vline(xintercept = as.POSIXct("2021-02-09"), linetype = "dashed", color="red")+
+  geom_vline(xintercept = as.POSIXct("2021-02-11"), linetype = "dashed", color="blue")+
+  geom_vline(xintercept = as.POSIXct("2021-02-23"), linetype = "dashed", color="red")+
   geom_line(eddy_flux,mapping=aes(x=DateTime,y=NEE_uStar_f))+
   geom_hline(yintercept = 0, linetype = "dashed", color="darkgrey", size = 0.8)+
   xlim(as.POSIXct("2020-12-20"),as.POSIXct("2021-03-01"))+
@@ -284,6 +292,235 @@ winter_co2 <- ggplot()+
 ggarrange(winter_co2,winter_ch4,nrow=2,ncol=1)
 
 ggsave("./Fig_Output/Winter_Fluxes.jpg",width = 10, height=7, units="in",dpi=320)
+
+# Calculate average flux for each ice on/off period
+ice_off_1 <- eddy_flux %>% 
+  filter(DateTime >= "2020-12-19 19:00:00" & DateTime < "2020-12-26 19:00:00") %>% 
+  mutate(ice_period = "1") %>% 
+  mutate(ice = "off")
+
+ice_on_1 <- eddy_flux %>% 
+  filter(DateTime >= "2020-12-26 19:00:00" & DateTime < "2020-12-29 19:00:00")%>% 
+  mutate(ice_period = "2") %>% 
+  mutate(ice = "on")
+
+ice_off_2 <- eddy_flux %>% 
+  filter(DateTime >= "2020-12-29 19:00:00" & DateTime < "2021-01-09 19:00:00")%>% 
+  mutate(ice_period = "3") %>% 
+  mutate(ice = "off")
+
+ice_on_2 <- eddy_flux %>% 
+  filter(DateTime >= "2021-01-09 19:00:00" & DateTime < "2021-02-09 19:00:00")%>% 
+  mutate(ice_period = "4") %>% 
+  mutate(ice = "on")
+
+ice_off_3 <- eddy_flux %>% 
+  filter(DateTime >= "2021-02-09 19:00:00" & DateTime < "2021-02-11 19:00:00")%>% 
+  mutate(ice_period = "5") %>% 
+  mutate(ice = "off")
+
+ice_on_3 <- eddy_flux %>% 
+  filter(DateTime >= "2021-02-11 19:00:00" & DateTime < "2021-02-23 19:00:00")%>% 
+  mutate(ice_period = "6") %>% 
+  mutate(ice = "on")
+
+#ice_off_4 <- eddy_flux %>% 
+#  filter(DateTime >= "2021-02-23 19:00:00" & DateTime < "2021-03-01 19:00:00")%>% 
+#  mutate(ice_period = "7") %>% 
+#  mutate(ice = "off")
+
+ice_all <- rbind(ice_off_1,ice_on_1,ice_off_2,ice_on_2,ice_off_3,ice_on_3)
+
+# Plot?
+ice_co2 <- ggplot(ice_all,mapping=aes(x=ice_period,y=NEE_uStar_f,color=ice))+
+  geom_hline(yintercept = 0, linetype = "dashed", color="darkgrey", size = 0.8)+
+  ylab(expression(paste("CO"[2]*" (",mu,"mol C m"^-2*" s"^-1*")")))+
+  xlab("Ice Period")+
+  geom_boxplot()+
+  theme_classic(base_size = 15)
+
+ice_ch4 <- ggplot(ice_all,mapping=aes(x=ice_period,y=ch4_flux_uStar_f,color=ice))+
+  geom_hline(yintercept = 0, linetype = "dashed", color="darkgrey", size = 0.8)+
+  ylab(expression(paste("CH"[4]*" (",mu,"mol C m"^-2*" s"^-1*")")))+
+  xlab("Ice Period")+
+  geom_boxplot()+
+  theme_classic(base_size = 15)
+
+ggarrange(ice_co2,ice_ch4,nrow=1,ncol=2,common.legend = TRUE)
+
+ggsave("./Fig_Output/Ice_Fluxes.jpg",width = 10, height=5, units="in",dpi=320)
+
+### Let's get catwalk data in hand ----
+# To start thinking about environmental variables
+# From EDI (up to 2020) on 03 June 2021
+# NOTE: Data is AHEAD by 4 hours (in GMT!)
+#inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/271/5/c1b1f16b8e3edbbff15444824b65fe8f" 
+#infile1 <- paste0(getwd(),"/Data/Catwalk_EDI_2020.csv")
+#download.file(inUrl1,infile1,method="curl")
+
+catwalk_edi <- read.csv("./Data/Catwalk_EDI_2020.csv", header=T) %>%
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d %H:%M:%S", tz="GMT")))
+
+catwalk_edi_est <- lubridate::with_tz(catwalk_edi,"EST")
+
+catwalk_edi_est <- catwalk_edi_est %>% 
+  filter(DateTime >= "2020-01-01") %>% 
+  select(DateTime,EXOTemp_C_1,EXOSpCond_uScm_1,EXODO_mgL_1,EXOChla_ugL_1,EXOfDOM_RFU_1)
+
+# Pull most up-to-date catwalk data from github
+pacman::p_load("RCurl","tidyverse","lubridate", "plotly", "magrittr")
+folder <- "./Data"
+
+# Load in data from Git
+# Downloaded: 03 June 2021
+#download.file("https://raw.githubusercontent.com/FLARE-forecast/FCRE-data/fcre-catwalk-data/CAT_MaintenanceLog.txt",paste0(folder, "/CAT_MaintenanceLog_2020.txt"))
+#download.file("https://raw.githubusercontent.com/FLARE-forecast/FCRE-data/fcre-catwalk-data/Catwalk.csv",paste0(folder, "/Catwalk_2020.csv"))
+
+# Running QA/QC from catwalk_EDI_QAQC_all_variables
+data_file <- paste0(folder, '/Catwalk_2020.csv')
+maintenance_file <- paste0(folder, "/CAT_MaintenanceLog_2020.txt")
+
+catdata <- read.csv(data_file,skip=1) 
+catdata$DateTime<-as.POSIXct(catdata$TIMESTAMP,format = "%Y-%m-%d %H:%M:%S")
+catdata <- catdata[!duplicated(catdata$TIMESTAMP), ]
+colnames(catdata)[colnames(catdata)=="Lvl_psi"] <- "Lvl_psi_9"
+colnames(catdata)[colnames(catdata)=="LvlTemp_c_9"] <- "LvlTemp_C_9"
+
+# subset file to only unpublished data
+catdata_flag <- catdata[catdata$TIMESTAMP>"2021-01-01",]
+
+catdata_flag <- catdata_flag[-1,]
+
+catdata_flag <- catdata_flag %>% 
+  rename(EXODO_mgL_1 = doobs_1,EXODOsat_percent_1 = dosat_1)
+
+# now fix the negative DO values
+catdata_flag <- catdata_flag %>%
+  mutate(Flag_DO_1 = NA) %>% 
+  mutate(Flag_DO_1 = ifelse(EXODO_mgL_1 < 0 | EXODOsat_percent_1 <0, 3, Flag_DO_1), #and for 1m
+         EXODO_mgL_1 = ifelse(EXODO_mgL_1 < 0, 0, EXODO_mgL_1),
+         EXODOsat_percent_1 = ifelse(EXODOsat_percent_1 <0, 0, EXODOsat_percent_1),
+         Flag_DO_1 = ifelse(is.na(EXODO_mgL_1),7,Flag_DO_1))
+
+# chl and phyco qaqc ----
+# perform qaqc on the entire dataset for chl and phyco
+
+catdata_flag <- catdata_flag %>% 
+  rename(EXOChla_ugL_1 = Chla_1,EXOBGAPC_ugL_1 = BGAPC_1)
+
+catdata_flag <- catdata_flag %>% 
+  rename(EXOChla_RFU_1 = Chla_RFU_1)
+
+# assign standard deviation thresholds
+sd_4 <- 4*sd(catdata_flag$EXOChla_ugL_1, na.rm = TRUE)
+threshold <- sd_4
+sd_4_phyco <- 4*sd(catdata_flag$EXOBGAPC_ugL_1, na.rm = TRUE)
+threshold_phyco <- sd_4_phyco
+
+#chl_ugl <- ggplot(data = catdata_all, aes(x = DateTime, y = EXOChla_ugL_1)) +
+#  geom_point() +
+#  geom_hline(yintercept = sd_4)
+#ggplotly(chl_ugl)
+
+# QAQC on major chl outliers using DWH's method: datapoint set to NA if data is greater than 4*sd different from both previous and following datapoint
+catdata_flag <- catdata_flag %>% 
+  mutate(Chla = lag(EXOChla_ugL_1, 0),
+         Chla_lag1 = lag(EXOChla_ugL_1, 1),
+         Chla_lead1 = lead(EXOChla_ugL_1, 1)) %>%   #These mutates create columns for current fDOM, fDOM before and fDOM after. These are used to run ifelse QAQC loops
+  mutate(EXOChla_ugL_1 = ifelse(Chla < 0 & !is.na(Chla), 0, EXOChla_ugL_1)) %>% 
+  mutate(EXOChla_RFU_1 = ifelse(Chla < 0 & !is.na(Chla), 0, EXOChla_RFU_1)) %>%
+  mutate(Chla = ifelse(Chla == "NAN", NA, Chla)) %>% 
+  mutate(Chla_lag1 = ifelse(Chla_lag1 == "NAN", NA, Chla_lag1)) %>% 
+  mutate(Chla_lead1 = ifelse(Chla_lead1 == "NAN", NA, Chla_lead1)) %>% 
+  mutate(Chla = as.numeric(Chla)) %>% 
+  mutate(Chla_lag1 = as.numeric(Chla_lag1)) %>% 
+  mutate(Chla_lead1 = as.numeric(Chla_lead1)) %>% 
+  mutate(EXOChla_ugL_1 = ifelse((abs(Chla_lag1 - Chla) > (threshold))  & (abs(Chla_lead1 - Chla) > (threshold) & !is.na(Chla)), 
+                                NA, EXOChla_ugL_1)) %>%   
+  mutate(EXOChla_RFU_1 = ifelse((abs(Chla_lag1 - Chla) > (threshold))  & (abs(Chla_lead1 - Chla) > (threshold) & !is.na(Chla)), 
+                                NA, EXOChla_RFU_1)) %>% 
+  select(-Chla, -Chla_lag1, -Chla_lead1)
+
+# fdom qaqc
+# QAQC from DWH to remove major outliers from fDOM data that are 2 sd's greater than the previous and following datapoint
+# QAQC done on 2018-2020 dataset
+catdata_flag <- catdata_flag %>% 
+  rename(EXOfDOM_QSU_1 = fDOM_QSU_1, EXOfDOM_RFU_1 = fDOM_RFU_1)
+
+sd_fDOM <- sd(catdata_flag$EXOfDOM_QSU_1, na.rm = TRUE) #deteriming the standard deviation of fDOM data 
+
+#fDOM_pre_QAQC <- ggplot(data = catdata_all, aes(x = DateTime, y = EXOfDOM_QSU_1)) +
+#  geom_point()+
+#  ggtitle("fDOM (QSU) pre QAQC")
+#ggplotly(fDOM_pre_QAQC)
+
+catdata_flag <- catdata_flag %>% 
+  mutate(fDOM = lag(EXOfDOM_QSU_1, 0),
+         fDOM_lag1 = lag(EXOfDOM_QSU_1, 1),
+         fDOM_lead1 = lead(EXOfDOM_QSU_1, 1)) %>%  #These mutates create columns for current fDOM, fDOM before and fDOM after. These are used to run ifelse QAQC loops
+  mutate(EXOfDOM_QSU_1 = ifelse(fDOM < 0 & !is.na(fDOM), NA, EXOfDOM_QSU_1),
+         EXOfDOM_RFU_1 = ifelse(fDOM < 0 & !is.na(fDOM), NA, EXOfDOM_RFU_1)) %>% #These mutates are QAQCing for negative fDOM QSU values and setting these to NA and making a flag for these. This was done outside of the 2 sd deviation rule because there were two negative points in a row and one was not removed with the follwoing if else statements. 
+  mutate(fDOM = ifelse(fDOM == "NAN", NA, fDOM)) %>% 
+  mutate(fDOM_lag1 = ifelse(fDOM_lag1 == "NAN", NA, fDOM_lag1)) %>% 
+  mutate(fDOM_lead1 = ifelse(fDOM_lead1 == "NAN", NA, fDOM_lead1)) %>% 
+  mutate(fDOM = as.numeric(fDOM)) %>% 
+  mutate(fDOM_lag1 = as.numeric(fDOM_lag1)) %>% 
+  mutate(fDOM_lead1 = as.numeric(fDOM_lead1)) %>% 
+  mutate(EXOfDOM_QSU_1 = ifelse(
+    (abs(fDOM_lag1 - fDOM) > (2*sd_fDOM)) & (abs(fDOM_lead1 - fDOM) > (2*sd_fDOM)  & !is.na(fDOM)), NA, EXOfDOM_QSU_1
+  )) %>%  #QAQC to remove outliers for QSU fDOM data 
+  mutate(EXOfDOM_RFU_1 = ifelse(
+    (abs(fDOM_lag1 - fDOM) > (2*sd_fDOM)) & (abs(fDOM_lead1 - fDOM) > (2*sd_fDOM)  & !is.na(fDOM)), NA, EXOfDOM_RFU_1
+  )) %>% #QAQC to remove outliers for RFU fDOM data
+  select(-fDOM, -fDOM_lag1, -fDOM_lead1)  #This removes the columns used to run ifelse statements since they are no longer needed. 
+
+#Deal with when the sensors were up
+maint = read.csv(paste0(folder, "/CAT_MaintenanceLog_2020.txt"))
+maint = maint[!grepl("EXO",maint$parameter),] #creating file "maint" with all sensor string maintenance
+maint <- maint %>% 
+  filter(parameter == " All_Cat")
+maint = maint%>%
+  filter(!colnumber %in% c(" c(24:26)"," 40"," 41"))
+clean_start<-as.POSIXct(maint$TIMESTAMP_start, tz = "EST")
+clean_end <- as.POSIXct(maint$TIMESTAMP_end, tz = "EST")
+
+ADJ_PERIOD = 2*60*60 #amount of time to stabilization after cleaning in seconds
+
+for (i in 1:length(clean_start)){ #Set all data during cleaning and for ADJ_PERIOD after to NA
+  catdata_flag$EXODO_mgL_1[catdata_flag$DateTime>clean_start[i]&catdata_flag$DateTime<(clean_end[i]+ADJ_PERIOD)] <- NA
+  catdata_flag$EXODOsat_percent_1[catdata_flag$DateTime>clean_start[i]&catdata_flag$DateTime<clean_end[i]+ADJ_PERIOD] <- NA
+  catdata_flag$EXO_wtr_1[catdata_flag$DateTime>clean_start[i]&catdata_flag$DateTime<clean_end[i]+ADJ_PERIOD] <- NA
+  catdata_flag$SpCond_1[catdata_flag$DateTime>clean_start[i]&catdata_flag$DateTime<clean_end[i]+ADJ_PERIOD] <- NA
+  catdata_flag$EXOChla_ugL_1[catdata_flag$DateTime>clean_start[i]&catdata_flag$DateTime<clean_end[i]+ADJ_PERIOD] <- NA
+  catdata_flag$EXOfDOM_RFU_1[catdata_flag$DateTime>clean_start[i]&catdata_flag$DateTime<clean_end[i]+ADJ_PERIOD] <- NA
+  catdata_flag$Flag_DO_1[catdata_flag$DateTime>clean_start[i]&catdata_flag$DateTime<clean_end[i]+ADJ_PERIOD] <- 1
+}
+
+# Select columns of interest (Exo columns)
+catwalk_git <- catdata_flag %>% 
+  select(DateTime,EXO_wtr_1,SpCond_1,EXODO_mgL_1,EXOChla_ugL_1,EXOfDOM_RFU_1) %>% 
+  rename(EXOTemp_C_1 = EXO_wtr_1,EXOSpCond_uScm_1 = SpCond_1)
+
+# Combine catwalk data from EDI and from GitHub
+catwalk_all <- rbind(catwalk_edi_est,catwalk_git)
+
+catwalk_all$EXOTemp_C_1 <- as.numeric(catwalk_all$EXOTemp_C_1)
+catwalk_all$EXOSpCond_uScm_1 <- as.numeric(catwalk_all$EXOSpCond_uScm_1)
+catwalk_all$EXOChla_ugL_1 <- as.numeric(catwalk_all$EXOChla_ugL_1)
+catwalk_all$EXOfDOM_RFU_1 <- as.numeric(catwalk_all$EXOfDOM_RFU_1)
+
+# Plot catwalk temp to check?
+ggplot(catwalk_all,mapping=aes(x=DateTime,y=EXOTemp_C_1))+
+  geom_line()+
+  theme_classic(base_size=15)
+
+ggplot(catwalk_all,mapping=aes(x=DateTime,y=EXOChla_ugL_1))+
+  geom_line()+
+  theme_classic(base_size=15)
+
+ggplot(catwalk_all,mapping=aes(x=DateTime,y=EXOfDOM_RFU_1))+
+  geom_line()+
+  theme_classic(base_size=15)
 
 ### OLD CODE ----
 ### Load in atmospheric CH4 and CO2 data from Beech Island, SC, USA ----
