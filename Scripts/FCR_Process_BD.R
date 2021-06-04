@@ -103,7 +103,9 @@ ec2 %>% filter(wind_dir >= 250 | wind_dir <= 80) %>%
   coord_polar() + theme_bw() + xlab('Wind direction') + ylab('Wind speed')
 
 
-# filtering by wind speed
+# filtering by wind direction
+# Make sure filtering for wind direction should be once!!!
+# JUST DIRECTION!
 ec_filt <- ec2 %>% dplyr::filter(wind_dir < 80 | wind_dir > 250)
 
 met3 <- met2 %>% dplyr::filter(WindDir < 80 | WindDir > 250)
@@ -114,7 +116,7 @@ ec_filt <- left_join(ts2, ec_filt)
 
 
 ################################################################
-# count NA after filtering for wind speed
+# count NA after filtering for wind direction
 
 ec_filt %>% select(datetime, co2_flux, ch4_flux) %>% 
   summarise(co2_available = 100- sum(is.na(co2_flux))/n()*100,
@@ -130,6 +132,8 @@ ec_filt %>% select(datetime, co2_flux, ch4_flux) %>%
 
 plot(ec_filt$co2_flux, ylim = c(-100, 100))
 
+# Are these reasonable for FCR? Check w/ past flux data from McClure?
+# Absolute value of 100 (NOT -70)
 ec_filt$co2_flux <- ifelse(ec_filt$co2_flux > 100 | ec_filt$co2_flux < -70, NA, ec_filt$co2_flux)
 
 # removing qc = 2 for co2
@@ -140,6 +144,8 @@ ec_filt$co2_flux <- ifelse(ec_filt$qc_co2_flux >= 2, NA, ec_filt$co2_flux)
 
 plot(ec_filt$ch4_flux, ylim = c(-0.1, 0.5))
 
+# Are these reasonable for FCR? Check w/ past flux data from McClure?
+# Use absolute values - look into McClure et al
 ec_filt$ch4_flux <- ifelse(ec_filt$ch4_flux >= 0.25 | ec_filt$ch4_flux <= -0.1, NA, ec_filt$ch4_flux)
 
 # removing ch4 values when signal strength < 20
@@ -318,6 +324,12 @@ plot(eddy_fcr$VPD/1000)  # in kpa
 
 ###############################################################################
 # filter out all the values (x_peak) that are out of the reservoir
+# Filtering for length and direction?
+
+#ec_filt <- ec2 %>% dplyr::filter(wind_dir < 80 | wind_dir > 250); check to make sure these are the max values for wind direction
+# Check geometry of what's being filtered; wind_dir; x_peak
+
+# Use percentiles: 70th or 80th instead of median (50/50) - check x-peak; distance (how sensitive is this to 70?)
 
 eddy_fcr$footprint_flag <- ifelse(eddy_fcr$wind_dir >= 15 & eddy_fcr$wind_dir <= 90 & eddy_fcr$x_peak >= 40, 1, 
                                   ifelse(eddy_fcr$wind_dir < 15 & eddy_fcr$wind_dir > 327 & eddy_fcr$x_peak > 120, 1,
@@ -406,6 +418,8 @@ windRose(mydata = eddy_fcr3, ws = "u", wd = "wind_dir",
 ###########################################################################
 # get ustar distribution and filter by ustar
 ###########################################################################
+# Gapfilling - using periods of similar met.
+# Eddy proc - Max Planck for biogeochem
 
 Eproc <- sEddyProc$new('FCR', eddy_fcr3, c('NEE','Tair', 'VPD',
                                            'rH','H', 'LE', 'Ustar', 
