@@ -167,7 +167,7 @@ ghg_fluxes <- left_join(ghg_1,fluxes_all,by="DateTime")
 
 ### Load in Eddy Flux data ----
 # Load in data from Brenda - 30 minute fluxes from 2020-04-04 to 2021-05-06
-eddy_flux <- read_csv("./Data/processed_data_upto_2021-05-06_BD.csv")
+eddy_flux <- read_csv("./Data/20210607_EC_processed.csv")
 
 eddy_flux <- eddy_flux %>% 
   select(DateTime,NEE_uStar_f,ch4_flux_uStar_f)
