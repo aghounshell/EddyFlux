@@ -563,3 +563,5 @@ ggplot()+
 
 # Save the exported data
 write_csv(fcr_gf, "./Data/20210609_EC_processed.csv")
+
+# Saved Rfile as: EC_Process.R

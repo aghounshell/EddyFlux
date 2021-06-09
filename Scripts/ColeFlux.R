@@ -7,6 +7,9 @@
 # https://github.com/aghounshell/GHG/blob/master/Scripts/WindComps.R
 # https://github.com/aghounshell/GHG/blob/master/Scripts/Atm_CH4.R
 
+# Clear workspace
+rm(list = ls())
+
 # Set working directory
 wd <- getwd()
 setwd(wd)
@@ -32,22 +35,43 @@ met_21 <- read.csv("./Data/Met_GitHub_2021.csv", header=T) %>%
 # Combine into one data frame
 met_all <- rbind(met_edi,met_21)
 
+# Start timeseries on the 00:15:00 to facilitate 30-min averages
+met_all <- met_all %>% 
+  filter(DateTime >= as.POSIXct("2019-12-31 00:15:00"))
+
 # Select data every 30 minutes from Jan 2020 to end of met data
-met_30 <- as.data.frame(seq(as.POSIXct("2020-01-01", tz = "EST"), as.POSIXct("2021-05-19", tz = "EST"), by = "30 min"))
+met_all$Breaks <- cut(met_all$DateTime,breaks = "30 mins",right=FALSE)
+met_all$Breaks <- ymd_hms(as.character(met_all$Breaks))
 
-met_30 <- met_30 %>% 
-  rename(DateTime = `seq(as.POSIXct("2020-01-01", tz = "EST"), as.POSIXct("2021-05-19", tz = "EST"), by = "30 min")`)
+# Average met data to the 30 min mark (excluding Total Rain and Total PAR)
+met_30 <- met_all %>% 
+  select(DateTime,BP_Average_kPa,AirTemp_Average_C,RH_percent,ShortwaveRadiationUp_Average_W_m2,ShortwaveRadiationDown_Average_W_m2,
+         InfaredRadiationUp_Average_W_m2,InfaredRadiationDown_Average_W_m2,Albedo_Average_W_m2,WindSpeed_Average_m_s,WindDir_degrees,Breaks) %>% 
+  group_by(Breaks) %>% 
+  summarise_all(mean,na.rm=TRUE)
 
-met_30 <- left_join(met_30,met_all,by="DateTime")
+# Sum met data to the 30 min mark (for Total Rain and Total PAR)
+met_30_rain <- met_all %>% 
+  select(Rain_Total_mm,PAR_Total_mmol_m2,Breaks) %>% 
+  group_by(Breaks) %>% 
+  summarise_all(sum,na.rm=TRUE)
+
+# Combine averaged and summed data together
+met_30_2 <- cbind.data.frame(met_30,met_30_rain)
+
+# Adjust datetime to 30 minute intervals, select relevant parameters, and rename
+# following Brenda's conventions
+met_30_2 <- met_30_2 %>% 
+  select(-Breaks) %>% 
+  mutate(DateTime_Adj = DateTime + 30) %>% 
+  select(-DateTime) %>% 
+  rename(DateTime = DateTime_Adj)
 
 # Gut-check plot: wind
 ggplot(met_all,mapping=aes(x=DateTime,y=WindSpeed_Average_m_s))+
   geom_line()+
   ylim(0,11)+
   theme_classic(base_size = 17)
-
-# FOR NOW: Assume atmospheric CH4 = 1893.4 ppb; CO2 = 419.05 ppb
-# https://gml.noaa.gov/ccgg/trends/
 
 ### Aggregate CO2 and CH4 dissolved data ----
 # From EDI (2015-2020) on 28 May 2021
@@ -96,41 +120,76 @@ ghg_2 <- ghg %>%
 
 ### Calculate Fluxes ----
 # Calculate U10 for wind data
-wind <- met_30 %>% 
+wind <- met_30_2 %>% 
   select(WindSpeed_Average_m_s) %>% 
   rename(wnd = WindSpeed_Average_m_s)
 
-height <- 2
+height <- 3
 u10 <- wind.scale.base(wind,height)
 
 # First calculate k600 using LakeMetabolizer
 # in m/d
 k600_2 <- k.cole.base(u10)
 
-k600 <- cbind(met_30,k600_2) %>% 
-  select(c(DateTime:Reservoir,PAR_Average_umol_s_m2:Albedo_Average_W_m2,wnd)) %>% 
+k600 <- cbind(met_30_2,k600_2) %>% 
+  select(c(DateTime,BP_Average_kPa:Albedo_Average_W_m2,wnd)) %>% 
   rename(k600_md = wnd)
 
 # Merge and extrapolate GHG data
-fluxes <- left_join(k600,ghg_1,by=c("DateTime","Reservoir","Site")) %>% 
+fluxes <- left_join(k600,ghg_1,by=c("DateTime")) %>% 
   select(-c(Depth_m,Rep)) %>% 
   mutate(ch4_umolL = na.fill(na.approx(ch4_umolL,na.rm=FALSE),"extend")) %>% 
   mutate(co2_umolL = na.fill(na.approx(co2_umolL,na.rm=FALSE),"extend")) %>% 
   rename(ch4_umolL_rep1 = ch4_umolL, co2_umolL_rep1 = co2_umolL)
 
-fluxes_2 <- left_join(fluxes,ghg_2,by=c("DateTime","Reservoir","Site")) %>% 
+fluxes_2 <- left_join(fluxes,ghg_2,by=c("DateTime")) %>% 
   select(-c(Depth_m,Rep)) %>% 
   mutate(ch4_umolL = na.fill(na.approx(ch4_umolL,na.rm=FALSE),"extend")) %>% 
   mutate(co2_umolL = na.fill(na.approx(co2_umolL,na.rm=FALSE),"extend")) %>% 
   rename(ch4_umolL_rep2 = ch4_umolL, co2_umolL_rep2 = co2_umolL)
 
+# Why don't we use EC concentrations (CO2 and CH4 for atmospheric concentrations?)
+# Load in EC data from Eddy Pro
+ec <- read_csv("./Data/FCR_2021-05-06_upto.csv") %>% 
+  mutate(DateTime = as.POSIXct(paste(date, time), format="%m/%d/%Y %H:%M:%S", tz="EST"))
+
+# convert -9999 to NA
+ec[ec == -9999] <- NA
+
+# Plot EC concentrations (just to see!)
+ggplot(ec,mapping=aes(DateTime, co2_mole_fraction))+
+  geom_line()
+
+ggplot(ec,mapping=aes(DateTime, ch4_mole_fraction))+
+  geom_line()
+
+# Do some light QA/QC'ing
+ec_2 <- ec %>% 
+  mutate(co2_mole_fraction = ifelse(co2_mole_fraction < 430 & co2_mole_fraction > 330, co2_mole_fraction, NA)) %>% 
+  mutate(ch4_mole_fraction = ifelse(ch4_mole_fraction < 2.3, ch4_mole_fraction, NA)) %>% 
+  select(DateTime,co2_mole_fraction,ch4_mole_fraction)
+
+ggplot(ec_2,mapping=aes(DateTime, co2_mole_fraction))+
+  geom_point()+
+  geom_line()
+
+ggplot(ec_2,mapping=aes(DateTime, ch4_mole_fraction))+
+  geom_point()+
+  geom_line()
+
+fluxes_2 <- left_join(fluxes_2,ec_2,by="DateTime")
+
+fluxes_2 <- fluxes_2 %>% 
+  mutate(co2_mole_fraction = na.fill(na.approx(co2_mole_fraction,na.rm=FALSE),"extend")) %>% 
+  mutate(ch4_mole_fraction = na.fill(na.approx(ch4_mole_fraction,na.rm=FALSE),"extend"))
+
 # Calculate fluxes: in umol/m2/s
 fluxes_2 <- fluxes_2 %>% 
   mutate(nv = (BP_Average_kPa*0.00986923/(0.0820573660809596*(AirTemp_Average_C + 273.15)))) %>% # units = mols/L
-  mutate(ch4_umolL_atm = 1893.4/1e9*nv*1e6) %>% # units = umol/L
+  mutate(ch4_umolL_atm = ch4_mole_fraction/1e6*nv*1e6) %>% # units = umol/L
   mutate(ch4_flux_1 = 1000*k600_md*(ch4_umolL_rep1-ch4_umolL_atm)/24/60/60) %>%  # units = umol C/m2/s
   mutate(ch4_flux_2 = 1000*k600_md*(ch4_umolL_rep2-ch4_umolL_atm)/24/60/60) %>%  # units = umol C/m2/s
-  mutate(co2_umolL_atm = 419.05/1e9*nv*1e6) %>%  # units = umol/L
+  mutate(co2_umolL_atm = co2_mole_fraction/1e6*nv*1e6) %>%  # units = umol/L
   mutate(co2_flux_1 = 1000*k600_md*(co2_umolL_rep1-co2_umolL_atm)/24/60/60) %>%  # units = umol C/m2/s
   mutate(co2_flux_2 = 1000*k600_md*(co2_umolL_rep2-co2_umolL_atm)/24/60/60)  # units = umol C/m2/s
 
@@ -154,26 +213,90 @@ fluxes_all <- fluxes_all %>%
 
 # Plot to check?
 ggplot()+
-  geom_line(fluxes_all,mapping=aes(DateTime,ch4_flux_umolm2s_mean))+
+  geom_line(fluxes_all,mapping=aes(DateTime,ch4_flux_umolm2s_mean/1000*60*60*24))+
   #geom_ribbon(fluxes_all,mapping=aes(DateTime,ymin = ch4_umolm2s-ch4_umolm2s_sd,ymax = ch4_umolm2s+ch4_umolm2s_sd),fill="grey")+
-  theme_classic(base_size =15 )
+  theme_classic(base_size =15)
 
 ggplot()+
-  geom_line(fluxes_all,mapping=aes(DateTime,co2_flux_umolm2s_mean))+
+  geom_line(fluxes_all,mapping=aes(DateTime,co2_flux_umolm2s_mean/1000*60*60*24))+
   theme_classic(base_size=15)
 
 # Select dates where we actually have GHG concentrations
 ghg_fluxes <- left_join(ghg_1,fluxes_all,by="DateTime")
 
+ggplot(ghg_fluxes,mapping=aes(DateTime,ch4_flux_umolm2s_mean/1000*60*60*24))+
+  geom_line()+
+  geom_point()
+
+ggplot(ghg_fluxes,mapping=aes(DateTime,co2_flux_umolm2s_mean/1000*60*60*24))+
+  geom_line()+
+  geom_point()
+
 ### Load in Eddy Flux data ----
 # Load in data from Brenda - 30 minute fluxes from 2020-04-04 to 2021-05-06
-eddy_flux <- read_csv("./Data/20210607_EC_processed.csv")
+eddy_flux <- read_csv("./Data/20210609_EC_processed.csv") %>% 
+  mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d %H:%M:%S", tz = "EST"))
 
 eddy_flux <- eddy_flux %>% 
-  select(DateTime,NEE_uStar_f,ch4_flux_uStar_f)
+  select(DateTime,NEE_uStar_orig,NEE_uStar_f,NEE_uStar_fsd,ch4_flux_uStar_orig,ch4_flux_uStar_f,ch4_flux_uStar_fsd)
 
-# Plot Eddy flux data and GHG flux data
-flux_co2 <- ggplot()+
+# Calculate daily mean (C umol/m2/s)
+eddy_flux_mean <- eddy_flux %>% 
+  mutate(DateTime = format(as.POSIXct(DateTime, "%Y-%m-%d"),"%Y-%m-%d")) %>% 
+  mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d", tz = "EST")) %>% 
+  group_by(DateTime) %>% 
+  summarise_all(mean,na.rm=TRUE)
+
+eddy_flux_sd <- eddy_flux %>% 
+  select(DateTime,NEE_uStar_fsd,ch4_flux_uStar_fsd) %>% 
+  mutate(NEE_uStar_fsd_v = NEE_uStar_fsd^2) %>% 
+  mutate(ch4_flux_fsd_v = ch4_flux_uStar_fsd^2) %>% 
+  mutate(DateTime = format(as.POSIXct(DateTime, "%Y-%m-%d"),"%Y-%m-%d")) %>% 
+  mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d", tz = "EST")) %>% 
+  group_by(DateTime) %>% 
+  summarise_all(sum,na.rm=TRUE) %>% 
+  mutate(NEE_uStar_fsd_v = sqrt(NEE_uStar_fsd_v/48)) %>% 
+  mutate(ch4_flux_fsd_v = sqrt(ch4_flux_fsd_v/48)) %>% 
+  select(DateTime, NEE_uStar_fsd_v, ch4_flux_fsd_v)
+
+eddy_flux_mean <- left_join(eddy_flux_mean,eddy_flux_sd,by="DateTime")
+
+# Select for times around noon (10 am - 2 pm) and average
+eddy_flux_day <- eddy_flux %>% 
+  mutate(myHour = hour(DateTime)) %>% 
+  filter(myHour >= 10 & myHour <= 14) %>% 
+  mutate(DateTime = format(as.POSIXct(DateTime, "%Y-%m-%d"),"%Y-%m-%d")) %>% 
+  mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d", tz = "EST")) %>% 
+  group_by(DateTime) %>% 
+  summarise_all(mean,na.rm=TRUE) %>% 
+  select(-NEE_uStar_fsd,-ch4_flux_uStar_fsd)
+
+# Plot Eddy flux data - 'real' time points + daily mean for gap filled data
+ggplot()+
+  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
+  geom_point(eddy_flux, mapping = aes(DateTime, NEE_uStar_orig/1000*60*60*24),alpha = 0.1)+
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_ribbon(eddy_flux_mean, mapping = aes(x = DateTime, y = NEE_uStar_f/1000*60*60*24, ymin = (NEE_uStar_f/1000*60*60*24)-(NEE_uStar_fsd_v/1000*60*60*24),ymax = (NEE_uStar_f/1000*60*60*24)+(NEE_uStar_fsd_v/1000*60*60*24)),fill="#E63946",alpha=0.4)+
+  geom_line(eddy_flux_mean, mapping = aes(DateTime, NEE_uStar_f/1000*60*60*24),color="#E63946",size = 1)+
+  geom_point(ghg_fluxes,mapping=aes(x=DateTime,y=co2_flux_umolm2s_mean/1000*60*60*24),color="#4c8bfe",size=1.5)+
+  geom_errorbar(ghg_fluxes,mapping=aes(x=DateTime,ymin=co2_flux_umolm2s_mean/1000*60*60*24 - co2_flux_umolm2s_sd/1000*60*60*24, ymax = co2_flux_umolm2s_mean/1000*60*60*24+co2_flux_umolm2s_sd/1000*60*60*24),color="#4c8bfe")+
+  xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-05-05"))+
+  theme_classic(base_size = 15)+
+  xlab("") + ylab(expression(~CO[2]~flux~(mmol~m^-2~d^-1)))
+
+ggplot()+
+  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
+  geom_point(eddy_flux, mapping = aes(DateTime, ch4_flux_uStar_orig/1000*60*60*24),alpha = 0.1)+
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_ribbon(eddy_flux_mean, mapping = aes(x = DateTime, y = ch4_flux_uStar_f/1000*60*60*24, ymin = (ch4_flux_uStar_f/1000*60*60*24)-(ch4_flux_fsd_v/1000*60*60*24),ymax = (ch4_flux_uStar_f/1000*60*60*24)+(ch4_flux_fsd_v/1000*60*60*24)),fill="#E63946",alpha=0.4)+
+  geom_line(eddy_flux_mean, mapping = aes(DateTime, ch4_flux_uStar_f/1000*60*60*24),color="#E63946",size = 1)+
+  geom_point(ghg_fluxes,mapping=aes(x=DateTime,y=ch4_flux_umolm2s_mean/1000*60*60*24),color="#4c8bfe",size=1.5)+
+  geom_errorbar(ghg_fluxes,mapping=aes(x=DateTime,ymin=ch4_flux_umolm2s_mean/1000*60*60*24 - ch4_flux_umolm2s_sd/1000*60*60*24, ymax = ch4_flux_umolm2s_mean/1000*60*60*24+ch4_flux_umolm2s_sd/1000*60*60*24),color="#4c8bfe")+
+  xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-05-05"))+
+  theme_classic(base_size = 15)+
+  xlab("") + ylab(expression(~CH[4]~flux~(mmol~m^-2~d^-1)))
+
+ggplot()+
   geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dashed",color="navyblue")+ #Turnover FCR; operationally defined
   geom_line(eddy_flux,mapping=aes(x=DateTime,y=NEE_uStar_f))+
   geom_hline(yintercept = 0, linetype = "dashed", color="darkgrey", size = 0.8)+
@@ -185,7 +308,18 @@ flux_co2 <- ggplot()+
   xlim(as.POSIXct("2020-05-01"),as.POSIXct("2021-04-29"))+
   theme_classic(base_size = 15)
 
-flux_ch4 <- ggplot()+
+ggplot()+
+  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
+  geom_point(eddy_flux, mapping = aes(DateTime, NEE_uStar_orig/1000*60*60*24),alpha = 0.1)+
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_line(eddy_flux_day, mapping = aes(DateTime, NEE_uStar_f/1000*60*60*24),color="#E63946",size = 1)+
+  #geom_point(ghg_fluxes,mapping=aes(x=DateTime,y=co2_flux_umolm2s_mean/1000*60*60*24),color="#4c8bfe",size=1.5)+
+  #geom_errorbar(ghg_fluxes,mapping=aes(x=DateTime,ymin=co2_flux_umolm2s_mean/1000*60*60*24 - co2_flux_umolm2s_sd/1000*60*60*24, ymax = co2_flux_umolm2s_mean/1000*60*60*24+co2_flux_umolm2s_sd/1000*60*60*24),color="#4c8bfe")+
+  xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-05-05"))+
+  theme_classic(base_size = 15)+
+  xlab("") + ylab(expression(~CO[2]~flux~(mmol~m^-2~d^-1)))
+
+ggplot()+
   geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dashed",color="navyblue")+ #Turnover FCR; operationally defined
   geom_line(eddy_flux,mapping=aes(x=DateTime,y=ch4_flux_uStar_f))+
   geom_hline(yintercept = 0, linetype = "dashed", color="darkgrey", size = 0.8)+
