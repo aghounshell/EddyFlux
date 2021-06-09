@@ -508,19 +508,36 @@ Eproc$sGetUstarScenarios()
 Eproc$sMDSGapFillUStarScens(fluxVar = 'NEE', FillAll = TRUE)
 Eproc$sMDSGapFillUStarScens(fluxVar = 'ch4_flux', FillAll = TRUE)
 
+# Try plotting daily sums
+Eproc$sPlotDailySums('NEE_uStar_f','NEE_uStar_fsd')
+Eproc$sPlotDailySums('ch4_flux_uStar_f')
+
+Eproc$sPlotDiurnalCycle('NEE_uStar_f')
+Eproc$sPlotDiurnalCycle('ch4_flux_uStar_f')
+
+Eproc$sPlotHHFluxes('NEE_uStar_f')
+Eproc$sPlotHHFluxes('ch4_flux_uStar_f')
 
 # Export results from Eddy Proc
 filled_fcr <- Eproc$sExportResults()
 fcr_gf <- cbind(eddy_fcr3, filled_fcr)
 
-#### START HERE TO VISUALIZE/FIND UNCERTAINTY ####
-# SAVED AS RFILE: EC_PROCESS.R
+### Quick plots as a cut-check/initial cut
 
 fcr_gf %>% ggplot() + 
-  geom_line(aes(DateTime, ch4_flux_uStar_orig)) +
-  geom_line(aes(DateTime, ch4_flux_uStar_f), col = 'red', alpha = 0.3) +
+  geom_point(aes(DateTime, ch4_flux_uStar_orig), alpha = 0.3) +
+  geom_line(aes(DateTime, ch4_flux_uStar_f - ch4_flux_uStar_fsd), alpha = 0.3)+
+  geom_line(aes(DateTime, ch4_flux_uStar_fsd + ch4_flux_uStar_fsd), alpha = 0.3)+
+  geom_line(aes(DateTime, ch4_flux_uStar_f), col = 'red', alpha = 0.5) +
   theme_bw() +
   xlab("") + ylab(expression(~CH[4]~flux~(mu~mol~m^-2~s^-1)))
+
+# Plot as points + daily average
+fcr_gf_mean <- fcr_gf %>% 
+  mutate(DateTime = format(as.POSIXct(DateTime, "%Y-%m-%d"),"%Y-%m-%d")) %>% 
+  mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d")) %>% 
+  group_by(DateTime) %>% 
+  summarise_all(mean,na.rm=TRUE)
 
 fcr_gf %>% ggplot() +
   geom_line(aes(DateTime, NEE)) +
@@ -528,7 +545,21 @@ fcr_gf %>% ggplot() +
   theme_bw() +
   xlab("") + ylab(expression(~CO[2]~flux~(mu~mol~m^-2~s^-1)))
 
+ggplot()+
+  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
+  geom_point(fcr_gf, mapping = aes(DateTime, NEE_uStar_orig*60*60*24*44.01/1e6),alpha = 0.1)+
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_line(fcr_gf_mean, mapping = aes(DateTime, NEE_uStar_f*60*60*24*44.01/1e6),color="#E63946",size = 1)+
+  theme_classic(base_size = 15)+
+  xlab("") + ylab(expression(~CO[2]~flux~(g~m^-2~d^-1)))
 
-# saving the data 
+ggplot()+
+  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
+  geom_point(fcr_gf, mapping = aes(DateTime, ch4_flux_uStar_orig*60*60*24*16.04/1e6),alpha = 0.1)+
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_line(fcr_gf_mean, mapping = aes(DateTime, ch4_flux_uStar_f*60*60*24*16.04/1e6),color="#E63946",size = 1)+
+  theme_classic(base_size = 15)+
+  xlab("") + ylab(expression(~CH[4]~flux~(g~m^-2~d^-1)))
 
-write_csv(fcr_gf, "./Data/20210607_EC_processed.csv")
+# Save the exported data
+write_csv(fcr_gf, "./Data/20210609_EC_processed.csv")
