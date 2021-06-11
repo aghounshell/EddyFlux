@@ -854,6 +854,17 @@ write.csv(catwalk_temp,"./Data/LA_Thermistor.wrt")
 therm_la <- read_csv("./Data/FCR_Results_LA.csv") %>% 
   mutate(DateTime = as.POSIXct(strptime(DateTime, "%m/%d/%Y", tz="EST"))) 
 
+# Plot thermocline depth for the study period (just to see)
+ggplot(therm_la)+
+  geom_line(mapping=aes(x=DateTime,y=-SthermD,color="SthermD"))+
+  #geom_line(mapping=aes(x=DateTime,y=-thermD,color="thermD"))+
+  xlim(as.POSIXct("2020-04-05"),as.POSIXct("2020-10-31"))+
+  theme_classic(base_size = 15)
+
+them_la_mean <- therm_la %>% 
+  filter(DateTime >= "2020-04-05" & DateTime <= "2020-11-01") %>% 
+  summarise_all(mean,na.rm=TRUE)
+
 # Plot buoyancy frequency (N2)
 n2_time <- ggplot()+
   geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined

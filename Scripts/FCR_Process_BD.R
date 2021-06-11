@@ -190,6 +190,8 @@ ec_filt$ch4_flux <- ifelse(ec_filt$qc_ch4_flux >=2, NA, ec_filt$ch4_flux)
 # Additionally, remove CH4 when other parameters are QA/QC'd 
 # Following Waldo et al. 2021: Remove additional ch4 flux data 
 # (aka: anytime ch4_qc flag = 1 & another qc_flag =2, remove)
+
+################### UPDATE CO2 FLAGS TO REMOVE WHEN HE AND L > 2!!! ###############################
 ec_filt$ch4_flux <- ifelse(ec_filt$qc_ch4_flux==1 & ec_filt$qc_co2_flux>=2, NA, ec_filt$ch4_flux)
 ec_filt$ch4_flux <- ifelse(ec_filt$qc_ch4_flux==1 & ec_filt$qc_LE>=2, NA, ec_filt$ch4_flux)
 ec_filt$ch4_flux <- ifelse(ec_filt$qc_ch4_flux==1 & ec_filt$qc_H>=2, NA, ec_filt$ch4_flux)
@@ -500,8 +502,15 @@ Eproc$sMDSGapFill('H', V1 = 'Rg', V2 = 'VPD', V3 = 'Tair', FillAll = TRUE)
 Eproc$sMDSGapFill('LE', V1 = 'Rg', V2 = 'VPD', V3 = 'Tair', FillAll = TRUE)
 
 # Estimate ustar threshold distribution by bootstrapping the data
+
+############# Beef up uncertainty? ####################
+#EProc$sEstimateUstarScenarios( 
+#  nSample = 200, probs = seq(0.025,0.975,length.out = 39))
+
 Eproc$sEstimateUstarScenarios(UstarColName = 'Ustar', NEEColName = 'NEE', RgColName= 'Rg',
                               nSample = 200L, probs = c(0.05, 0.5, 0.95))
+
+Eproc$sGetEstimatedUstarThresholdDistribution()
 
 Eproc$sGetUstarScenarios()
 
@@ -540,8 +549,9 @@ fcr_gf_mean <- fcr_gf %>%
   summarise_all(mean,na.rm=TRUE)
 
 fcr_gf %>% ggplot() +
-  geom_line(aes(DateTime, NEE)) +
-  geom_line(aes(DateTime, NEE_uStar_f), col='red', alpha = 0.3) +
+  #geom_point(aes(DateTime, NEE),alpha=0.1) +
+  geom_line(aes(DateTime, NEE_uStar_f), col='red', alpha = 0.4) +
+  geom_line(aes(DateTime, NEE_U50_f), col = 'blue', alpha = 0.4)+
   theme_bw() +
   xlab("") + ylab(expression(~CO[2]~flux~(mu~mol~m^-2~s^-1)))
 
