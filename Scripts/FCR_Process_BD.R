@@ -170,6 +170,10 @@ ec_filt$co2_flux <- ifelse(ec_filt$co2_flux > 100 | ec_filt$co2_flux < -100, NA,
 # Remove CO2 data if QC >= 2 (aka: data that has been flagged by Eddy Pro)
 ec_filt$co2_flux <- ifelse(ec_filt$qc_co2_flux >= 2, NA, ec_filt$co2_flux)
 
+# Additionally remove CO2 data when H and LE > 2 (following CH4 filtering)
+ec_filt$co2_flux <- ifelse(ec_filt$qc_co2_flux==1 & ec_filt$qc_LE>=2, NA, ec_filt$co2_flux)
+ec_filt$co2_flux <- ifelse(ec_filt$qc_co2_flux==1 & ec_filt$qc_H>=2, NA, ec_filt$co2_flux)
+
 # Remove large CH4 values
 # Visualize data that is above/below abs(0.25)
 plot(ec_filt$ch4_flux)
@@ -190,8 +194,6 @@ ec_filt$ch4_flux <- ifelse(ec_filt$qc_ch4_flux >=2, NA, ec_filt$ch4_flux)
 # Additionally, remove CH4 when other parameters are QA/QC'd 
 # Following Waldo et al. 2021: Remove additional ch4 flux data 
 # (aka: anytime ch4_qc flag = 1 & another qc_flag =2, remove)
-
-################### UPDATE CO2 FLAGS TO REMOVE WHEN HE AND L > 2!!! ###############################
 ec_filt$ch4_flux <- ifelse(ec_filt$qc_ch4_flux==1 & ec_filt$qc_co2_flux>=2, NA, ec_filt$ch4_flux)
 ec_filt$ch4_flux <- ifelse(ec_filt$qc_ch4_flux==1 & ec_filt$qc_LE>=2, NA, ec_filt$ch4_flux)
 ec_filt$ch4_flux <- ifelse(ec_filt$qc_ch4_flux==1 & ec_filt$qc_H>=2, NA, ec_filt$ch4_flux)
@@ -239,7 +241,7 @@ eddy_fcr <- left_join(ts2, ec_filt, by = 'datetime')
 eddy_fcr %>% select(datetime, co2_flux, ch4_flux) %>% 
   summarise(co2_available = 100-sum(is.na(co2_flux))/n()*100,
             ch4_available = 100-sum(is.na(ch4_flux))/n()*100)
-# 41% CO2 data; 33% CH4 data
+# 35% CO2 data; 33% CH4 data
 
 # Number of timepoints available
 eddy_fcr %>% select(datetime, co2_flux, ch4_flux) %>% 
@@ -439,7 +441,7 @@ eddy_fcr_footprint_full <- left_join(ts2, eddy_fcr_footprint)
 
 # Setting up a new process on REddyProc
 eddy_fcr3 <- eddy_fcr_footprint_full %>% 
-  select(DateTime = datetime, daytime, NEE = NEE.high, ch4_flux = ch4.high, VPD, 
+  select(DateTime = datetime, daytime, NEE = NEE.med, ch4_flux = ch4.med, VPD, 
          H, LE, Tair = sonic_temp_celsius, rH = RH, Ustar = `u*`, u = wind_speed, 
          pressure = air_pressure, L, z_d_L = `(z-d)/L`, sigma_v = v_var, 
          precip, Rn, SW_in, SW_out, LW_out, LW_in, albedo, par_tot, wind_dir, 
@@ -455,7 +457,7 @@ eddy_fcr3 <- eddy_fcr_footprint_full %>%
 eddy_fcr3 %>% select(DateTime, NEE, ch4_flux) %>% 
   summarise(co2_available = 100-sum(is.na(NEE))/n()*100,
             ch4_available = 100-sum(is.na(ch4_flux))/n()*100)
-# 30% CO2 data; 25% CH4 data
+# 26% CO2 data; 20% CH4 data
 
 # Total number of available time points
 eddy_fcr3 %>% select(DateTime, NEE, ch4_flux) %>% 
@@ -502,13 +504,12 @@ Eproc$sMDSGapFill('H', V1 = 'Rg', V2 = 'VPD', V3 = 'Tair', FillAll = TRUE)
 Eproc$sMDSGapFill('LE', V1 = 'Rg', V2 = 'VPD', V3 = 'Tair', FillAll = TRUE)
 
 # Estimate ustar threshold distribution by bootstrapping the data
-
-############# Beef up uncertainty? ####################
-#EProc$sEstimateUstarScenarios( 
-#  nSample = 200, probs = seq(0.025,0.975,length.out = 39))
-
 Eproc$sEstimateUstarScenarios(UstarColName = 'Ustar', NEEColName = 'NEE', RgColName= 'Rg',
-                              nSample = 200L, probs = c(0.05, 0.5, 0.95))
+                              nSample = 200L, probs = c(0.05, 0.7, 0.95))
+
+# Beef up uncertainty following: https://github.com/bgctw/REddyProc/blob/master/vignettes/useCase.md
+Eproc$sEstimateUstarScenarios(UstarColName = 'Ustar', NEEColName = 'NEE', RgColName= 'Rg', 
+  nSample = 1000, probs = seq(0.025,0.975,length.out = 39))
 
 Eproc$sGetEstimatedUstarThresholdDistribution()
 
@@ -571,7 +572,25 @@ ggplot()+
   theme_classic(base_size = 15)+
   xlab("") + ylab(expression(~CH[4]~flux~(g~m^-2~d^-1)))
 
+# Check comparisons of 50 vs. 70 percentiles
+ggplot()+
+  geom_point(mapping=aes(x=fcr_gf_70$ch4_flux_U70_f,y=fcr_gf$ch4_flux_U50_f))+
+  geom_abline(intercept = 0)
+
+ggplot()+
+  geom_point(mapping=aes(x=fcr_gf_70$NEE_U70_f,y=fcr_gf$NEE_U50_f))+
+  geom_abline(intercept = 0)
+
+# Check comparisons of f vs. 50 percentiles
+ggplot()+
+  geom_point(mapping=aes(x=fcr_gf$ch4_flux_uStar_f,y=fcr_gf$ch4_flux_U50_f))+
+  geom_abline(intercept = 0)
+
+ggplot()+
+  geom_point(mapping=aes(x=fcr_gf$NEE_uStar_f,y=fcr_gf$NEE_U50_f))+
+  geom_abline(intercept = 0)
+
 # Save the exported data
-write_csv(fcr_gf, "./Data/20210609_EC_processed.csv")
+write_csv(fcr_gf, "./Data/20210615_EC_processed.csv")
 
 # Saved Rfile as: EC_Process.R
