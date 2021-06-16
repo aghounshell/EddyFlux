@@ -15,7 +15,7 @@ wd <- getwd()
 setwd(wd)
 
 # Load in libraries
-pacman::p_load(tidyverse,ncdf4,ggplot2,ggpubr,LakeMetabolizer,zoo,scales,lubridate)
+pacman::p_load(tidyverse,ncdf4,ggplot2,ggpubr,LakeMetabolizer,zoo,scales,lubridate,lognorm)
 
 # First load in wind data from Met station at FCR ----
 # Download 2020 Met data from EDI
@@ -234,206 +234,344 @@ ggplot(ghg_fluxes,mapping=aes(DateTime,co2_flux_umolm2s_mean/1000*60*60*24))+
 
 ### Load in Eddy Flux data ----
 # Load in data from Brenda - 30 minute fluxes from 2020-04-04 to 2021-05-06
-eddy_flux <- read_csv("./Data/20210609_EC_processed.csv") %>% 
+eddy_flux <- read_csv("./Data/20210615_EC_processed.csv") %>% 
   mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d %H:%M:%S", tz = "EST"))
 
-eddy_flux <- eddy_flux %>% 
-  select(DateTime,NEE_uStar_orig,NEE_uStar_f,NEE_uStar_fsd,ch4_flux_uStar_orig,ch4_flux_uStar_f,ch4_flux_uStar_fsd)
+# Aggregate to daily and calculate the uncertainty following:
+# https://github.com/bgctw/REddyProc/blob/master/vignettes/aggUncertainty.md
+eddy_flux_ch4 <- eddy_flux %>% 
+  select(DateTime,ch4_flux_uStar_orig,ch4_flux_uStar_f,ch4_flux_uStar_fsd,ch4_flux_uStar_fall,ch4_flux_uStar_fqc,
+         ch4_flux_U97.5_f) %>%
+  mutate(resid = ch4_flux_uStar_f - ch4_flux_uStar_fall)
 
-# Calculate daily mean (C umol/m2/s)
-eddy_flux_mean <- eddy_flux %>% 
+acf(eddy_flux_ch4$resid,na.action=na.pass,main="")
+
+autoCorr <- computeEffectiveAutoCorr(eddy_flux_ch4$resid)
+nEff <- computeEffectiveNumObs(eddy_flux_ch4$resid, na.rm = TRUE)
+c(nEff = nEff, nObs = sum(is.finite(eddy_flux_ch4$resid)))
+
+eddy_flux_ch4 <- eddy_flux_ch4 %>% 
+  mutate(resid = ch4_flux_uStar_f - ch4_flux_uStar_fall) %>% 
   mutate(DateTime = format(as.POSIXct(DateTime, "%Y-%m-%d"),"%Y-%m-%d")) %>% 
   mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d", tz = "EST")) %>% 
   group_by(DateTime) %>% 
-  summarise_all(mean,na.rm=TRUE)
+  summarise(nRec = sum(ch4_flux_uStar_fqc == 0, na.rm = TRUE), 
+            nEff = computeEffectiveNumObs(resid, effAcf = !!autoCorr, na.rm = TRUE), 
+            NEE = mean(ch4_flux_uStar_f, na.rm = TRUE), 
+            sdNEE = if (nEff <= 1) NA_real_ else sqrt(sum(ch4_flux_uStar_fsd^2, na.rm = TRUE) / (nEff - 1)), 
+            sdNEEuncorr = if (nRec == 0) NA_real_ else sqrt(sum(ch4_flux_uStar_fsd^2, na.rm = TRUE) / (nRec - 1)))
 
-eddy_flux_sd <- eddy_flux %>% 
-  select(DateTime,NEE_uStar_fsd,ch4_flux_uStar_fsd) %>% 
-  mutate(NEE_uStar_fsd_v = NEE_uStar_fsd^2) %>% 
-  mutate(ch4_flux_fsd_v = ch4_flux_uStar_fsd^2) %>% 
+# Aggregate to daily and calculate uncertainty for CO2
+eddy_flux_co2 <- eddy_flux %>% 
+  select(DateTime,NEE_uStar_orig,NEE_uStar_f,NEE_uStar_fsd,NEE_uStar_fall,NEE_uStar_fqc,
+         NEE_U97.5_f) %>%
+  mutate(resid = NEE_uStar_f - NEE_uStar_fall)
+
+acf(eddy_flux_co2$resid,na.action=na.pass,main="")
+
+autoCorr <- computeEffectiveAutoCorr(eddy_flux_co2$resid)
+nEff <- computeEffectiveNumObs(eddy_flux_co2$resid, na.rm = TRUE)
+c(nEff = nEff, nObs = sum(is.finite(eddy_flux_co2$resid)))
+
+eddy_flux_co2 <- eddy_flux_co2 %>%
+  mutate(resid = NEE_uStar_f - NEE_uStar_fall) %>% 
   mutate(DateTime = format(as.POSIXct(DateTime, "%Y-%m-%d"),"%Y-%m-%d")) %>% 
   mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d", tz = "EST")) %>% 
   group_by(DateTime) %>% 
-  summarise_all(sum,na.rm=TRUE) %>% 
-  mutate(NEE_uStar_fsd_v = sqrt(NEE_uStar_fsd_v/48)) %>% 
-  mutate(ch4_flux_fsd_v = sqrt(ch4_flux_fsd_v/48)) %>% 
-  select(DateTime, NEE_uStar_fsd_v, ch4_flux_fsd_v)
+  summarise(nRec = sum(NEE_uStar_fqc == 0, na.rm = TRUE), 
+            nEff = computeEffectiveNumObs(resid, effAcf = !!autoCorr, na.rm = TRUE), 
+            NEE = mean(NEE_uStar_f, na.rm = TRUE), 
+            sdNEE = if (nEff <= 1) NA_real_ else sqrt(sum(NEE_uStar_fsd^2, na.rm = TRUE) / (nEff - 1)), 
+            sdNEEuncorr = if (nRec == 0) NA_real_ else sqrt(sum(NEE_uStar_fsd^2, na.rm = TRUE) / (nRec - 1)))
 
-eddy_flux_mean <- left_join(eddy_flux_mean,eddy_flux_sd,by="DateTime")
+# Plot Eddy flux data - 'real' time points + daily mean for gap filled data
+co2_flux <- ggplot(eddy_flux_co2)+
+  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
+  geom_point(eddy_flux, mapping = aes(DateTime, NEE_uStar_orig/1e6*60*60*24*44.01),alpha = 0.1)+
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_ribbon(mapping = aes(x = DateTime, y = NEE/1e6*60*60*24*16.04, ymin = NEE/1e6*60*60*24*16.04 - sdNEE/1e6*60*60*24*16.04,ymax = NEE/1e6*60*60*24*16.04+sdNEE/1e6*60*60*24*16.04),fill="#E63946",alpha=0.4)+  
+  geom_line(mapping = aes(DateTime, NEE/1e6*60*60*24*16.04),color="#E63946",size = 1)+
+  xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-05-05"))+
+  theme_classic(base_size = 15)+
+  xlab("") + ylab(expression(~CO[2]~flux~(g~m^-2~d^-1)))
+
+ch4_flux <- ggplot(eddy_flux_ch4)+
+  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
+  geom_point(eddy_flux,mapping = aes(DateTime, ch4_flux_uStar_orig/1e6*60*60*24*16.04),alpha = 0.1)+
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_ribbon(mapping = aes(x = DateTime, y = NEE/1e6*60*60*24*16.04, ymin = NEE/1e6*60*60*24*16.04 - sdNEE/1e6*60*60*24*16.04,ymax = NEE/1e6*60*60*24*16.04+sdNEE/1e6*60*60*24*16.04),fill="#E63946",alpha=0.4)+  
+  geom_line(mapping = aes(DateTime, NEE/1e6*60*60*24*16.04),color="#E63946",size = 1)+
+  xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-05-05"))+
+  theme_classic(base_size = 15)+
+  xlab("") + ylab(expression(~CH[4]~flux~(g~m^-2~d^-1)))
+
+ggarrange(co2_flux,ch4_flux,nrow=2,ncol=1,labels = c("A.", "B."),
+          font.label=list(face="plain",size=15))
+
+ggsave("./Fig_Output/Fluxes_2.jpg",width = 8, height=6, units="in",dpi=320)
 
 # Select for day times (8 am - 4 pm) and average
 eddy_flux_day <- eddy_flux %>% 
   mutate(myHour = hour(DateTime)) %>% 
-  filter(myHour >= 8 & myHour <= 16) %>% 
-  mutate(DateTime = format(as.POSIXct(DateTime, "%Y-%m-%d"),"%Y-%m-%d")) %>% 
-  mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d", tz = "EST")) %>% 
-  group_by(DateTime) %>% 
-  summarise_all(mean,na.rm=TRUE) 
+  filter(myHour >= 8 & myHour <= 16)
 
-eddy_flux_day_sd <- eddy_flux %>% 
+eddy_flux_ch4 <- eddy_flux %>% 
+  select(DateTime,ch4_flux_uStar_orig,ch4_flux_uStar_f,ch4_flux_uStar_fsd,ch4_flux_uStar_fall,ch4_flux_uStar_fqc,
+         ch4_flux_U97.5_f) %>%
+  mutate(resid = ch4_flux_uStar_f - ch4_flux_uStar_fall)
+
+acf(eddy_flux_ch4$resid,na.action=na.pass,main="")
+
+autoCorr <- computeEffectiveAutoCorr(eddy_flux_ch4$resid)
+nEff <- computeEffectiveNumObs(eddy_flux_ch4$resid, na.rm = TRUE)
+c(nEff = nEff, nObs = sum(is.finite(eddy_flux_ch4$resid)))
+
+eddy_flux_ch4_day <- eddy_flux %>% 
+  select(DateTime,ch4_flux_uStar_orig,ch4_flux_uStar_f,ch4_flux_uStar_fsd,ch4_flux_uStar_fall,ch4_flux_uStar_fqc,
+         ch4_flux_U97.5_f) %>%
+  mutate(resid = ch4_flux_uStar_f - ch4_flux_uStar_fall) %>% 
   mutate(myHour = hour(DateTime)) %>% 
   filter(myHour >= 8 & myHour <= 16) %>% 
   mutate(DateTime = format(as.POSIXct(DateTime, "%Y-%m-%d"),"%Y-%m-%d")) %>% 
   mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d", tz = "EST")) %>% 
-  select(DateTime,NEE_uStar_fsd,ch4_flux_uStar_fsd) %>% 
-  mutate(NEE_uStar_fsd_v = NEE_uStar_fsd^2) %>% 
-  mutate(ch4_flux_fsd_v = ch4_flux_uStar_fsd^2) %>% 
+  group_by(DateTime) %>% 
+  summarise(nRec = sum(ch4_flux_uStar_fqc == 0, na.rm = TRUE), 
+            nEff = computeEffectiveNumObs(resid, effAcf = !!autoCorr, na.rm = TRUE), 
+            NEE = mean(ch4_flux_uStar_f, na.rm = TRUE), 
+            sdNEE = if (nEff <= 1) NA_real_ else sqrt(sum(ch4_flux_uStar_fsd^2, na.rm = TRUE) / (nEff - 1)), 
+            sdNEEuncorr = if (nRec == 0) NA_real_ else sqrt(sum(ch4_flux_uStar_fsd^2, na.rm = TRUE) / (nRec - 1)))
+
+# CO2
+eddy_flux_co2 <- eddy_flux %>% 
+  select(DateTime,NEE_uStar_orig,NEE_uStar_f,NEE_uStar_fsd,NEE_uStar_fall,NEE_uStar_fqc,
+         NEE_U97.5_f) %>%
+  mutate(resid = NEE_uStar_f - NEE_uStar_fall)
+
+acf(eddy_flux_co2$resid,na.action=na.pass,main="")
+
+autoCorr <- computeEffectiveAutoCorr(eddy_flux_co2$resid)
+nEff <- computeEffectiveNumObs(eddy_flux_co2$resid, na.rm = TRUE)
+c(nEff = nEff, nObs = sum(is.finite(eddy_flux_co2$resid)))
+
+eddy_flux_co2_day <- eddy_flux %>% 
+  select(DateTime,NEE_uStar_orig,NEE_uStar_f,NEE_uStar_fsd,NEE_uStar_fall,NEE_uStar_fqc,
+         NEE_U97.5_f) %>%
+  mutate(resid = NEE_uStar_f - NEE_uStar_fall) %>% 
+  mutate(myHour = hour(DateTime)) %>% 
+  filter(myHour >= 8 & myHour <= 16) %>% 
   mutate(DateTime = format(as.POSIXct(DateTime, "%Y-%m-%d"),"%Y-%m-%d")) %>% 
   mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d", tz = "EST")) %>% 
   group_by(DateTime) %>% 
-  summarise_all(sum,na.rm=TRUE) %>% 
-  mutate(NEE_uStar_fsd_v = sqrt(NEE_uStar_fsd_v/18)) %>% 
-  mutate(ch4_flux_fsd_v = sqrt(ch4_flux_fsd_v/18)) %>% 
-  select(DateTime, NEE_uStar_fsd_v, ch4_flux_fsd_v)
+  summarise(nRec = sum(NEE_uStar_fqc == 0, na.rm = TRUE), 
+            nEff = computeEffectiveNumObs(resid, effAcf = !!autoCorr, na.rm = TRUE), 
+            NEE = mean(NEE_uStar_f, na.rm = TRUE), 
+            sdNEE = if (nEff <= 1) NA_real_ else sqrt(sum(NEE_uStar_fsd^2, na.rm = TRUE) / (nEff - 1)), 
+            sdNEEuncorr = if (nRec == 0) NA_real_ else sqrt(sum(NEE_uStar_fsd^2, na.rm = TRUE) / (nRec - 1)))
 
 # Select night times (9 pm - 5 am) and average
 eddy_flux_night <- eddy_flux %>% 
+  mutate(myHour = hour(DateTime)) %>% 
+  filter(myHour <= 5 | myHour >= 21)
+
+eddy_flux_ch4 <- eddy_flux %>% 
+  select(DateTime,ch4_flux_uStar_orig,ch4_flux_uStar_f,ch4_flux_uStar_fsd,ch4_flux_uStar_fall,ch4_flux_uStar_fqc,
+         ch4_flux_U97.5_f) %>%
+  mutate(resid = ch4_flux_uStar_f - ch4_flux_uStar_fall)
+
+acf(eddy_flux_ch4$resid,na.action=na.pass,main="")
+
+autoCorr <- computeEffectiveAutoCorr(eddy_flux_ch4$resid)
+nEff <- computeEffectiveNumObs(eddy_flux_ch4$resid, na.rm = TRUE)
+c(nEff = nEff, nObs = sum(is.finite(eddy_flux_ch4$resid)))
+
+eddy_flux_ch4_night <- eddy_flux %>% 
+  select(DateTime,ch4_flux_uStar_orig,ch4_flux_uStar_f,ch4_flux_uStar_fsd,ch4_flux_uStar_fall,ch4_flux_uStar_fqc,
+         ch4_flux_U97.5_f) %>%
+  mutate(resid = ch4_flux_uStar_f - ch4_flux_uStar_fall) %>% 
   mutate(myHour = hour(DateTime)) %>% 
   filter(myHour <= 5 | myHour >= 21) %>% 
   mutate(DateTime = format(as.POSIXct(DateTime, "%Y-%m-%d"),"%Y-%m-%d")) %>% 
   mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d", tz = "EST")) %>% 
   group_by(DateTime) %>% 
-  summarise_all(mean,na.rm=TRUE) %>% 
-  select(-NEE_uStar_fsd,-ch4_flux_uStar_fsd)
+  summarise(nRec = sum(ch4_flux_uStar_fqc == 0, na.rm = TRUE), 
+            nEff = computeEffectiveNumObs(resid, effAcf = !!autoCorr, na.rm = TRUE), 
+            NEE = mean(ch4_flux_uStar_f, na.rm = TRUE), 
+            sdNEE = if (nEff <= 1) NA_real_ else sqrt(sum(ch4_flux_uStar_fsd^2, na.rm = TRUE) / (nEff - 1)), 
+            sdNEEuncorr = if (nRec == 0) NA_real_ else sqrt(sum(ch4_flux_uStar_fsd^2, na.rm = TRUE) / (nRec - 1)))
 
-eddy_flux_night_sd <- eddy_flux %>% 
+# CO2
+eddy_flux_co2 <- eddy_flux %>% 
+  select(DateTime,NEE_uStar_orig,NEE_uStar_f,NEE_uStar_fsd,NEE_uStar_fall,NEE_uStar_fqc,
+         NEE_U97.5_f) %>%
+  mutate(resid = NEE_uStar_f - NEE_uStar_fall)
+
+acf(eddy_flux_co2$resid,na.action=na.pass,main="")
+
+autoCorr <- computeEffectiveAutoCorr(eddy_flux_co2$resid)
+nEff <- computeEffectiveNumObs(eddy_flux_co2$resid, na.rm = TRUE)
+c(nEff = nEff, nObs = sum(is.finite(eddy_flux_co2$resid)))
+
+eddy_flux_co2_night <- eddy_flux %>% 
+  select(DateTime,NEE_uStar_orig,NEE_uStar_f,NEE_uStar_fsd,NEE_uStar_fall,NEE_uStar_fqc,
+         NEE_U97.5_f) %>%
+  mutate(resid = NEE_uStar_f - NEE_uStar_fall) %>% 
   mutate(myHour = hour(DateTime)) %>% 
-  filter(myHour >= 8 & myHour <= 16) %>% 
-  mutate(DateTime = format(as.POSIXct(DateTime, "%Y-%m-%d"),"%Y-%m-%d")) %>% 
-  mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d", tz = "EST")) %>% 
-  select(DateTime,NEE_uStar_fsd,ch4_flux_uStar_fsd) %>% 
-  mutate(NEE_uStar_fsd_v = NEE_uStar_fsd^2) %>% 
-  mutate(ch4_flux_fsd_v = ch4_flux_uStar_fsd^2) %>% 
+  filter(myHour <= 5 | myHour >= 21) %>% 
   mutate(DateTime = format(as.POSIXct(DateTime, "%Y-%m-%d"),"%Y-%m-%d")) %>% 
   mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d", tz = "EST")) %>% 
   group_by(DateTime) %>% 
-  summarise_all(sum,na.rm=TRUE) %>% 
-  mutate(NEE_uStar_fsd_v = sqrt(NEE_uStar_fsd_v/18)) %>% 
-  mutate(ch4_flux_fsd_v = sqrt(ch4_flux_fsd_v/18)) %>% 
-  select(DateTime, NEE_uStar_fsd_v, ch4_flux_fsd_v)
-
-# Plot Eddy flux data - 'real' time points + daily mean for gap filled data
-co2_flux <- ggplot()+
-  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
-  geom_point(eddy_flux, mapping = aes(DateTime, NEE_uStar_orig/1e6*60*60*24*44.01),alpha = 0.1)+
-  geom_hline(yintercept = 0, linetype="dashed")+
-  geom_ribbon(eddy_flux_mean, mapping = aes(x = DateTime, y = NEE_uStar_f/1e6*60*60*24*44.01, ymin = (NEE_uStar_f/1e6*60*60*24*44.01)-(NEE_uStar_fsd_v/1e6*60*60*24*44.01),ymax = (NEE_uStar_f/1e6*60*60*24*44.01)+(NEE_uStar_fsd_v/1e6*60*60*24*44.01)),fill="#E63946",alpha=0.4)+
-  geom_line(eddy_flux_mean, mapping = aes(DateTime, NEE_uStar_f/1e6*60*60*24*44.01),color="#E63946",size = 1)+
-  #geom_point(ghg_fluxes,mapping=aes(x=DateTime,y=co2_flux_umolm2s_mean/1000*60*60*24),color="#4c8bfe",size=1.5)+
-  #geom_errorbar(ghg_fluxes,mapping=aes(x=DateTime,ymin=co2_flux_umolm2s_mean/1000*60*60*24 - co2_flux_umolm2s_sd/1000*60*60*24, ymax = co2_flux_umolm2s_mean/1000*60*60*24+co2_flux_umolm2s_sd/1000*60*60*24),color="#4c8bfe")+
-  xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-05-05"))+
-  theme_classic(base_size = 15)+
-  xlab("") + ylab(expression(~CO[2]~flux~(g~m^-2~d^-1)))
-
-ch4_flux <- ggplot()+
-  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
-  geom_point(eddy_flux, mapping = aes(DateTime, ch4_flux_uStar_orig/1e6*60*60*24*16.04),alpha = 0.1)+
-  geom_hline(yintercept = 0, linetype="dashed")+
-  geom_ribbon(eddy_flux_mean, mapping = aes(x = DateTime, y = ch4_flux_uStar_f/1e6*60*60*24*16.04, ymin = (ch4_flux_uStar_f/1e6*60*60*24*16.04)-(ch4_flux_fsd_v/1e6*60*60*24*16.04),ymax = (ch4_flux_uStar_f/1e6*60*60*24*16.04)+(ch4_flux_fsd_v/1e6*60*60*24*16.04)),fill="#E63946",alpha=0.4)+
-  geom_line(eddy_flux_mean, mapping = aes(DateTime, ch4_flux_uStar_f/1e6*60*60*24*16.04),color="#E63946",size = 1)+
-  #geom_point(ghg_fluxes,mapping=aes(x=DateTime,y=ch4_flux_umolm2s_mean/1000*60*60*24),color="#4c8bfe",size=1.5)+
-  #geom_errorbar(ghg_fluxes,mapping=aes(x=DateTime,ymin=ch4_flux_umolm2s_mean/1000*60*60*24 - ch4_flux_umolm2s_sd/1000*60*60*24, ymax = ch4_flux_umolm2s_mean/1000*60*60*24+ch4_flux_umolm2s_sd/1000*60*60*24),color="#4c8bfe")+
-  xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-05-05"))+
-  theme_classic(base_size = 15)+
-  xlab("") + ylab(expression(~CH[4]~flux~(g~m^-2~d^-1)))
-
-ggarrange(co2_flux,ch4_flux,nrow=2,ncol=1)
-
-ggsave("./Fig_Output/Fluxes.jpg",width = 10, height=7, units="in",dpi=320)
+  summarise(nRec = sum(NEE_uStar_fqc == 0, na.rm = TRUE), 
+            nEff = computeEffectiveNumObs(resid, effAcf = !!autoCorr, na.rm = TRUE), 
+            NEE = mean(NEE_uStar_f, na.rm = TRUE), 
+            sdNEE = if (nEff <= 1) NA_real_ else sqrt(sum(NEE_uStar_fsd^2, na.rm = TRUE) / (nEff - 1)), 
+            sdNEEuncorr = if (nRec == 0) NA_real_ else sqrt(sum(NEE_uStar_fsd^2, na.rm = TRUE) / (nRec - 1)))
 
 # Plot comparisons w/ GHG fluxes
 # Aggregate and plot daytime vs. night time + ghg fluxes
 co2_day <- ggplot()+
   geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
-  geom_point(eddy_flux_day, mapping = aes(DateTime, NEE_uStar_orig/1e6*60*60*24*44.01),alpha = 0.4, color="#E63946")+
+  geom_point(eddy_flux_day, mapping = aes(DateTime, NEE_uStar_orig/1e6*60*60*24*44.01),alpha = 0.1)+
   geom_hline(yintercept = 0, linetype="dashed")+
-  geom_ribbon(eddy_flux_day_sd, mapping = aes(x = DateTime, y = eddy_flux_day$NEE_uStar_f/1e6*60*60*24*44.01, ymin = (eddy_flux_day$NEE_uStar_f/1e6*60*60*24*44.01)-(NEE_uStar_fsd_v/1e6*60*60*24*44.01),ymax = (eddy_flux_day$NEE_uStar_f/1e6*60*60*24*44.01)+(NEE_uStar_fsd_v/1e6*60*60*24*44.01)),fill="#E63946",alpha=0.4)+
-  geom_line(eddy_flux_day, mapping = aes(DateTime, NEE_uStar_f/1e6*60*60*24*44.01),color="#E63946",size = 1)+
+  geom_ribbon(eddy_flux_co2_day, mapping = aes(x = DateTime, y = NEE/1e6*60*60*24*44.01, ymin = (NEE/1e6*60*60*24*44.01)-(sdNEE/1e6*60*60*24*44.01),ymax = (NEE/1e6*60*60*24*44.01)+(sdNEE/1e6*60*60*24*44.01)),fill="#E63946",alpha=0.4)+
+  geom_line(eddy_flux_co2_day, mapping = aes(DateTime, NEE/1e6*60*60*24*44.01),color="#E63946",size = 1)+
   geom_point(ghg_fluxes,mapping=aes(x=DateTime,y=co2_flux_umolm2s_mean/1e6*60*60*24*44.01),color="#466362",size=2)+
   geom_errorbar(ghg_fluxes,mapping=aes(x=DateTime,ymin=co2_flux_umolm2s_mean/1e6*60*60*24*44.01 - co2_flux_umolm2s_sd/1e6*60*60*24*44.01, ymax = co2_flux_umolm2s_mean/1e6*60*60*24*44.01+co2_flux_umolm2s_sd/1e6*60*60*24*44.01),color="#466362")+
   xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-05-05"))+
-  ylim(-75,125)+
+  ylim(-150,225)+
   theme_classic(base_size = 15)+
   xlab("") + ylab(expression(~CO[2]~flux~(g~m^-2~d^-1)))
 
 co2_night <- ggplot()+
   geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
-  geom_point(eddy_flux_night, mapping = aes(DateTime, NEE_uStar_orig/1e6*60*60*24*44.01),alpha = 0.4, color="#4c8bfe")+
+  geom_point(eddy_flux_night, mapping = aes(DateTime, NEE_uStar_orig/1e6*60*60*24*44.01),alpha = 0.1)+
   geom_hline(yintercept = 0, linetype="dashed")+
-  geom_ribbon(eddy_flux_night_sd, mapping = aes(x = DateTime, y = eddy_flux_night$NEE_uStar_f/1e6*60*60*24*44.01, ymin = (eddy_flux_night$NEE_uStar_f/1e6*60*60*24*44.01)-(NEE_uStar_fsd_v/1e6*60*60*24*44.01),ymax = (eddy_flux_night$NEE_uStar_f/1e6*60*60*24*44.01)+(NEE_uStar_fsd_v/1e6*60*60*24*44.01)),fill="#4c8bfe",alpha=0.4)+
-  geom_line(eddy_flux_night, mapping = aes(DateTime, NEE_uStar_f/1e6*60*60*24*44.01),color="#4c8bfe",size = 1)+
+  geom_ribbon(eddy_flux_co2_night, mapping = aes(x = DateTime, y = NEE/1e6*60*60*24*44.01, ymin = (NEE/1e6*60*60*24*44.01)-(sdNEE/1e6*60*60*24*44.01),ymax = (NEE/1e6*60*60*24*44.01)+(sdNEE/1e6*60*60*24*44.01)),fill="#4c8bfe",alpha=0.4)+
+  geom_line(eddy_flux_co2_night, mapping = aes(DateTime, NEE/1e6*60*60*24*44.01),color="#4c8bfe",size = 1)+
   xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-05-05"))+
-  ylim(-75,125)+
+  ylim(-150,225)+
   theme_classic(base_size = 15)+
   xlab("") + ylab(expression(~CO[2]~flux~(g~m^-2~d^-1)))
 
 ch4_day <- ggplot()+
   geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
-  geom_point(eddy_flux_day, mapping = aes(DateTime, ch4_flux_uStar_orig/1e6*60*60*24*44.01),alpha = 0.4, color="#E63946")+
+  geom_point(eddy_flux_day, mapping = aes(DateTime, ch4_flux_uStar_orig/1e6*60*60*24*44.01),alpha = 0.1)+
   geom_hline(yintercept = 0, linetype="dashed")+
-  geom_ribbon(eddy_flux_day_sd, mapping = aes(x = DateTime, y = eddy_flux_day$ch4_flux_uStar_f/1e6*60*60*24*44.01, ymin = (eddy_flux_day$ch4_flux_uStar_f/1e6*60*60*24*44.01)-(ch4_flux_fsd_v/1e6*60*60*24*44.01),ymax = (eddy_flux_day$ch4_flux_uStar_f/1e6*60*60*24*44.01)+(ch4_flux_fsd_v/1e6*60*60*24*44.01)),fill="#E63946",alpha=0.4)+
-  geom_line(eddy_flux_day, mapping = aes(DateTime, ch4_flux_uStar_f/1e6*60*60*24*44.01),color="#E63946",size = 1)+
+  geom_ribbon(eddy_flux_ch4_day, mapping = aes(x = DateTime, y = NEE/1e6*60*60*24*44.01, ymin = (NEE/1e6*60*60*24*44.01)-(sdNEE/1e6*60*60*24*44.01),ymax = (NEE/1e6*60*60*24*44.01)+(sdNEE/1e6*60*60*24*44.01)),fill="#E63946",alpha=0.4)+
+  geom_line(eddy_flux_ch4_day, mapping = aes(DateTime, NEE/1e6*60*60*24*44.01),color="#E63946",size = 1)+
   geom_point(ghg_fluxes,mapping=aes(x=DateTime,y=ch4_flux_umolm2s_mean/1e6*60*60*24*44.01),color="#466362",size=2)+
   geom_errorbar(ghg_fluxes,mapping=aes(x=DateTime,ymin=ch4_flux_umolm2s_mean/1e6*60*60*24*44.01 - ch4_flux_umolm2s_sd/1e6*60*60*24*44.01, ymax = ch4_flux_umolm2s_mean/1e6*60*60*24*44.01+ch4_flux_umolm2s_sd/1e6*60*60*24*44.01),color="#466362")+
   xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-05-05"))+
-  ylim(-0.10,0.20)+
+  ylim(-0.20,0.30)+
   theme_classic(base_size = 15)+
   xlab("") + ylab(expression(~CH[4]~flux~(g~m^-2~d^-1)))
 
 ch4_night <- ggplot()+
   geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
-  geom_point(eddy_flux_night, mapping = aes(DateTime, ch4_flux_uStar_orig/1e6*60*60*24*44.01),alpha = 0.4, color="#4c8bfe")+
+  geom_point(eddy_flux_night, mapping = aes(DateTime, ch4_flux_uStar_orig/1e6*60*60*24*44.01),alpha = 0.1)+
   geom_hline(yintercept = 0, linetype="dashed")+
-  geom_ribbon(eddy_flux_night_sd, mapping = aes(x = DateTime, y = eddy_flux_night$ch4_flux_uStar_f/1e6*60*60*24*44.01, ymin = (eddy_flux_night$ch4_flux_uStar_f/1e6*60*60*24*44.01)-(ch4_flux_fsd_v/1e6*60*60*24*44.01),ymax = (eddy_flux_night$ch4_flux_uStar_f/1e6*60*60*24*44.01)+(ch4_flux_fsd_v/1e6*60*60*24*44.01)),fill="#4c8bfe",alpha=0.4)+
-  geom_line(eddy_flux_night, mapping = aes(DateTime, ch4_flux_uStar_f/1e6*60*60*24*44.01),color="#4c8bfe",size = 1)+
+  geom_ribbon(eddy_flux_ch4_night, mapping = aes(x = DateTime, y = NEE/1e6*60*60*24*44.01, ymin = (NEE/1e6*60*60*24*44.01)-(sdNEE/1e6*60*60*24*44.01),ymax = (NEE/1e6*60*60*24*44.01)+(sdNEE/1e6*60*60*24*44.01)),fill="#4c8bfe",alpha=0.4)+
+  geom_line(eddy_flux_ch4_night, mapping = aes(DateTime, NEE/1e6*60*60*24*44.01),color="#4c8bfe",size = 1)+
   xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-05-05"))+
-  ylim(-0.10,0.20)+
+  ylim(-0.20,0.30)+
   theme_classic(base_size = 15)+
   xlab("") + ylab(expression(~CH[4]~flux~(g~m^-2~d^-1)))
 
-ggarrange(co2_day,ch4_day,co2_night,ch4_night)
+ggarrange(co2_day,ch4_day,co2_night,ch4_night,labels = c("A.", "B.","C.","D."),
+          font.label=list(face="plain",size=15))
 
-ggsave("./Fig_Output/Fluxes_DayNight.jpg",width = 10, height=9, units="in",dpi=320)
+ggsave("./Fig_Output/Fluxes_DayNight_2.jpg",width = 10, height=9, units="in",dpi=320)
 
 ### Thinking about other visualizations ----
 # Plotting cumulative Co2 and Ch4 throughout the study period
 # From 2020-04-04 to 2021-04-03
-eddy_flux <- eddy_flux %>% 
-  mutate(co2_sum = NA) %>% 
-  mutate(ch4_sum = NA)
+eddy_flux_sum <- eddy_flux %>% 
+  select(DateTime,ch4_flux_uStar_orig,ch4_flux_uStar_f,ch4_flux_uStar_fsd,ch4_flux_uStar_fall,ch4_flux_uStar_fqc,
+         ch4_flux_U97.5_f,NEE_uStar_orig,NEE_uStar_f,NEE_uStar_fsd,NEE_uStar_fall,NEE_uStar_fqc,NEE_U97.5_f) %>%
+  mutate(ch4_sum = NA) %>% 
+  mutate(co2_sum = NA)
 
-for (i in 1:length(eddy_flux$DateTime)){
-  eddy_flux$co2_sum[i] <- sum(eddy_flux$NEE_uStar_f[1:i])
+for (i in 1:length(eddy_flux_sum$DateTime)){
+  eddy_flux_sum$ch4_sum[i] <- sum(eddy_flux_sum$ch4_flux_uStar_f[1:i])
 }
 
-for (i in 1:length(eddy_flux$DateTime)){
-  eddy_flux$ch4_sum[i] <- sum(eddy_flux$ch4_flux_uStar_f[1:i])
+for (i in 1:length(eddy_flux_sum$DateTime)){
+  eddy_flux_sum$co2_sum[i] <- sum(eddy_flux_sum$NEE_uStar_f[1:i])
 }
 
-# Calculate uncertainty
-eddy_flux <- eddy_flux %>% 
-  mutate(co2_sum_sd = NA) %>% 
-  mutate(ch4_sum_sd = NA) %>% 
-  mutate(co2_v = NEE_uStar_fsd^2) %>% 
-  mutate(ch4_v = ch4_flux_uStar_fsd^2)
+# Calculate uncertainty: CH4
+eddy_flux_ch4 <- eddy_flux %>% 
+  select(DateTime,ch4_flux_uStar_orig,ch4_flux_uStar_f,ch4_flux_uStar_fsd,ch4_flux_uStar_fall,ch4_flux_uStar_fqc,
+         ch4_flux_U97.5_f) %>%
+  mutate(resid = ch4_flux_uStar_f - ch4_flux_uStar_fall)
 
-for (i in 1:length(eddy_flux$DateTime)){
-  eddy_flux$co2_sum_sd[i] <- sqrt(sum(eddy_flux$co2_v[1:i]))
+acf(eddy_flux_ch4$resid,na.action=na.pass,main="")
+
+autoCorr <- computeEffectiveAutoCorr(eddy_flux_ch4$resid)
+nEff <- computeEffectiveNumObs(eddy_flux_ch4$resid, na.rm = TRUE)
+c(nEff = nEff, nObs = sum(is.finite(eddy_flux_ch4$resid)))
+
+eddy_flux_ch4_sum <- eddy_flux %>% 
+  select(DateTime,ch4_flux_uStar_orig,ch4_flux_uStar_f,ch4_flux_uStar_fsd,ch4_flux_uStar_fall,ch4_flux_uStar_fqc,
+         ch4_flux_U97.5_f) %>%
+  mutate(resid = ch4_flux_uStar_f - ch4_flux_uStar_fall) %>% 
+  mutate(nEff = NA) %>% 
+  mutate(NEE = NA) %>% 
+  mutate(var = ch4_flux_uStar_fsd^2) %>% 
+  mutate(sdNEE = NA)
+
+for (i in 1:length(eddy_flux_ch4_sum$DateTime)){
+  eddy_flux_ch4_sum$nEff[i] <- computeEffectiveNumObs(eddy_flux_ch4_sum$resid[1:i], effAcf = !!autoCorr, na.rm=TRUE)
+  eddy_flux_ch4_sum$NEE[i] <- sum(eddy_flux_ch4_sum$ch4_flux_uStar_f[1:i],na.rm=TRUE)
+  eddy_flux_ch4_sum$sdNEE[i] <- sqrt(sum(eddy_flux_ch4_sum$var[1:i],na.rm=TRUE)/((eddy_flux_ch4_sum$nEff[i])-1))
 }
 
-for (i in 1:length(eddy_flux$DateTime)){
-  eddy_flux$ch4_sum_sd[i] <- sqrt(sum(eddy_flux$ch4_v[1:i]))
+# Calculate CO2 uncertainty  
+eddy_flux_co2 <- eddy_flux %>% 
+  select(DateTime,NEE_uStar_orig,NEE_uStar_f,NEE_uStar_fsd,NEE_uStar_fall,NEE_uStar_fqc,
+         NEE_U97.5_f) %>%
+  mutate(resid = NEE_uStar_f - NEE_uStar_fall)
+
+acf(eddy_flux_co2$resid,na.action=na.pass,main="")
+
+autoCorr <- computeEffectiveAutoCorr(eddy_flux_co2$resid)
+nEff <- computeEffectiveNumObs(eddy_flux_co2$resid, na.rm = TRUE)
+c(nEff = nEff, nObs = sum(is.finite(eddy_flux_co2$resid)))
+
+eddy_flux_co2_sum <- eddy_flux %>% 
+  select(DateTime,NEE_uStar_orig,NEE_uStar_f,NEE_uStar_fsd,NEE_uStar_fall,NEE_uStar_fqc,
+         NEE_U97.5_f) %>%
+  mutate(resid = NEE_uStar_f - NEE_uStar_fall) %>% 
+  mutate(nEff = NA) %>% 
+  mutate(NEE = NA) %>% 
+  mutate(var = NEE_uStar_fsd^2) %>% 
+  mutate(sdNEE = NA)
+
+for (i in 1:length(eddy_flux_co2_sum$DateTime)){
+  eddy_flux_co2_sum$nEff[i] <- computeEffectiveNumObs(eddy_flux_co2_sum$resid[1:i], effAcf = !!autoCorr, na.rm=TRUE)
+  eddy_flux_co2_sum$NEE[i] <- sum(eddy_flux_co2_sum$NEE_uStar_f[1:i],na.rm=TRUE)
+  eddy_flux_co2_sum$sdNEE[i] <- sqrt(sum(eddy_flux_co2_sum$var[1:i],na.rm=TRUE)/((eddy_flux_co2_sum$nEff[i])-1))
 }
 
 # Calculate cumulative fluxes and uncertainty for ghg data
-cumulative_fluxes <- fluxes_all %>% 
+fluxes_rep1 <- fluxes_rep1 %>% 
+  filter(DateTime >= as.POSIXct("2020-04-04 01:00:00"))
+
+fluxes_rep2 <- fluxes_rep2 %>% 
+  filter(DateTime >= as.POSIXct("2020-04-04 01:00:00"))
+
+fluxes_all_reps <- left_join(fluxes_rep1,fluxes_rep2,by="DateTime")
+
+fluxes_all_resp <- fluxes_all_reps %>% 
+  mutate(resid_ch4 = ch4_flux_umolm2s.x-ch4_flux_umolm2s.y)
+
+########################### START HERE - BRAIN IS FRIED ###########################
+
+cumulative_fluxes_ch4 <- fluxes_all %>% 
   filter(DateTime >= as.POSIXct("2020-04-04 01:00:00")) %>% 
-  mutate(co2_sum = NA) %>% 
   mutate(ch4_sum = NA) %>% 
-  mutate(co2_sum_sd = NA) %>% 
   mutate(ch4_sum_sd = NA) %>% 
-  mutate(co2_v = co2_flux_umolm2s_sd^2) %>% 
-  mutate(ch4_v = ch4_flux_umolm2s_sd^2)
+  mutate(ch4_v = ch4_flux_umolm2s_sd^2) #%>% 
+  mutate(resid = fluxes_rep1$ch4_flux_umolm2s-fluxes_rep2$ch4_flux_umolm2s)
 
 for (i in 1:length(cumulative_fluxes$DateTime)){
   cumulative_fluxes$co2_sum[i] <- sum(cumulative_fluxes$co2_flux_umolm2s_mean[1:i],na.rm=TRUE)
