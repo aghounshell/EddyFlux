@@ -33,6 +33,16 @@ ts2 <- data.frame(datetime = ts)
 # Join Eddy Flux data with list of dates+time
 ec2 <- left_join(ts2, ec, by = 'datetime')
 
+# Make sure time stamps are okay!
+ec2 %>% group_by(year = year(datetime), month = factor(month.abb[month(datetime)], levels = c("Apr", "May", "Jun",
+                                                                                                 "Jul", "Aug", "Sep", "Oct", 'Nov', 
+                                                                                                 'Dec', 'Jan', 'Feb', 'Mar')), 
+                    hour = hour(datetime)) %>% 
+  summarise(air_temperature = mean(air_temperature, na.rm = TRUE)) %>% 
+  ggplot(aes(hour, air_temperature, col = factor(year))) + geom_point() + 
+  facet_wrap(~month) + theme_bw() + ylab('Air Temp') + xlab("") +
+  scale_color_brewer(palette = "Dark2")
+
 #################################################################
 # Count how many initial NAs are in CO2 and CH4 data
 # Without any data processing!
