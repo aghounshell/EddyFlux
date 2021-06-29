@@ -419,9 +419,6 @@ plot(eddy_fcr$VPD/1000)  # in kpa
 
 ###############################################################################
 # Filter out all the values (x_peak) that are out of the reservoir
-
-# Use percentiles: 70th or 80th instead of median (50/50) - check x-peak; distance (how sensitive is this to 70?)
-
 eddy_fcr$footprint_flag <- ifelse(eddy_fcr$wind_dir >= 15 & eddy_fcr$wind_dir <= 90 & eddy_fcr$x_peak >= 40, 1, 
                                   ifelse(eddy_fcr$wind_dir < 15 & eddy_fcr$wind_dir > 327 & eddy_fcr$x_peak > 120, 1,
                                          ifelse(eddy_fcr$wind_dir < 302 & eddy_fcr$wind_dir >= 250 & eddy_fcr$x_peak > 50, 1, 0)))
