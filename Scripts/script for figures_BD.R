@@ -1,31 +1,24 @@
-library(readr)
-library(dplyr)
-library(lubridate)
-library(zoo)
-library(ggplot2)
-library(ggpubr)
-library(openair)
-library(REddyProc)
+### Code originally from B. D'Acunha for plotting EC data
+# Adapted by A. Hounshell, 08 July 2021
+
+# Load in libraries
+pacman::p_load(readr,dplyr,lubridate,zoo,ggplot2,ggpubr,openair,REddyProc)
 
 # Set working directory
 wd <- getwd()
 setwd(wd)
 
-# read data 
-
+# read data: Processed using EReddy Proc
 fcr_gf <- read_csv("./Data/20210615_EC_processed.csv")
 
 # set DateTime to EST
-
 fcr_gf$DateTime <- as_datetime(fcr_gf$DateTime, tz = 'EST')
 
 # if solar radiation more than 12, it's day, otherwise, it's night
-
 fcr_gf$Day_time <- ifelse(fcr_gf$Rg_f >= 12, 1, 0)
 
 #############################################################
 #COUNTING NA
-
 nas_percent <- fcr_gf %>% select(DateTime, NEE, ch4_flux, 
 																 NEE_uStar_orig, ch4_flux_uStar_orig) %>% 
 	summarise(co2_available = 100- sum(is.na(NEE_uStar_orig))/n()*100,
@@ -42,8 +35,6 @@ fcr_gf %>% select(DateTime, NEE, ch4_flux,
 	group_by(year(DateTime), month(DateTime)) %>% 
 	summarise(co2_available = 100- sum(is.na(NEE_uStar_orig))/n()*100,
 						ch4_available = 100-sum(is.na(ch4_flux_uStar_orig))/n()*100)
-
-
 #############################################################
 
 #############################################################
@@ -107,23 +98,23 @@ ggplot(fcr_gf)+
 # Calculate number of nas during this time period
 summer_day <- fcr_gf %>% select(DateTime, NEE, ch4_flux, 
                                  NEE_uStar_orig, ch4_flux_uStar_orig,daytime) %>% 
-  filter(DateTime >= as.POSIXct("2020-06-29 05:00:00") & DateTime <= as.POSIXct("2020-07-06 04:30:00")) %>% 
+  filter(DateTime >= as.POSIXct("2020-06-29 07:00:00") & DateTime <= as.POSIXct("2020-07-06 07:00:00")) %>% 
   mutate(hour = hour(DateTime)) %>% 
-  filter(hour >= 5 & hour <= 19) %>% 
+  filter(hour >= 7 & hour <= 18) %>% 
   summarise(co2_available = 100- sum(is.na(NEE_uStar_orig))/n()*100,
             ch4_available = 100-sum(is.na(ch4_flux_uStar_orig))/n()*100)
 
 summer_night <- fcr_gf %>% select(DateTime, NEE, ch4_flux, 
                                 NEE_uStar_orig, ch4_flux_uStar_orig,daytime) %>% 
-  filter(DateTime >= as.POSIXct("2020-06-29 05:00:00") & DateTime <= as.POSIXct("2020-07-06 04:30:00")) %>% 
+  filter(DateTime >= as.POSIXct("2020-06-29 07:00:00") & DateTime <= as.POSIXct("2020-07-06 06:30:00")) %>% 
   mutate(hour = hour(DateTime)) %>% 
-  filter(hour < 5 | hour > 19) %>% 
+  filter(hour < 7 | hour > 18) %>% 
   summarise(co2_available = 100- sum(is.na(NEE_uStar_orig))/n()*100,
             ch4_available = 100-sum(is.na(ch4_flux_uStar_orig))/n()*100)
 
 summer_total <- fcr_gf %>% select(DateTime, NEE, ch4_flux, 
                                   NEE_uStar_orig, ch4_flux_uStar_orig) %>% 
-  filter(DateTime >= as.POSIXct("2020-06-29 05:00:00") & DateTime <= as.POSIXct("2020-07-06 04:30:00")) %>% 
+  filter(DateTime >= as.POSIXct("2020-06-29 07:00:00") & DateTime <= as.POSIXct("2020-07-06 06:30:00")) %>% 
   summarise(co2_available = 100- sum(is.na(NEE_uStar_orig))/n()*100,
             ch4_available = 100-sum(is.na(ch4_flux_uStar_orig))/n()*100)
 
@@ -140,7 +131,7 @@ ggplot(fcr_gf)+
   geom_hline(yintercept = 0, linetype="dashed")+
   geom_point(mapping=aes(x=DateTime,y=NEE_uStar_orig,color="NEE"))+
   geom_point(mapping=aes(x=DateTime,y=ch4_flux_uStar_orig*1000,color="ch4"))+
-  xlim(as.POSIXct("2020-12-01"),as.POSIXct("2021-02-11 06:30:00"))+
+  xlim(as.POSIXct("2021-01-04 07:00:00"),as.POSIXct("2021-01-11 06:30:00"))+
   ylab(expression(~CO[2]~(mu~mol~m^-2~s^-1))) +
   xlab("")+
   theme_classic(base_size = 15)
@@ -148,23 +139,23 @@ ggplot(fcr_gf)+
 # Calculate NA's
 winter_day <- fcr_gf %>% select(DateTime, NEE, ch4_flux, 
                                 NEE_uStar_orig, ch4_flux_uStar_orig,daytime) %>% 
-  filter(DateTime >= as.POSIXct("2021-01-03 07:00:00") & DateTime <= as.POSIXct("2021-01-12 07:00:00")) %>% 
+  filter(DateTime >= as.POSIXct("2021-01-04 07:00:00") & DateTime <= as.POSIXct("2021-01-11 06:30:00")) %>% 
   mutate(hour = hour(DateTime)) %>% 
-  filter(hour >= 7 & hour <= 17) %>% 
+  filter(hour >= 7 & hour <= 18) %>% 
   summarise(co2_available = 100- sum(is.na(NEE_uStar_orig))/n()*100,
             ch4_available = 100-sum(is.na(ch4_flux_uStar_orig))/n()*100)
 
 winter_night <- fcr_gf %>% select(DateTime, NEE, ch4_flux, 
                                   NEE_uStar_orig, ch4_flux_uStar_orig,daytime) %>% 
-  filter(DateTime >= as.POSIXct("2021-01-03 07:00:00") & DateTime <= as.POSIXct("2021-01-12 07:00:00")) %>% 
+  filter(DateTime >= as.POSIXct("2021-01-04 07:00:00") & DateTime <= as.POSIXct("2021-01-11 06:30:00")) %>% 
   mutate(hour = hour(DateTime)) %>% 
-  filter(hour < 7 | hour > 17) %>% 
+  filter(hour < 7 | hour > 18) %>% 
   summarise(co2_available = 100- sum(is.na(NEE_uStar_orig))/n()*100,
             ch4_available = 100-sum(is.na(ch4_flux_uStar_orig))/n()*100)
 
 winter_total <- fcr_gf %>% select(DateTime, NEE, ch4_flux, 
                                   NEE_uStar_orig, ch4_flux_uStar_orig) %>% 
-  filter(DateTime >= as.POSIXct("2021-01-03 07:00:00") & DateTime <= as.POSIXct("2021-01-12 07:00:00")) %>% 
+  filter(DateTime >= as.POSIXct("2021-01-04 07:00:00") & DateTime <= as.POSIXct("2021-01-11 06:30:00")) %>% 
   summarise(co2_available = 100- sum(is.na(NEE_uStar_orig))/n()*100,
             ch4_available = 100-sum(is.na(ch4_flux_uStar_orig))/n()*100)
 
@@ -250,40 +241,139 @@ fcr_hourly <- fcr_gf %>%
 						albedo = mean(albedo, na.rm = TRUE))
 
 # Plot hourly data for diel comparisons
+summer_hourly <- fcr_hourly %>% 
+  filter(DateTime >= as.POSIXct("2020-06-29 07:00:00", tz = "EST") & DateTime <= as.POSIXct("2020-07-06 06:00:00", tz = "EST")) %>% 
+  mutate(day = ifelse(DateTime >= as.POSIXct("2020-06-29 07:00:00", tz = "EST") & DateTime <= as.POSIXct("2020-06-29 23:30:00", tz="EST"), 1, 
+                      ifelse(DateTime >= as.POSIXct("2020-06-30 00:00:00", tz = "EST") & DateTime <= as.POSIXct("2020-06-30 23:30:00", tz = "EST"), 2,
+                             ifelse(DateTime >= as.POSIXct("2020-07-01 00:00:00", tz = "EST") & DateTime <= as.POSIXct("2020-07-01 23:30:00", tz = "EST"), 3,
+                                    ifelse(DateTime >= as.POSIXct("2020-07-02 00:00:00", tz = "EST") & DateTime <= as.POSIXct("2020-07-02 23:30:00", tz = "EST"), 4,
+                                           ifelse(DateTime >= as.POSIXct("2020-07-03 00:00:00", tz = "EST") & DateTime <= as.POSIXct("2020-07-03 23:30:00", tz = "EST"), 5,
+                                                  ifelse(DateTime >= as.POSIXct("2020-07-04 00:00:00", tz = "EST") & DateTime <= as.POSIXct("2020-07-04 23:30:00", tz = "EST"), 6,
+                                                         ifelse(DateTime >= as.POSIXct("2020-07-05 00:00:00", tz= "EST") & DateTime <= as.POSIXct("2020-07-05 23:30:00", tz = "EST"), 7,
+                                                                ifelse(DateTime >= as.POSIXct("2020-07-06 00:00:00", tz = "EST") & DateTime <= as.POSIXct("2020-07-06 23:30:00", tz = "EST"), 8,
+                                                                       NA))))))))) %>% 
+  mutate(hour = hour(DateTime))
+
+colnames(summer_hourly) <- paste(colnames(summer_hourly), "summer", sep="_")
+
+summer_hourly <- summer_hourly %>% 
+  rename(day = day_summer, hour = hour_summer)
+
+winter_hourly <- fcr_hourly %>% 
+  filter(DateTime >= as.POSIXct("2021-01-04 07:00:00", tz = "EST") & DateTime <= as.POSIXct("2021-01-11 06:00:00", tz = "EST")) %>% 
+  mutate(day = ifelse(DateTime >= as.POSIXct("2021-01-04 07:00:00", tz = "EST") & DateTime <= as.POSIXct("2021-01-04 23:30:00", tz="EST"), 1, 
+                      ifelse(DateTime >= as.POSIXct("2021-01-05 00:00:00", tz = "EST") & DateTime <= as.POSIXct("2021-01-05 23:30:00", tz = "EST"), 2,
+                             ifelse(DateTime >= as.POSIXct("2021-01-06 00:00:00", tz = "EST") & DateTime <= as.POSIXct("2021-01-06 23:30:00", tz = "EST"), 3,
+                                    ifelse(DateTime >= as.POSIXct("2021-01-07 00:00:00", tz = "EST") & DateTime <= as.POSIXct("2021-01-07 23:30:00", tz = "EST"), 4,
+                                           ifelse(DateTime >= as.POSIXct("2021-01-08 00:00:00", tz = "EST") & DateTime <= as.POSIXct("2021-01-08 23:30:00", tz = "EST"), 5,
+                                                  ifelse(DateTime >= as.POSIXct("2021-01-09 00:00:00", tz = "EST") & DateTime <= as.POSIXct("2021-01-09 23:30:00", tz = "EST"), 6,
+                                                         ifelse(DateTime >= as.POSIXct("2021-01-10 00:00:00", tz= "EST") & DateTime <= as.POSIXct("2021-01-10 23:30:00", tz = "EST"), 7,
+                                                                ifelse(DateTime >= as.POSIXct("2021-01-11 00:00:00", tz = "EST") & DateTime <= as.POSIXct("2021-01-11 23:30:00", tz = "EST"), 8,
+                                                                       NA))))))))) %>% 
+  mutate(hour = hour(DateTime))
+
+colnames(winter_hourly) <- paste(colnames(winter_hourly), "winter", sep="_")
+
+winter_hourly <- winter_hourly %>% 
+  rename(day = day_winter, hour = hour_winter)
+
+diel_hourly <- left_join(summer_hourly,winter_hourly,by=c("day","hour"))
+
+summer_raw <- fcr_gf %>% 
+  select(DateTime,NEE_uStar_orig,ch4_flux_uStar_orig) %>%   
+  filter(DateTime >= as.POSIXct("2020-06-29 07:00:00", tz = "EST") & DateTime <= as.POSIXct("2020-07-06 06:30:00", tz = "EST")) %>% 
+  mutate(day = ifelse(DateTime >= as.POSIXct("2020-06-29 07:00:00", tz = "EST") & DateTime <= as.POSIXct("2020-06-29 23:30:00", tz="EST"), 1, 
+                      ifelse(DateTime >= as.POSIXct("2020-06-30 00:00:00", tz = "EST") & DateTime <= as.POSIXct("2020-06-30 23:30:00", tz = "EST"), 2,
+                             ifelse(DateTime >= as.POSIXct("2020-07-01 00:00:00", tz = "EST") & DateTime <= as.POSIXct("2020-07-01 23:30:00", tz = "EST"), 3,
+                                    ifelse(DateTime >= as.POSIXct("2020-07-02 00:00:00", tz = "EST") & DateTime <= as.POSIXct("2020-07-02 23:30:00", tz = "EST"), 4,
+                                           ifelse(DateTime >= as.POSIXct("2020-07-03 00:00:00", tz = "EST") & DateTime <= as.POSIXct("2020-07-03 23:30:00", tz = "EST"), 5,
+                                                  ifelse(DateTime >= as.POSIXct("2020-07-04 00:00:00", tz = "EST") & DateTime <= as.POSIXct("2020-07-04 23:30:00", tz = "EST"), 6,
+                                                         ifelse(DateTime >= as.POSIXct("2020-07-05 00:00:00", tz= "EST") & DateTime <= as.POSIXct("2020-07-05 23:30:00", tz = "EST"), 7,
+                                                                ifelse(DateTime >= as.POSIXct("2020-07-06 00:00:00", tz = "EST") & DateTime <= as.POSIXct("2020-07-06 23:30:00", tz = "EST"), 8,
+                                                                       NA))))))))) %>% 
+  mutate(hour = hour(DateTime))
+
+colnames(summer_raw) <- paste(colnames(summer_raw), "summer", sep="_")
+
+summer_raw <- summer_raw %>% 
+  rename(day = day_summer, hour = hour_summer)
+  
+winter_raw <- fcr_gf %>% 
+  select(DateTime,NEE_uStar_orig,ch4_flux_uStar_orig) %>% 
+  filter(DateTime >= as.POSIXct("2021-01-04 07:00:00", tz = "EST") & DateTime <= as.POSIXct("2021-01-11 06:30:00", tz = "EST")) %>% 
+  mutate(day = ifelse(DateTime >= as.POSIXct("2021-01-04 07:00:00", tz = "EST") & DateTime <= as.POSIXct("2021-01-04 23:30:00", tz="EST"), 1, 
+                      ifelse(DateTime >= as.POSIXct("2021-01-05 00:00:00", tz = "EST") & DateTime <= as.POSIXct("2021-01-05 23:30:00", tz = "EST"), 2,
+                             ifelse(DateTime >= as.POSIXct("2021-01-06 00:00:00", tz = "EST") & DateTime <= as.POSIXct("2021-01-06 23:30:00", tz = "EST"), 3,
+                                    ifelse(DateTime >= as.POSIXct("2021-01-07 00:00:00", tz = "EST") & DateTime <= as.POSIXct("2021-01-07 23:30:00", tz = "EST"), 4,
+                                           ifelse(DateTime >= as.POSIXct("2021-01-08 00:00:00", tz = "EST") & DateTime <= as.POSIXct("2021-01-08 23:30:00", tz = "EST"), 5,
+                                                  ifelse(DateTime >= as.POSIXct("2021-01-09 00:00:00", tz = "EST") & DateTime <= as.POSIXct("2021-01-09 23:30:00", tz = "EST"), 6,
+                                                         ifelse(DateTime >= as.POSIXct("2021-01-10 00:00:00", tz= "EST") & DateTime <= as.POSIXct("2021-01-10 23:30:00", tz = "EST"), 7,
+                                                                ifelse(DateTime >= as.POSIXct("2021-01-11 00:00:00", tz = "EST") & DateTime <= as.POSIXct("2021-01-11 23:30:00", tz = "EST"), 8,
+                                                                       NA))))))))) %>% 
+  mutate(hour = hour(DateTime))
+
+colnames(winter_raw) <- paste(colnames(winter_raw), "winter", sep="_")
+
+winter_raw <- winter_raw %>% 
+  rename(day = day_winter, hour = hour_winter)
+
+diel_raw <- left_join(summer_raw,winter_raw,by=c("day","hour"))
+
+# Plot together - winter and summer periods
+ggplot(diel_hourly)+
+  annotate(geom="rect",xmin = as.POSIXct("2020-06-29 19:00:00"),xmax = as.POSIXct("2020-06-30 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
+  annotate(geom="rect",xmin = as.POSIXct("2020-06-30 19:00:00"),xmax = as.POSIXct("2020-07-01 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
+  annotate(geom="rect",xmin = as.POSIXct("2020-07-01 19:00:00"),xmax = as.POSIXct("2020-07-02 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
+  annotate(geom="rect",xmin = as.POSIXct("2020-07-02 19:00:00"),xmax = as.POSIXct("2020-07-03 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
+  annotate(geom="rect",xmin = as.POSIXct("2020-07-03 19:00:00"),xmax = as.POSIXct("2020-07-04 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
+  annotate(geom="rect",xmin = as.POSIXct("2020-07-04 19:00:00"),xmax = as.POSIXct("2020-07-05 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
+  annotate(geom="rect",xmin = as.POSIXct("2020-07-05 19:00:00"),xmax = as.POSIXct("2020-07-06 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_point(diel_raw,mapping=aes(x=DateTime_summer,y=NEE_uStar_orig_summer),alpha=0.2,color="#E63946")+
+  geom_line(mapping=aes(x=DateTime_summer,y=NEE_summer,color="summer"),color="#E63946",size=1)+
+  geom_ribbon(mapping=aes(x=DateTime_summer,y=NEE_summer,ymin=NEE_summer-NEE_sd_summer,ymax=NEE_summer+NEE_sd_summer),fill="#E63946",alpha=0.3)+
+  geom_point(diel_raw,mapping=aes(x=DateTime_summer,y=NEE_uStar_orig_winter),alpha=0.2,color="#4c8bfe")+
+  geom_line(mapping=aes(x=DateTime_summer,y=NEE_winter,color="winter"),color="#4c8bfe",size=1)+
+  geom_ribbon(mapping=aes(x=DateTime_summer,y=NEE_winter,ymin=NEE_winter-NEE_sd_winter,ymax=NEE_winter+NEE_sd_winter),fill="#4c8bfe",alpha=0.3)+
+  xlim(as.POSIXct("2020-06-29 07:00:00"),as.POSIXct("2020-07-06 06:30:00"))+
+  ylab(expression(~CO[2]~(mu~mol~m^-2~s^-1))) +
+  xlab("")+
+  theme_classic(base_size = 15)
+
 # Summer stratified period: June 29 to July 4, 2020
 # Day: 5 am - 6:30 pm
 nee_summer <- ggplot(fcr_hourly)+
-  annotate(geom="rect",xmin = as.POSIXct("2020-06-29 19:00:00"),xmax = as.POSIXct("2020-06-30 04:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
-  annotate(geom="rect",xmin = as.POSIXct("2020-06-30 19:00:00"),xmax = as.POSIXct("2020-07-01 04:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
-  annotate(geom="rect",xmin = as.POSIXct("2020-07-01 19:00:00"),xmax = as.POSIXct("2020-07-02 04:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
-  annotate(geom="rect",xmin = as.POSIXct("2020-07-02 19:00:00"),xmax = as.POSIXct("2020-07-03 04:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
-  annotate(geom="rect",xmin = as.POSIXct("2020-07-03 19:00:00"),xmax = as.POSIXct("2020-07-04 04:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
-  annotate(geom="rect",xmin = as.POSIXct("2020-07-04 19:00:00"),xmax = as.POSIXct("2020-07-05 04:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
-  annotate(geom="rect",xmin = as.POSIXct("2020-07-05 19:00:00"),xmax = as.POSIXct("2020-07-06 04:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
+  annotate(geom="rect",xmin = as.POSIXct("2020-06-29 19:00:00"),xmax = as.POSIXct("2020-06-30 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
+  annotate(geom="rect",xmin = as.POSIXct("2020-06-30 19:00:00"),xmax = as.POSIXct("2020-07-01 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
+  annotate(geom="rect",xmin = as.POSIXct("2020-07-01 19:00:00"),xmax = as.POSIXct("2020-07-02 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
+  annotate(geom="rect",xmin = as.POSIXct("2020-07-02 19:00:00"),xmax = as.POSIXct("2020-07-03 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
+  annotate(geom="rect",xmin = as.POSIXct("2020-07-03 19:00:00"),xmax = as.POSIXct("2020-07-04 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
+  annotate(geom="rect",xmin = as.POSIXct("2020-07-04 19:00:00"),xmax = as.POSIXct("2020-07-05 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
+  annotate(geom="rect",xmin = as.POSIXct("2020-07-05 19:00:00"),xmax = as.POSIXct("2020-07-06 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
   geom_hline(yintercept = 0, linetype="dashed")+
   geom_point(fcr_gf,mapping=aes(x=DateTime,y=NEE_uStar_orig),alpha=0.2)+
   geom_ribbon(mapping=aes(x=DateTime,y=NEE,ymin=NEE-NEE_sd,ymax=NEE+NEE_sd),fill="#E63946",alpha=0.3)+
   geom_line(mapping=aes(x=DateTime,y=NEE),color="#E63946",size = 1)+
-  xlim(as.POSIXct("2020-06-29 05:00:00"),as.POSIXct("2020-07-06 04:30:00"))+
+  xlim(as.POSIXct("2020-06-29 07:00:00"),as.POSIXct("2020-07-06 06:30:00"))+
   ylab(expression(~CO[2]~(mu~mol~m^-2~s^-1))) +
   xlab("")+
   ylim(-30,50)+
   theme_classic(base_size = 15)
 
 ch4_summer <- ggplot(fcr_hourly)+
-  annotate(geom="rect",xmin = as.POSIXct("2020-06-29 19:00:00"),xmax = as.POSIXct("2020-06-30 04:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
-  annotate(geom="rect",xmin = as.POSIXct("2020-06-30 19:00:00"),xmax = as.POSIXct("2020-07-01 04:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
-  annotate(geom="rect",xmin = as.POSIXct("2020-07-01 19:00:00"),xmax = as.POSIXct("2020-07-02 04:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
-  annotate(geom="rect",xmin = as.POSIXct("2020-07-02 19:00:00"),xmax = as.POSIXct("2020-07-03 04:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
-  annotate(geom="rect",xmin = as.POSIXct("2020-07-03 19:00:00"),xmax = as.POSIXct("2020-07-04 04:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
-  annotate(geom="rect",xmin = as.POSIXct("2020-07-04 19:00:00"),xmax = as.POSIXct("2020-07-05 04:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
-  annotate(geom="rect",xmin = as.POSIXct("2020-07-05 19:00:00"),xmax = as.POSIXct("2020-07-06 04:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
+  annotate(geom="rect",xmin = as.POSIXct("2020-06-29 19:00:00"),xmax = as.POSIXct("2020-06-30 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
+  annotate(geom="rect",xmin = as.POSIXct("2020-06-30 19:00:00"),xmax = as.POSIXct("2020-07-01 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
+  annotate(geom="rect",xmin = as.POSIXct("2020-07-01 19:00:00"),xmax = as.POSIXct("2020-07-02 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
+  annotate(geom="rect",xmin = as.POSIXct("2020-07-02 19:00:00"),xmax = as.POSIXct("2020-07-03 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
+  annotate(geom="rect",xmin = as.POSIXct("2020-07-03 19:00:00"),xmax = as.POSIXct("2020-07-04 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
+  annotate(geom="rect",xmin = as.POSIXct("2020-07-04 19:00:00"),xmax = as.POSIXct("2020-07-05 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
+  annotate(geom="rect",xmin = as.POSIXct("2020-07-05 19:00:00"),xmax = as.POSIXct("2020-07-06 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
   geom_hline(yintercept = 0, linetype="dashed")+
   geom_hline(yintercept = 0, linetype="dashed")+
   geom_point(fcr_gf,mapping=aes(x=DateTime,y=ch4_flux_uStar_orig),alpha=0.2)+
   geom_ribbon(mapping=aes(x=DateTime,y=CH4,ymin=CH4-CH4_sd,ymax=CH4+CH4_sd),fill="#E63946",alpha=0.3)+
   geom_line(mapping=aes(x=DateTime,y=CH4),color="#E63946",size = 1)+
-  xlim(as.POSIXct("2020-06-29 05:00:00"),as.POSIXct("2020-07-06 04:30:00"))+
+  xlim(as.POSIXct("2020-06-29 07:00:00"),as.POSIXct("2020-07-06 06:30:00"))+
   ylab(expression(~CH[4]~(mu~mol~m^-2~s^-1))) +
   xlab("")+
   ylim(-0.07,0.07)+
@@ -291,13 +381,13 @@ ch4_summer <- ggplot(fcr_hourly)+
 
 # Winter period
 nee_winter <- ggplot(fcr_hourly)+
-  annotate(geom="rect",xmin = as.POSIXct("2021-01-04 17:00:00"),xmax = as.POSIXct("2021-01-05 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
-  annotate(geom="rect",xmin = as.POSIXct("2021-01-05 17:00:00"),xmax = as.POSIXct("2021-01-06 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
-  annotate(geom="rect",xmin = as.POSIXct("2021-01-06 17:00:00"),xmax = as.POSIXct("2021-01-07 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
-  annotate(geom="rect",xmin = as.POSIXct("2021-01-07 17:00:00"),xmax = as.POSIXct("2021-01-08 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
-  annotate(geom="rect",xmin = as.POSIXct("2021-01-08 17:00:00"),xmax = as.POSIXct("2021-01-09 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
-  annotate(geom="rect",xmin = as.POSIXct("2021-01-09 17:00:00"),xmax = as.POSIXct("2021-01-10 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
-  annotate(geom="rect",xmin = as.POSIXct("2021-01-10 17:00:00"),xmax = as.POSIXct("2021-01-11 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
+  annotate(geom="rect",xmin = as.POSIXct("2021-01-04 19:00:00"),xmax = as.POSIXct("2021-01-05 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
+  annotate(geom="rect",xmin = as.POSIXct("2021-01-05 19:00:00"),xmax = as.POSIXct("2021-01-06 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
+  annotate(geom="rect",xmin = as.POSIXct("2021-01-06 19:00:00"),xmax = as.POSIXct("2021-01-07 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
+  annotate(geom="rect",xmin = as.POSIXct("2021-01-07 19:00:00"),xmax = as.POSIXct("2021-01-08 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
+  annotate(geom="rect",xmin = as.POSIXct("2021-01-08 19:00:00"),xmax = as.POSIXct("2021-01-09 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
+  annotate(geom="rect",xmin = as.POSIXct("2021-01-09 19:00:00"),xmax = as.POSIXct("2021-01-10 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
+  annotate(geom="rect",xmin = as.POSIXct("2021-01-10 19:00:00"),xmax = as.POSIXct("2021-01-11 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
   geom_vline(xintercept = as.POSIXct("2021-01-10"), linetype = "dotted", color="blue")+
   geom_hline(yintercept = 0, linetype="dashed")+
   geom_point(fcr_gf,mapping=aes(x=DateTime,y=NEE_uStar_orig),alpha=0.2)+
@@ -310,13 +400,13 @@ nee_winter <- ggplot(fcr_hourly)+
   theme_classic(base_size = 15)
 
 ch4_winter <- ggplot(fcr_hourly)+
-  annotate(geom="rect",xmin = as.POSIXct("2021-01-04 17:00:00"),xmax = as.POSIXct("2021-01-05 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
-  annotate(geom="rect",xmin = as.POSIXct("2021-01-05 17:00:00"),xmax = as.POSIXct("2021-01-06 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
-  annotate(geom="rect",xmin = as.POSIXct("2021-01-06 17:00:00"),xmax = as.POSIXct("2021-01-07 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
-  annotate(geom="rect",xmin = as.POSIXct("2021-01-07 17:00:00"),xmax = as.POSIXct("2021-01-08 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
-  annotate(geom="rect",xmin = as.POSIXct("2021-01-08 17:00:00"),xmax = as.POSIXct("2021-01-09 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
-  annotate(geom="rect",xmin = as.POSIXct("2021-01-09 17:00:00"),xmax = as.POSIXct("2021-01-10 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
-  annotate(geom="rect",xmin = as.POSIXct("2021-01-10 17:00:00"),xmax = as.POSIXct("2021-01-11 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
+  annotate(geom="rect",xmin = as.POSIXct("2021-01-04 19:00:00"),xmax = as.POSIXct("2021-01-05 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
+  annotate(geom="rect",xmin = as.POSIXct("2021-01-05 19:00:00"),xmax = as.POSIXct("2021-01-06 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
+  annotate(geom="rect",xmin = as.POSIXct("2021-01-06 19:00:00"),xmax = as.POSIXct("2021-01-07 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
+  annotate(geom="rect",xmin = as.POSIXct("2021-01-07 19:00:00"),xmax = as.POSIXct("2021-01-08 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
+  annotate(geom="rect",xmin = as.POSIXct("2021-01-08 19:00:00"),xmax = as.POSIXct("2021-01-09 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
+  annotate(geom="rect",xmin = as.POSIXct("2021-01-09 19:00:00"),xmax = as.POSIXct("2021-01-10 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
+  annotate(geom="rect",xmin = as.POSIXct("2021-01-10 19:00:00"),xmax = as.POSIXct("2021-01-11 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
   geom_vline(xintercept = as.POSIXct("2021-01-10"), linetype = "dotted", color="blue")+
   geom_hline(yintercept = 0, linetype="dashed")+
   geom_point(fcr_gf,mapping=aes(x=DateTime,y=ch4_flux_uStar_orig),alpha=0.2)+
