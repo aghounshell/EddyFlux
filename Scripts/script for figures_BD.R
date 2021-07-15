@@ -714,6 +714,37 @@ ggarrange(dailynee, dailych4, nrow = 2, ncol = 1, align = "v")
 
 ggsave("./Fig_Output/DailyFluxes_Avg.jpg",width = 8, height=8, units="in",dpi=320)
 
+### Think about winter variability (especially with ice!)
+ice <- read_csv("./Data/Ice_Data.csv")
+ice$Date <- as.POSIXct(strptime(ice$Date,"%Y-%m-%d"))
+ice_on <- ice %>% 
+  filter(Date>"2020-01-01" & IceOn == 1)
+ice_off <- ice %>% 
+  filter(Date>"2020-01-01" & IceOff == 1)
+
+# Calculate average flux for each ice on/off period
+ice_off_1 <- fcr_gf %>% 
+  filter(DateTime >= "2020-12-19 19:00:00" & DateTime < "2020-12-26 19:00:00") %>% 
+  mutate(ice_period = "1") %>% 
+  mutate(ice = "off")
+
+ice_on_1 <- fcr_gf %>% 
+  filter(DateTime >= "2020-12-26 19:00:00" & DateTime < "2020-12-29 19:00:00")%>% 
+  mutate(ice_period = "2") %>% 
+  mutate(ice = "on")
+
+ice_off_2 <- fcr_gf %>% 
+  filter(DateTime >= "2020-12-29 19:00:00" & DateTime < "2021-01-09 19:00:00")%>% 
+  mutate(ice_period = "3") %>% 
+  mutate(ice = "off")
+
+ice_on_2 <- fcr_gf %>% 
+  filter(DateTime >= "2021-01-09 19:00:00" & DateTime < "2021-02-09 19:00:00")%>% 
+  mutate(ice_period = "4") %>% 
+  mutate(ice = "on")
+
+ice_all <- rbind(ice_off_1,ice_on_1,ice_off_2,ice_on_2)
+
 # Daily means in winter (ice on/off)
 winter_co2 <- ggplot(fcr_daily)+
   annotate(geom="text",x = as.POSIXct("2020-12-24"),y = 9,label = "Off")+
@@ -733,7 +764,19 @@ winter_co2 <- ggplot(fcr_daily)+
   ylab(expression(~CO[2]~(mu~mol~m^-2~s^-1))) +
   xlab("")+
   ylim(-10,10)+
-  theme_classic(base_size = 15)
+  theme_classic(base_size = 15)+
+  theme(axis.title.y = element_text(margin = margin(t = 0, r = 0, b = 0, l = 5)))
+
+ice_co2 <- ggplot(ice_all,mapping=aes(x=ice_period,y=NEE_uStar_orig,color=ice))+
+  geom_hline(yintercept = 0, linetype = "dashed", color="darkgrey", size = 0.8)+
+  ylab(expression(paste("CO"[2]*" (",mu,"mol C m"^-2*" s"^-1*")")))+
+  xlab("Ice Period")+
+  geom_boxplot(outlier.shape = NA)+
+  geom_point(position=position_jitterdodge(),alpha=0.3)+
+  scale_color_manual(breaks=c('on','off'),labels=c('On','Off'),values=c("#E63946","#4c8bfe"))+
+  theme_classic(base_size = 15)+
+  theme(legend.title=element_blank())+
+  theme(axis.title.y = element_text(margin = margin(t = 0, r = 0, b = 0, l = 5)))
 
 winter_ch4 <- ggplot(fcr_daily)+
   annotate(geom="text",x = as.POSIXct("2020-12-24"),y = 0.025,label = "Off")+
@@ -755,9 +798,19 @@ winter_ch4 <- ggplot(fcr_daily)+
   ylim(-0.03,0.03)+
   theme_classic(base_size = 15)
 
-ggarrange(winter_co2,winter_ch4,nrow=2,ncol=1,align = "v")
+ice_ch4 <- ggplot(ice_all,mapping=aes(x=ice_period,y=ch4_flux_uStar_orig,color=ice))+
+  geom_hline(yintercept = 0, linetype = "dashed", color="darkgrey", size = 0.8)+
+  ylab(expression(paste("CH"[4]*" (",mu,"mol C m"^-2*" s"^-1*")")))+
+  xlab("Ice Period")+
+  geom_boxplot(outlier.shape = NA)+
+  geom_point(position=position_jitterdodge(),alpha=0.3)+
+  scale_color_manual(breaks=c('on','off'),labels=c('On','Off'),values=c("#E63946","#4c8bfe"))+
+  theme_classic(base_size = 15)+
+  theme(legend.title=element_blank())
 
-ggsave("./Fig_Output/Winter_DailyFluxes_Avg.jpg",width = 8, height=8, units="in",dpi=320)
+ggarrange(winter_co2,ice_co2,winter_ch4,ice_ch4,nrow=2,ncol=2,common.legend = TRUE)
+
+ggsave("./Fig_Output/Ice_on_off.jpg",width = 8, height=8, units="in",dpi=320)
 
 ########################################3#
 # plot meteorological variables
@@ -896,8 +949,9 @@ coeff = 40
 
 dailynee <- fcr_daily %>% 
 	ggplot() +
-	geom_line(aes(Date, NEE_mean*3600*24*12/1000000)) +
-	geom_line(aes(Date, cumnee/coeff), col = 'darkgreen', size =1) +
+	#geom_line(aes(Date, NEE_mean*3600*24*12/1000000)) +
+	#geom_line(aes(Date, cumnee/coeff), col = 'darkgreen', size =1) +
+  geom_line(aes(Date, cumnee), col = 'darkgreen', size =1) +
 	xlab("") +
 	# annotate("rect", xmin = as.POSIXct(as.Date('2020-06-29 -5')), xmax = as.POSIXct(as.Date('2020-09-11 -5')), ymin = -Inf, ymax = Inf,
 	#         alpha = .2, fill = 'gray70') +
@@ -918,16 +972,17 @@ coeff2 <- 30
 
 dailych4 <- fcr_daily %>% 
 	ggplot() +
-	geom_line(aes(Date, CH4_mean*3600*24*12/1000)) +
-	geom_line(aes(Date, cumch4/coeff2), col = 'goldenrod3', size = 1) +
+	#geom_line(aes(Date, CH4_mean*3600*24*12/1000)) +
+	#geom_line(aes(Date, cumch4/coeff2), col = 'goldenrod3', size = 1) +
+  geom_line(aes(Date, cumch4/1000), col = 'goldenrod3', size = 1) +
 	xlab("") +
 	#  annotate("rect", xmin = as.POSIXct(as.Date('2020-06-29 -5')), xmax = as.POSIXct(as.Date('2020-09-11 -5')), ymin = -Inf, ymax = Inf,
 	#           alpha = .2, fill = 'gray70') +
 	# annotate("rect", xmin = as.POSIXct(as.Date('2020-09-25 -5')), xmax = as.POSIXct(as.Date('2020-12-14 -5')), ymin = -Inf, ymax = Inf,
 	#         alpha = .2, fill = 'gray70') +
-	scale_y_continuous(name = expression(CH[4]~(mg~C~m^-2~d^-1)), 
+	scale_y_continuous(name = expression(CH[4]~(g~C~m^-2~d^-1)), 
 										 sec.axis = sec_axis(trans= ~.*coeff2, 
-										 										name = expression(Cumulative~flux~(mg~C~m^-2~d^-1)))) +
+										 										name = expression(Cumulative~flux~(g~C~m^-2~d^-1)))) +
 	#  geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1) + 
 	geom_hline(yintercept = 0, lty = 2) +
 	scale_x_datetime(date_breaks = '1 month', date_labels = '%d %b') +
