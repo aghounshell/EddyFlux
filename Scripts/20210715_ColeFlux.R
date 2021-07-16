@@ -403,44 +403,6 @@ ice_on <- ice %>%
 ice_off <- ice %>% 
   filter(Date>"2020-01-01" & IceOff == 1)
 
-# Create graph to look at ice on/off
-winter_ch4 <- ggplot(eddy_flux_ch4)+
-  geom_vline(xintercept = as.POSIXct("2020-12-27"), linetype = "dotted", color="blue")+
-  geom_vline(xintercept = as.POSIXct("2020-12-30"), linetype = "dotted", color="red")+
-  geom_vline(xintercept = as.POSIXct("2021-01-10"), linetype = "dotted", color="blue")+
-  geom_vline(xintercept = as.POSIXct("2021-02-09"), linetype = "dotted", color="red")+
-  geom_vline(xintercept = as.POSIXct("2021-02-11"), linetype = "dotted", color="blue")+
-  geom_vline(xintercept = as.POSIXct("2021-02-23"), linetype = "dotted", color="red")+
-  #geom_point(eddy_flux, mapping = aes(DateTime, ch4_flux_uStar_orig/1e6*60*60*24*44.01),alpha = 0.1)+
-  geom_hline(yintercept = 0, linetype="dashed")+
-  #geom_ribbon(mapping = aes(x = DateTime, y = NEE/1e6*60*60*24*44.01, ymin = (NEE/1e6*60*60*24*44.01)-(sdNEE/1e6*60*60*24*44.01),ymax = (NEE/1e6*60*60*24*44.01)+(sdNEE/1e6*60*60*24*44.01)),fill="#E63946",alpha=0.4)+
-  geom_line(mapping = aes(DateTime, NEE/1e6*60*60*24*44.01),color="#E63946",size = 1)+
-  xlim(as.POSIXct("2020-12-20"),as.POSIXct("2021-03-01"))+
-  ylab(expression(paste("CH"[4]*" (g C m"^-2*" s"^-1*")")))+
-  ylim(-0.15,0.15)+
-  theme_classic(base_size = 15)
-
-
-winter_co2 <- ggplot(eddy_flux_co2)+
-  geom_vline(xintercept = as.POSIXct("2020-12-27"), linetype = "dotted", color="blue")+
-  geom_vline(xintercept = as.POSIXct("2020-12-30"), linetype = "dotted", color="red")+
-  geom_vline(xintercept = as.POSIXct("2021-01-10"), linetype = "dotted", color="blue")+
-  geom_vline(xintercept = as.POSIXct("2021-02-09"), linetype = "dotted", color="red")+
-  geom_vline(xintercept = as.POSIXct("2021-02-11"), linetype = "dotted", color="blue")+
-  geom_vline(xintercept = as.POSIXct("2021-02-23"), linetype = "dotted", color="red")+
-  #geom_point(eddy_flux, mapping = aes(DateTime, NEE_uStar_orig/1e6*60*60*24*44.01),alpha = 0.1)+
-  geom_hline(yintercept = 0, linetype="dashed")+
-  #geom_ribbon(mapping = aes(x = DateTime, y = NEE/1e6*60*60*24*44.01, ymin = (NEE/1e6*60*60*24*44.01)-(sdNEE/1e6*60*60*24*44.01),ymax = (NEE/1e6*60*60*24*44.01)+(sdNEE/1e6*60*60*24*44.01)),fill="#E63946",alpha=0.4)+
-  geom_line(mapping = aes(DateTime, NEE/1e6*60*60*24*44.01),color="#E63946",size = 1)+
-  xlim(as.POSIXct("2020-12-20"),as.POSIXct("2021-03-01"))+
-  ylab(expression(paste("CO"[2]*" (g C m"^-2*" s"^-1*")")))+
-  #ylim(-50,50)+
-  theme_classic(base_size = 15)
-
-ggarrange(winter_co2,winter_ch4,nrow=2,ncol=1)
-
-ggsave("./Fig_Output/Winter_Fluxes_Avg.jpg",width = 10, height=7, units="in",dpi=320)
-
 # Calculate average flux for each ice on/off period
 ice_off_1 <- eddy_flux %>% 
   filter(DateTime >= "2020-12-19 19:00:00" & DateTime < "2020-12-26 19:00:00") %>% 
@@ -462,41 +424,74 @@ ice_on_2 <- eddy_flux %>%
   mutate(ice_period = "4") %>% 
   mutate(ice = "on")
 
-ice_off_3 <- eddy_flux %>% 
-  filter(DateTime >= "2021-02-09 19:00:00" & DateTime < "2021-02-11 19:00:00")%>% 
-  mutate(ice_period = "5") %>% 
-  mutate(ice = "off")
-
-ice_on_3 <- eddy_flux %>% 
-  filter(DateTime >= "2021-02-11 19:00:00" & DateTime < "2021-02-23 19:00:00")%>% 
-  mutate(ice_period = "6") %>% 
-  mutate(ice = "on")
-
-#ice_off_4 <- eddy_flux %>% 
-#  filter(DateTime >= "2021-02-23 19:00:00" & DateTime < "2021-03-01 19:00:00")%>% 
-#  mutate(ice_period = "7") %>% 
-#  mutate(ice = "off")
-
 ice_all <- rbind(ice_off_1,ice_on_1,ice_off_2,ice_on_2,ice_off_3,ice_on_3)
 
-# Plot?
+# Daily means in winter (ice on/off)
+winter_co2 <- ggplot(fcr_daily)+
+  annotate(geom="text",x = as.POSIXct("2020-12-24"),y = 9,label = "Off")+
+  annotate(geom="text",x=as.POSIXct("2020-12-28 12:00"),y=9,label="On")+
+  annotate(geom="text",x=as.POSIXct("2021-01-04"),y=9,label="Off")+
+  annotate(geom="text",x=as.POSIXct("2021-01-25"),y=9,label="On")+
+  annotate(geom="text",x=as.POSIXct("2021-02-11"),y=9,label="Off")+
+  geom_vline(xintercept = as.POSIXct("2020-12-27"), linetype = "dotted", color="blue")+
+  geom_vline(xintercept = as.POSIXct("2020-12-30"), linetype = "dotted", color="red")+
+  geom_vline(xintercept = as.POSIXct("2021-01-10"), linetype = "dotted", color="blue")+
+  geom_vline(xintercept = as.POSIXct("2021-02-09"), linetype = "dotted", color="red")+
+  geom_point(fcr_gf, mapping = aes(DateTime, NEE_uStar_orig),alpha = 0.1)+
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_ribbon(mapping = aes(x = Date, y = NEE, ymin = NEE-NEE_sd,ymax = NEE+NEE_sd),fill="#E63946",alpha=0.4)+
+  geom_line(mapping = aes(Date, NEE),color="#E63946",size = 1)+
+  xlim(as.POSIXct("2020-12-20"),as.POSIXct("2021-02-11"))+
+  ylab(expression(~CO[2]~(mu~mol~m^-2~s^-1))) +
+  xlab("")+
+  ylim(-10,10)+
+  theme_classic(base_size = 15)+
+  theme(axis.title.y = element_text(margin = margin(t = 0, r = 0, b = 0, l = 5)))
+
 ice_co2 <- ggplot(ice_all,mapping=aes(x=ice_period,y=NEE_uStar_orig,color=ice))+
   geom_hline(yintercept = 0, linetype = "dashed", color="darkgrey", size = 0.8)+
   ylab(expression(paste("CO"[2]*" (",mu,"mol C m"^-2*" s"^-1*")")))+
   xlab("Ice Period")+
-  geom_boxplot()+
+  geom_boxplot(outlier.shape = NA)+
+  geom_point(position=position_jitterdodge(),alpha=0.3)+
+  scale_color_manual(breaks=c('on','off'),labels=c('On','Off'),values=c("#E63946","#4c8bfe"))+
+  theme_classic(base_size = 15)+
+  theme(legend.title=element_blank())+
+  theme(axis.title.y = element_text(margin = margin(t = 0, r = 0, b = 0, l = 5)))
+
+winter_ch4 <- ggplot(fcr_daily)+
+  annotate(geom="text",x = as.POSIXct("2020-12-24"),y = 0.025,label = "Off")+
+  annotate(geom="text",x=as.POSIXct("2020-12-28 12:00"),y=0.025,label="On")+
+  annotate(geom="text",x=as.POSIXct("2021-01-04"),y=0.025,label="Off")+
+  annotate(geom="text",x=as.POSIXct("2021-01-25"),y=0.025,label="On")+
+  annotate(geom="text",x=as.POSIXct("2021-02-11"),y=0.025,label="Off")+
+  geom_vline(xintercept = as.POSIXct("2020-12-27"), linetype = "dotted", color="blue")+
+  geom_vline(xintercept = as.POSIXct("2020-12-30"), linetype = "dotted", color="red")+
+  geom_vline(xintercept = as.POSIXct("2021-01-10"), linetype = "dotted", color="blue")+
+  geom_vline(xintercept = as.POSIXct("2021-02-09"), linetype = "dotted", color="red")+
+  geom_point(fcr_gf, mapping = aes(DateTime, ch4_flux_uStar_orig),alpha = 0.1)+
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_ribbon(mapping = aes(x = Date, y = CH4, ymin = CH4-CH4_sd,ymax = CH4+CH4_sd),fill="#E63946",alpha=0.4)+
+  geom_line(mapping = aes(Date, CH4),color="#E63946",size = 1)+
+  xlim(as.POSIXct("2020-12-20"),as.POSIXct("2021-02-11"))+
+  ylab(expression(~CH[4]~(mu~mol~m^-2~s^-1))) +
+  xlab("")+
+  ylim(-0.03,0.03)+
   theme_classic(base_size = 15)
 
 ice_ch4 <- ggplot(ice_all,mapping=aes(x=ice_period,y=ch4_flux_uStar_orig,color=ice))+
   geom_hline(yintercept = 0, linetype = "dashed", color="darkgrey", size = 0.8)+
   ylab(expression(paste("CH"[4]*" (",mu,"mol C m"^-2*" s"^-1*")")))+
   xlab("Ice Period")+
-  geom_boxplot()+
-  theme_classic(base_size = 15)
+  geom_boxplot(outlier.shape = NA)+
+  geom_point(position=position_jitterdodge(),alpha=0.3)+
+  scale_color_manual(breaks=c('on','off'),labels=c('On','Off'),values=c("#E63946","#4c8bfe"))+
+  theme_classic(base_size = 15)+
+  theme(legend.title=element_blank())
 
-ggarrange(ice_co2,ice_ch4,nrow=1,ncol=2,common.legend = TRUE)
+ggarrange(winter_co2,ice_co2,winter_ch4,ice_ch4,nrow=2,ncol=2,common.legend = TRUE)
 
-ggsave("./Fig_Output/Ice_Fluxes_v3.jpg",width = 10, height=5, units="in",dpi=320)
+ggsave("./Fig_Output/Ice_on_off.jpg",width = 8, height=8, units="in",dpi=320)
 
 ### Let's get catwalk data in hand ----
 # To start thinking about environmental variables
