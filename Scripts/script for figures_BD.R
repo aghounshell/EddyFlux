@@ -333,6 +333,8 @@ diel_agg <- diel_raw %>%
     
 
 # Plot together - winter and summer periods
+labs <- c(1,3,5,7)
+
 co2_week <- ggplot(diel_hourly)+
   annotate(geom="rect",xmin = as.POSIXct("2020-06-29 19:00:00"),xmax = as.POSIXct("2020-06-30 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
   annotate(geom="rect",xmin = as.POSIXct("2020-06-30 19:00:00"),xmax = as.POSIXct("2020-07-01 06:30:00"),ymin=-Inf,ymax=Inf,alpha=0.3)+
@@ -349,6 +351,7 @@ co2_week <- ggplot(diel_hourly)+
   geom_line(mapping=aes(x=DateTime_summer,y=NEE_winter,color="winter"),size=1)+
   geom_ribbon(mapping=aes(x=DateTime_summer,y=NEE_winter,ymin=NEE_winter-NEE_sd_winter,ymax=NEE_winter+NEE_sd_winter),fill="#4c8bfe",alpha=0.3)+
   xlim(as.POSIXct("2020-06-29 07:00:00"),as.POSIXct("2020-07-06 06:30:00"))+
+  scale_x_discrete(labels=labs)+
   scale_color_manual(breaks=c("summer","winter"), 
                      labels=c("Summer","Winter"),
                      values=c("#E63946","#4c8bfe"))+
