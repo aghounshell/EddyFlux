@@ -674,6 +674,9 @@ catwalk_all$ThermistorTemp_C_7 <- as.numeric(catwalk_all$ThermistorTemp_C_7)
 catwalk_all$ThermistorTemp_C_8 <- as.numeric(catwalk_all$ThermistorTemp_C_8)
 catwalk_all$ThermistorTemp_C_9 <- as.numeric(catwalk_all$ThermistorTemp_C_9)
 
+# Save catwalk data:
+write.csv(catwalk_all,"./Data/Catwalk_all.csv")
+
 catwalk_mean <- catwalk_all %>% 
   mutate(DateTime = format(as.POSIXct(DateTime, "%Y-%m-%d"),"%Y-%m-%d")) %>% 
   mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d", tz = "EST")) %>% 
