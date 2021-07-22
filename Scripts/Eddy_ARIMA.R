@@ -153,6 +153,11 @@ catwalk <- read_csv("./Data/Catwalk_all.csv") %>%
 
 # Calculate difference between surface and bottom temps
 catwalk <- catwalk %>% 
+  mutate(ThermistorTemp_C_surface = na.fill(na.approx(ThermistorTemp_C_surface,na.rm=FALSE),"extend"),
+         EXODO_mgL_1 = na.fill(na.approx(EXODO_mgL_1,na.rm=TRUE),"extend"),
+         EXODOsat_percent_1 = na.fill(na.approx(EXODOsat_percent_1,na.rm=TRUE),"extend"),
+         EXOChla_ugL_1 = na.fill(na.approx(EXOChla_ugL_1,na.rm=TRUE),"extend"),
+         EXOfDOM_RFU_1 = na.fill(na.approx(EXOfDOM_RFU_1,na.rm=TRUE),"extend")) %>% 
   mutate(Temp_diff = ThermistorTemp_C_surface - ThermistorTemp_C_9)
 
 # Load in buoyancy frequency: currently daily; will need to update if we want to include for hourly!
@@ -237,8 +242,6 @@ la_weekly <- la %>%
 catwalk_weekly_2 <- left_join(catwalk_weekly,la_weekly,by=c("Year","Week"))
 
 ### Organize all data for hourly, daily, and weekly ----
-
-######### NOTE: NEED TO FILL IN NA VALUES FOR CATWALK DATA IN THE WINTER!!!
 co2_hourly <- left_join(fcr_hourly,catwalk_hourly,by="DateTime") %>% 
   select(NEE,Temp_C_surface,DO_mgL,DO_sat,Chla_ugL,fdom_rfu)
 
@@ -451,3 +454,546 @@ ch4_weekly_scale <- ch4_weekly %>%
          DO_sat = log(DO_sat),
          Chla_ugL = log(Chla_ugL)) %>% 
   scale()
+
+### ARIMA models ----
+# Remove DO_mgL and just use DO_sat (is redundant...)
+# Following MEL code : )
+# CO2 hourly
+colnames(co2_hourly_scale)
+
+cols <- c(2,4:6)
+sub.final <- NULL
+final <- NULL
+
+y <- co2_hourly_scale[,1]
+
+for (i in 1:length(cols)){
+  my.combn <- combn(cols,i)
+  sub.sub.final <- matrix(NA, nrow = ncol(my.combn), ncol = 4)
+  
+  for (j in 1:ncol(my.combn)){
+    
+    skip_to_next <- FALSE
+    
+    tryCatch(fit <- auto.arima(y,xreg = as.matrix(co2_hourly_scale[,my.combn[,j]]),max.p = 1, max.P = 1), error = function(e) { skip_to_next <<- TRUE})
+    
+    if(skip_to_next) { 
+      sub.sub.final[j,4] <- NA
+      sub.sub.final[j,3] <- j
+      sub.sub.final[j,2] <- i
+      sub.sub.final[j,1] <- "co2_hourly"
+      next }
+    
+    sub.sub.final[j,4] <- fit$aicc
+    sub.sub.final[j,3] <- j
+    sub.sub.final[j,2] <- i
+    sub.sub.final[j,1] <- "co2_hourly"
+  }
+  
+  sub.final <- rbind(sub.final,sub.sub.final)
+  print(paste("I have finished with all combinations of length",i,"for co2_hourly",sep = " "))
+}
+
+final <- rbind(final, sub.final)
+
+#run null models for comparison
+null <- matrix(NA, nrow = 1, ncol = 4)
+
+fit <- auto.arima(y, max.p = 1, max.P = 1)
+null[1,4] <- fit$aicc
+null[1,3] <- NA
+null[1,2] <- NA
+null[1,1] <- "co2_hourly"
+
+
+final <- rbind(final, null)
+final <- data.frame(final)
+colnames(final) <- c("Response.variable","Num.covars","Covar.cols","AICc")
+final <- distinct(final)
+
+best <- final %>%
+  slice(which.min(AICc))
+
+best.vars <- colnames(co2_hourly_scale)[combn(cols,2)[,1]]
+best.vars.cols <- combn(cols,2)[,1]
+
+best.fit <- auto.arima(y,xreg = as.matrix(co2_hourly_scale[,best.vars.cols]),max.p = 1, max.P = 1)
+best.fit
+hist(resid(best.fit))
+accuracy(best.fit)
+hist(unlist(co2_hourly_scale[,1]))
+plot_fit <- as.numeric(fitted(best.fit))
+plot_x <- as.numeric(unlist(co2_hourly_scale[,1]))
+plot(plot_x,plot_fit)
+abline(a = 0, b = 1)
+median((unlist(co2_hourly_scale[,1])-unlist(fitted(best.fit))), na.rm = TRUE)
+
+good <- final %>%
+  filter(AICc >= as.numeric(best$AICc[1]) & AICc <= (as.numeric(best$AICc[1]) + 2)) %>%
+  mutate(Num.covars = as.numeric(Num.covars),
+         Covar.cols = as.numeric(Covar.cols))
+
+for (i in 1:nrow(good)){
+  good.vars.1 <- colnames(co2_hourly_scale)[combn(cols,good[i,2])[,good[i,3]]]
+  
+  good.vars.1
+  
+  good.vars.cols.1 <- combn(cols,good[i,2])[,good[i,3]]
+  
+  
+  good.fit.1 <- auto.arima(y,xreg = as.matrix(co2_hourly_scale[,good.vars.cols.1]),max.p = 1, max.P = 1)
+  print(good.fit.1)
+  print(accuracy(good.fit.1))
+  
+  
+}
+
+### Ch4 Hourly
+colnames(ch4_hourly_scale)
+
+cols <- c(2,4:6)
+sub.final <- NULL
+final <- NULL
+
+y <- ch4_hourly_scale[,1]
+
+for (i in 1:length(cols)){
+  my.combn <- combn(cols,i)
+  sub.sub.final <- matrix(NA, nrow = ncol(my.combn), ncol = 4)
+  
+  for (j in 1:ncol(my.combn)){
+    
+    skip_to_next <- FALSE
+    
+    tryCatch(fit <- auto.arima(y,xreg = as.matrix(ch4_hourly_scale[,my.combn[,j]]),max.p = 1, max.P = 1), error = function(e) { skip_to_next <<- TRUE})
+    
+    if(skip_to_next) { 
+      sub.sub.final[j,4] <- NA
+      sub.sub.final[j,3] <- j
+      sub.sub.final[j,2] <- i
+      sub.sub.final[j,1] <- "ch4_hourly"
+      next }
+    
+    sub.sub.final[j,4] <- fit$aicc
+    sub.sub.final[j,3] <- j
+    sub.sub.final[j,2] <- i
+    sub.sub.final[j,1] <- "ch4_hourly"
+  }
+  
+  sub.final <- rbind(sub.final,sub.sub.final)
+  print(paste("I have finished with all combinations of length",i,"for ch4_hourly",sep = " "))
+}
+
+final <- rbind(final, sub.final)
+
+#run null models for comparison
+null <- matrix(NA, nrow = 1, ncol = 4)
+
+fit <- auto.arima(y, max.p = 1, max.P = 1)
+null[1,4] <- fit$aicc
+null[1,3] <- NA
+null[1,2] <- NA
+null[1,1] <- "ch4_hourly"
+
+
+final <- rbind(final, null)
+final <- data.frame(final)
+colnames(final) <- c("Response.variable","Num.covars","Covar.cols","AICc")
+final <- distinct(final)
+
+best <- final %>%
+  slice(which.min(AICc))
+
+best.vars <- colnames(ch4_hourly_scale)[combn(cols,2)[,2]]
+best.vars.cols <- combn(cols,2)[,2]
+
+best.fit <- auto.arima(y,xreg = as.matrix(ch4_hourly_scale[,best.vars.cols]),max.p = 1, max.P = 1)
+best.fit
+hist(resid(best.fit))
+accuracy(best.fit)
+hist(unlist(ch4_hourly_scale[,1]))
+plot_fit <- as.numeric(fitted(best.fit))
+plot_x <- as.numeric(unlist(ch4_hourly_scale[,1]))
+plot(plot_x,plot_fit)
+abline(a = 0, b = 1)
+median((unlist(ch4_hourly_scale[,1])-unlist(fitted(best.fit))), na.rm = TRUE)
+
+good <- final %>%
+  filter(AICc >= as.numeric(best$AICc[1]) & AICc <= (as.numeric(best$AICc[1]) + 2)) %>%
+  mutate(Num.covars = as.numeric(Num.covars),
+         Covar.cols = as.numeric(Covar.cols))
+
+for (i in 1:nrow(good)){
+  good.vars.1 <- colnames(ch4_hourly_scale)[combn(cols,good[i,2])[,good[i,3]]]
+  
+  good.vars.1
+  
+  good.vars.cols.1 <- combn(cols,good[i,2])[,good[i,3]]
+  
+  
+  good.fit.1 <- auto.arima(y,xreg = as.matrix(ch4_hourly_scale[,good.vars.cols.1]),max.p = 1, max.P = 1)
+  print(good.fit.1)
+  print(accuracy(good.fit.1))
+  
+  
+}
+
+### Co2 Daily
+colnames(co2_daily_scale)
+
+cols <- c(2,4:6)
+sub.final <- NULL
+final <- NULL
+
+y <- co2_daily_scale[,1]
+
+for (i in 1:length(cols)){
+  my.combn <- combn(cols,i)
+  sub.sub.final <- matrix(NA, nrow = ncol(my.combn), ncol = 4)
+  
+  for (j in 1:ncol(my.combn)){
+    
+    skip_to_next <- FALSE
+    
+    tryCatch(fit <- auto.arima(y,xreg = as.matrix(co2_daily_scale[,my.combn[,j]]),max.p = 1, max.P = 1), error = function(e) { skip_to_next <<- TRUE})
+    
+    if(skip_to_next) { 
+      sub.sub.final[j,4] <- NA
+      sub.sub.final[j,3] <- j
+      sub.sub.final[j,2] <- i
+      sub.sub.final[j,1] <- "co2_daily"
+      next }
+    
+    sub.sub.final[j,4] <- fit$aicc
+    sub.sub.final[j,3] <- j
+    sub.sub.final[j,2] <- i
+    sub.sub.final[j,1] <- "co2_daily"
+  }
+  
+  sub.final <- rbind(sub.final,sub.sub.final)
+  print(paste("I have finished with all combinations of length",i,"for co2_daily",sep = " "))
+}
+
+final <- rbind(final, sub.final)
+
+#run null models for comparison
+null <- matrix(NA, nrow = 1, ncol = 4)
+
+fit <- auto.arima(y, max.p = 1, max.P = 1)
+null[1,4] <- fit$aicc
+null[1,3] <- NA
+null[1,2] <- NA
+null[1,1] <- "co2_daily"
+
+
+final <- rbind(final, null)
+final <- data.frame(final)
+colnames(final) <- c("Response.variable","Num.covars","Covar.cols","AICc")
+final <- distinct(final)
+
+best <- final %>%
+  slice(which.min(AICc))
+
+best.vars <- colnames(co2_daily_scale)[combn(cols,4)[,1]]
+best.vars.cols <- combn(cols,4)[,1]
+
+best.fit <- auto.arima(y,xreg = as.matrix(co2_daily_scale[,best.vars.cols]),max.p = 1, max.P = 1)
+best.fit
+hist(resid(best.fit))
+accuracy(best.fit)
+hist(unlist(co2_daily_scale[,1]))
+plot_fit <- as.numeric(fitted(best.fit))
+plot_x <- as.numeric(unlist(co2_daily_scale[,1]))
+plot(plot_x,plot_fit)
+abline(a = 0, b = 1)
+median((unlist(co2_daily_scale[,1])-unlist(fitted(best.fit))), na.rm = TRUE)
+
+good <- final %>%
+  filter(AICc >= as.numeric(best$AICc[1]) & AICc <= (as.numeric(best$AICc[1]) + 2)) %>%
+  mutate(Num.covars = as.numeric(Num.covars),
+         Covar.cols = as.numeric(Covar.cols))
+
+for (i in 1:nrow(good)){
+  good.vars.1 <- colnames(co2_daily_scale)[combn(cols,good[i,2])[,good[i,3]]]
+  
+  good.vars.1
+  
+  good.vars.cols.1 <- combn(cols,good[i,2])[,good[i,3]]
+  
+  
+  good.fit.1 <- auto.arima(y,xreg = as.matrix(co2_daily_scale[,good.vars.cols.1]),max.p = 1, max.P = 1)
+  print(good.fit.1)
+  print(accuracy(good.fit.1))
+  
+  
+}
+
+### CH4 Daily
+colnames(ch4_daily_scale)
+
+cols <- c(2,4:6)
+sub.final <- NULL
+final <- NULL
+
+y <- ch4_daily_scale[,1]
+
+for (i in 1:length(cols)){
+  my.combn <- combn(cols,i)
+  sub.sub.final <- matrix(NA, nrow = ncol(my.combn), ncol = 4)
+  
+  for (j in 1:ncol(my.combn)){
+    
+    skip_to_next <- FALSE
+    
+    tryCatch(fit <- auto.arima(y,xreg = as.matrix(ch4_daily_scale[,my.combn[,j]]),max.p = 1, max.P = 1), error = function(e) { skip_to_next <<- TRUE})
+    
+    if(skip_to_next) { 
+      sub.sub.final[j,4] <- NA
+      sub.sub.final[j,3] <- j
+      sub.sub.final[j,2] <- i
+      sub.sub.final[j,1] <- "ch4_daily"
+      next }
+    
+    sub.sub.final[j,4] <- fit$aicc
+    sub.sub.final[j,3] <- j
+    sub.sub.final[j,2] <- i
+    sub.sub.final[j,1] <- "ch4_daily"
+  }
+  
+  sub.final <- rbind(sub.final,sub.sub.final)
+  print(paste("I have finished with all combinations of length",i,"for ch4_daily",sep = " "))
+}
+
+final <- rbind(final, sub.final)
+
+#run null models for comparison
+null <- matrix(NA, nrow = 1, ncol = 4)
+
+fit <- auto.arima(y, max.p = 1, max.P = 1)
+null[1,4] <- fit$aicc
+null[1,3] <- NA
+null[1,2] <- NA
+null[1,1] <- "ch4_daily"
+
+
+final <- rbind(final, null)
+final <- data.frame(final)
+colnames(final) <- c("Response.variable","Num.covars","Covar.cols","AICc")
+final <- distinct(final)
+
+best <- final %>%
+  slice(which.min(AICc))
+
+best.vars <- colnames(ch4_daily_scale)[combn(cols,1)[,3]]
+best.vars.cols <- combn(cols,1)[,3]
+
+best.fit <- auto.arima(y,xreg = as.matrix(ch4_daily_scale[,best.vars.cols]),max.p = 1, max.P = 1)
+best.fit
+hist(resid(best.fit))
+accuracy(best.fit)
+hist(unlist(ch4_daily_scale[,1]))
+plot_fit <- as.numeric(fitted(best.fit))
+plot_x <- as.numeric(unlist(ch4_daily_scale[,1]))
+plot(plot_x,plot_fit)
+abline(a = 0, b = 1)
+median((unlist(ch4_daily_scale[,1])-unlist(fitted(best.fit))), na.rm = TRUE)
+
+good <- final %>%
+  filter(AICc >= as.numeric(best$AICc[1]) & AICc <= (as.numeric(best$AICc[1]) + 2)) %>%
+  mutate(Num.covars = as.numeric(Num.covars),
+         Covar.cols = as.numeric(Covar.cols))
+
+for (i in 1:nrow(good)){
+  good.vars.1 <- colnames(ch4_daily_scale)[combn(cols,good[i,2])[,good[i,3]]]
+  
+  good.vars.1
+  
+  good.vars.cols.1 <- combn(cols,good[i,2])[,good[i,3]]
+  
+  
+  good.fit.1 <- auto.arima(y,xreg = as.matrix(ch4_daily_scale[,good.vars.cols.1]),max.p = 1, max.P = 1)
+  print(good.fit.1)
+  print(accuracy(good.fit.1))
+  
+  
+}
+
+### CO2 Weekly
+colnames(co2_weekly_scale)
+
+cols <- c(2,4:6)
+sub.final <- NULL
+final <- NULL
+
+y <- co2_weekly_scale[,1]
+
+for (i in 1:length(cols)){
+  my.combn <- combn(cols,i)
+  sub.sub.final <- matrix(NA, nrow = ncol(my.combn), ncol = 4)
+  
+  for (j in 1:ncol(my.combn)){
+    
+    skip_to_next <- FALSE
+    
+    tryCatch(fit <- auto.arima(y,xreg = as.matrix(co2_weekly_scale[,my.combn[,j]]),max.p = 1, max.P = 1), error = function(e) { skip_to_next <<- TRUE})
+    
+    if(skip_to_next) { 
+      sub.sub.final[j,4] <- NA
+      sub.sub.final[j,3] <- j
+      sub.sub.final[j,2] <- i
+      sub.sub.final[j,1] <- "co2_weekly"
+      next }
+    
+    sub.sub.final[j,4] <- fit$aicc
+    sub.sub.final[j,3] <- j
+    sub.sub.final[j,2] <- i
+    sub.sub.final[j,1] <- "co2_weekly"
+  }
+  
+  sub.final <- rbind(sub.final,sub.sub.final)
+  print(paste("I have finished with all combinations of length",i,"for co2_weekly",sep = " "))
+}
+
+final <- rbind(final, sub.final)
+
+#run null models for comparison
+null <- matrix(NA, nrow = 1, ncol = 4)
+
+fit <- auto.arima(y, max.p = 1, max.P = 1)
+null[1,4] <- fit$aicc
+null[1,3] <- NA
+null[1,2] <- NA
+null[1,1] <- "co2_weekly"
+
+
+final <- rbind(final, null)
+final <- data.frame(final)
+colnames(final) <- c("Response.variable","Num.covars","Covar.cols","AICc")
+final <- distinct(final)
+
+best <- final %>%
+  slice(which.min(AICc))
+
+best.vars <- colnames(co2_weekly_scale)[combn(cols,3)[,2]]
+best.vars.cols <- combn(cols,3)[,2]
+
+best.fit <- auto.arima(y,xreg = as.matrix(co2_weekly_scale[,best.vars.cols]),max.p = 1, max.P = 1)
+best.fit
+hist(resid(best.fit))
+accuracy(best.fit)
+hist(unlist(co2_weekly_scale[,1]))
+plot_fit <- as.numeric(fitted(best.fit))
+plot_x <- as.numeric(unlist(co2_weekly_scale[,1]))
+plot(plot_x,plot_fit)
+abline(a = 0, b = 1)
+median((unlist(co2_weekly_scale[,1])-unlist(fitted(best.fit))), na.rm = TRUE)
+
+good <- final %>%
+  filter(AICc >= as.numeric(best$AICc[1]) & AICc <= (as.numeric(best$AICc[1]) + 2)) %>%
+  mutate(Num.covars = as.numeric(Num.covars),
+         Covar.cols = as.numeric(Covar.cols))
+
+for (i in 1:nrow(good)){
+  good.vars.1 <- colnames(co2_weekly_scale)[combn(cols,good[i,2])[,good[i,3]]]
+  
+  good.vars.1
+  
+  good.vars.cols.1 <- combn(cols,good[i,2])[,good[i,3]]
+  
+  
+  good.fit.1 <- auto.arima(y,xreg = as.matrix(co2_weekly_scale[,good.vars.cols.1]),max.p = 1, max.P = 1)
+  print(good.fit.1)
+  print(accuracy(good.fit.1))
+  
+  
+}
+
+### CH4 weekly
+colnames(ch4_weekly_scale)
+
+cols <- c(2,4:6)
+sub.final <- NULL
+final <- NULL
+
+y <- ch4_weekly_scale[,1]
+
+for (i in 1:length(cols)){
+  my.combn <- combn(cols,i)
+  sub.sub.final <- matrix(NA, nrow = ncol(my.combn), ncol = 4)
+  
+  for (j in 1:ncol(my.combn)){
+    
+    skip_to_next <- FALSE
+    
+    tryCatch(fit <- auto.arima(y,xreg = as.matrix(ch4_weekly_scale[,my.combn[,j]]),max.p = 1, max.P = 1), error = function(e) { skip_to_next <<- TRUE})
+    
+    if(skip_to_next) { 
+      sub.sub.final[j,4] <- NA
+      sub.sub.final[j,3] <- j
+      sub.sub.final[j,2] <- i
+      sub.sub.final[j,1] <- "ch4_weekly"
+      next }
+    
+    sub.sub.final[j,4] <- fit$aicc
+    sub.sub.final[j,3] <- j
+    sub.sub.final[j,2] <- i
+    sub.sub.final[j,1] <- "ch4_weekly"
+  }
+  
+  sub.final <- rbind(sub.final,sub.sub.final)
+  print(paste("I have finished with all combinations of length",i,"for ch4_weekly",sep = " "))
+}
+
+final <- rbind(final, sub.final)
+
+#run null models for comparison
+null <- matrix(NA, nrow = 1, ncol = 4)
+
+fit <- auto.arima(y, max.p = 1, max.P = 1)
+null[1,4] <- fit$aicc
+null[1,3] <- NA
+null[1,2] <- NA
+null[1,1] <- "ch4_weekly"
+
+
+final <- rbind(final, null)
+final <- data.frame(final)
+colnames(final) <- c("Response.variable","Num.covars","Covar.cols","AICc")
+final <- distinct(final)
+
+best <- final %>%
+  slice(which.min(AICc))
+
+best.vars <- colnames(ch4_weekly_scale)[combn(cols,1)[,3]]
+best.vars.cols <- combn(cols,1)[,3]
+
+best.fit <- auto.arima(y,xreg = as.matrix(ch4_weekly_scale[,best.vars.cols]),max.p = 1, max.P = 1)
+best.fit
+hist(resid(best.fit))
+accuracy(best.fit)
+hist(unlist(ch4_weekly_scale[,1]))
+plot_fit <- as.numeric(fitted(best.fit))
+plot_x <- as.numeric(unlist(ch4_weekly_scale[,1]))
+plot(plot_x,plot_fit)
+abline(a = 0, b = 1)
+median((unlist(ch4_weekly_scale[,1])-unlist(fitted(best.fit))), na.rm = TRUE)
+
+good <- final %>%
+  filter(AICc >= as.numeric(best$AICc[1]) & AICc <= (as.numeric(best$AICc[1]) + 2)) %>%
+  mutate(Num.covars = as.numeric(Num.covars),
+         Covar.cols = as.numeric(Covar.cols))
+
+for (i in 1:nrow(good)){
+  good.vars.1 <- colnames(ch4_weekly_scale)[combn(cols,good[i,2])[,good[i,3]]]
+  
+  good.vars.1
+  
+  good.vars.cols.1 <- combn(cols,good[i,2])[,good[i,3]]
+  
+  
+  good.fit.1 <- auto.arima(y,xreg = as.matrix(ch4_weekly_scale[,good.vars.cols.1]),max.p = 1, max.P = 1)
+  print(good.fit.1)
+  print(accuracy(good.fit.1))
+  
+  
+}
