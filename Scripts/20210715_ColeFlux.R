@@ -15,7 +15,7 @@ wd <- getwd()
 setwd(wd)
 
 # Load in libraries
-pacman::p_load(tidyverse,ncdf4,ggplot2,ggpubr,LakeMetabolizer,zoo,scales,lubridate,lognorm)
+pacman::p_load(tidyverse,ncdf4,ggplot2,ggpubr,LakeMetabolizer,zoo,scales,lubridate,lognorm,MuMIn,rsq,Metrics,astsa,DescTools)
 
 # First load in wind data from Met station at FCR ----
 # Download 2020 Met data from EDI
@@ -255,7 +255,8 @@ ggsave("./Fig_Output/Diff_fluxes.jpg",width = 6, height=5, units="in",dpi=320)
 # Load in data from Brenda - 30 minute fluxes from 2020-04-04 to 2021-05-06
 # Data corrected following FCR_Process_BD
 eddy_flux <- read_csv("./Data/20210615_EC_processed.csv") %>% 
-  mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d %H:%M:%S", tz = "EST"))
+  mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d %H:%M:%S", tz = "EST")) %>% 
+  filter(DateTime >= as.POSIXct("2020-04-05 20:00:00") & DateTime < as.POSIXct("2021-04-05 20:00:00"))
 
 # Plot different percentiles
 ggplot(eddy_flux)+
@@ -266,6 +267,47 @@ ggplot(eddy_flux)+
   #geom_line(mapping=aes(x=DateTime,y=ch4_flux_U97.5_f,color="U97.5"))+
   #geom_line(mapping=aes(x=DateTime,y=ch4_flux_U2.5_f,color="U2.5"))
   geom_ribbon(mapping=aes(x=DateTime,y=ch4_flux_uStar_f,ymin=ch4_flux_uStar_f-ch4_flux_uStar_fsd,ymax=ch4_flux_uStar_f+ch4_flux_uStar_fsd,color="f"),alpha=0.3)
+
+# Aggregate to hourly and calculate the variability (SD) - follosing script for figures_BD
+fcr_hourly <- eddy_flux %>% 
+  mutate(DateTime = format(as.POSIXct(DateTime, "%Y-%m-%d %H"),"%Y-%m-%d %H")) %>% 
+  mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d %H", tz = "EST")) %>% 
+  group_by(DateTime) %>% 
+  mutate(Year = year(DateTime), 
+         Month = month(DateTime), 
+         Day = day(DateTime), 
+         Hour = hour(DateTime)) %>% 
+  summarise(NEE = mean(NEE_uStar_f, na.rm = TRUE),
+            NEE05 = mean(NEE_U05_f, na.rm = TRUE),
+            NEE50 = mean(NEE_U50_f, na.rm = TRUE),
+            NEE95 = mean(NEE_U95_f, na.rm = TRUE),
+            NEE_sd = sd(NEE_uStar_f, na.rm = TRUE),
+            CH4 = mean(ch4_flux_uStar_f, na.rm = TRUE),
+            CH405 = mean(ch4_flux_U05_f, na.rm = TRUE),
+            CH450 = mean(ch4_flux_U50_f, na.rm = TRUE),
+            CH495 = mean(ch4_flux_U95_f, na.rm = TRUE),
+            CH4_sd = sd(ch4_flux_uStar_f, na.rm = TRUE),
+            Tmean = mean(Tair_f, na.rm = TRUE),
+            Tmax = max(Tair_f, na.rm = TRUE),
+            Tmin = min(Tair_f, na.rm = TRUE),
+            H = mean(H_f, na.rm = TRUE),
+            LE = mean(LE_f, na.rm = TRUE),
+            VPD = mean(VPD, na.rm = TRUE),
+            RH = mean(rH, na.rm = TRUE),
+            umean = mean(u, na.rm = TRUE),
+            umax = max(u),
+            umin = min(u),
+            pressure = mean(airP, na.rm = TRUE),
+            minpress = min(airP, na.rm = TRUE),
+            maxpress = max(airP, na.rm = TRUE),
+            PAR_tot = mean(PAR_f, na.rm = TRUE),
+            precip_sum = sum(precip, na.rm = TRUE),
+            Rg = mean(Rg_f, na.rm = TRUE),
+            SW_out = mean(SW_out, na.rm = TRUE),
+            Rn = mean(Rn_f, na.rm = TRUE),
+            LW_in = mean(LW_in, na.rm = TRUE),
+            LW_out = mean(LW_out, na.rm = TRUE),
+            albedo = mean(albedo, na.rm = TRUE))
 
 # Aggregate to daily and calculate the variability (SD) - following script for figures_BD
 # data in umolm2s
@@ -309,6 +351,85 @@ fcr_daily <- eddy_flux %>%
 
 fcr_daily$Date <- as.POSIXct(paste(fcr_daily$Year, fcr_daily$Month, fcr_daily$Day, sep = '-'), "%Y-%m-%d", tz = 'EST')
 
+# Aggregate into weekly
+fcr_weekly <- eddy_flux %>% 
+  mutate(Year = year(DateTime), 
+         Month = month(DateTime), 
+         Week = week(DateTime)) %>% 
+  dplyr::group_by(Year, Week) %>% 
+  dplyr::summarise(NEE = mean(NEE_uStar_f, na.rm = TRUE),
+                   NEE05 = mean(NEE_U05_f, na.rm = TRUE),
+                   NEE50 = mean(NEE_U50_f, na.rm = TRUE),
+                   NEE95 = mean(NEE_U95_f, na.rm = TRUE),
+                   NEE_sd = sd(NEE_uStar_f, na.rm = TRUE),
+                   CH4 = mean(ch4_flux_uStar_f, na.rm = TRUE),
+                   CH405 = mean(ch4_flux_U05_f, na.rm = TRUE),
+                   CH450 = mean(ch4_flux_U50_f, na.rm = TRUE),
+                   CH495 = mean(ch4_flux_U95_f, na.rm = TRUE),
+                   CH4_sd = sd(ch4_flux_uStar_f, na.rm = TRUE),
+                   Tmean = mean(Tair_f, na.rm = TRUE),
+                   Tmax = max(Tair_f, na.rm = TRUE),
+                   Tmin = min(Tair_f, na.rm = TRUE),
+                   H = mean(H_f, na.rm = TRUE),
+                   LE = mean(LE_f, na.rm = TRUE),
+                   VPD = mean(VPD, na.rm = TRUE),
+                   RH = mean(rH, na.rm = TRUE),
+                   umean = mean(u, na.rm = TRUE),
+                   umax = max(u),
+                   umin = min(u),
+                   pressure = mean(airP, na.rm = TRUE),
+                   minpress = min(airP, na.rm = TRUE),
+                   maxpress = max(airP, na.rm = TRUE),
+                   PAR_tot = mean(PAR_f, na.rm = TRUE),
+                   precip_sum = sum(precip, na.rm = TRUE),
+                   Rg = mean(Rg_f, na.rm = TRUE),
+                   SW_out = mean(SW_out, na.rm = TRUE),
+                   Rn = mean(Rn_f, na.rm = TRUE),
+                   LW_in = mean(LW_in, na.rm = TRUE),
+                   LW_out = mean(LW_out, na.rm = TRUE),
+                   albedo = mean(albedo, na.rm = TRUE))
+
+fcr_weekly$Date <- make_datetime(year = fcr_weekly$Year) + weeks(fcr_weekly$Week)
+
+# Aggregate to Monthly
+fcr_monthly <- eddy_flux %>% 
+  mutate(Year = year(DateTime), 
+         Month = month(DateTime)) %>% 
+  dplyr::group_by(Year, Month) %>% 
+  dplyr::summarise(NEE = mean(NEE_uStar_f, na.rm = TRUE),
+                   NEE05 = mean(NEE_U05_f, na.rm = TRUE),
+                   NEE50 = mean(NEE_U50_f, na.rm = TRUE),
+                   NEE95 = mean(NEE_U95_f, na.rm = TRUE),
+                   NEE_sd = sd(NEE_uStar_f, na.rm = TRUE),
+                   CH4 = mean(ch4_flux_uStar_f, na.rm = TRUE),
+                   CH405 = mean(ch4_flux_U05_f, na.rm = TRUE),
+                   CH450 = mean(ch4_flux_U50_f, na.rm = TRUE),
+                   CH495 = mean(ch4_flux_U95_f, na.rm = TRUE),
+                   CH4_sd = sd(ch4_flux_uStar_f, na.rm = TRUE),
+                   Tmean = mean(Tair_f, na.rm = TRUE),
+                   Tmax = max(Tair_f, na.rm = TRUE),
+                   Tmin = min(Tair_f, na.rm = TRUE),
+                   H = mean(H_f, na.rm = TRUE),
+                   LE = mean(LE_f, na.rm = TRUE),
+                   VPD = mean(VPD, na.rm = TRUE),
+                   RH = mean(rH, na.rm = TRUE),
+                   umean = mean(u, na.rm = TRUE),
+                   umax = max(u),
+                   umin = min(u),
+                   pressure = mean(airP, na.rm = TRUE),
+                   minpress = min(airP, na.rm = TRUE),
+                   maxpress = max(airP, na.rm = TRUE),
+                   PAR_tot = mean(PAR_f, na.rm = TRUE),
+                   precip_sum = sum(precip, na.rm = TRUE),
+                   Rg = mean(Rg_f, na.rm = TRUE),
+                   SW_out = mean(SW_out, na.rm = TRUE),
+                   Rn = mean(Rn_f, na.rm = TRUE),
+                   LW_in = mean(LW_in, na.rm = TRUE),
+                   LW_out = mean(LW_out, na.rm = TRUE),
+                   albedo = mean(albedo, na.rm = TRUE))
+
+fcr_monthly$yearmon <- with(fcr_monthly, sprintf("%d-%02d", Year, Month))
+
 # daily means
 dailynee <- fcr_daily %>% 
   ggplot() +
@@ -338,6 +459,173 @@ dailych4 <- fcr_daily %>%
 ggarrange(dailynee, dailych4, nrow = 2, ncol = 1, align = "v")
 
 ggsave("./Fig_Output/DailyFluxes_Avg.jpg",width = 8, height=8, units="in",dpi=320)
+
+## Plot weekly and monthly time series
+co2_week <- ggplot(fcr_weekly)+
+  geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_point(eddy_flux,mapping=aes(x=DateTime,y=NEE_uStar_orig),alpha = 0.1)+
+  geom_ribbon(mapping=aes(x=Date,ymin=NEE-NEE_sd,ymax=NEE+NEE_sd),fill="#E63946",alpha=0.3)+
+  geom_line(mapping=aes(x=Date,y=NEE),color="#E63946",size = 1)+
+  geom_point(mapping=aes(x=Date,y=NEE),color="#E63946",size=2)+
+  xlab("") +
+  ylab(expression(~CO[2]~(mu~mol~m^-2~s^-1))) +
+  theme_classic(base_size=15)
+
+co2_month <- ggplot(fcr_monthly) +
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_errorbar(aes(yearmon, ymin = NEE - NEE_sd, ymax = NEE + NEE_sd), width = 0.2) +
+  geom_point(aes(yearmon, NEE), color = "#E63946", size=4) +
+  ylab(expression(~CO[2]~(mu~mol~m^-2~s^-1))) +
+  xlab("") +
+  theme_classic(base_size=15) +
+  theme(axis.text = element_text(colour = 'black'),
+        axis.text.x = element_text(angle = 90, hjust = 0.5, vjust = 0.5),
+        axis.title = element_text(colour = 'black'))
+
+ch4_week <- ggplot(fcr_weekly)+
+  geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_point(eddy_flux,mapping=aes(x=DateTime,y=ch4_flux_uStar_orig),alpha = 0.1)+
+  geom_ribbon(mapping=aes(x=Date,ymin=CH4-CH4_sd,ymax=CH4+CH4_sd),fill="#E63946",alpha=0.3)+
+  geom_line(mapping=aes(x=Date,y=CH4),color="#E63946",size = 1)+
+  geom_point(mapping=aes(x=Date,y=CH4),color="#E63946",size=2)+
+  xlab("") +
+  ylab(expression(~CH[4]~(mu~mol~m^-2~s^-1))) +
+  theme_classic(base_size=15)
+
+ch4_month <- ggplot(fcr_monthly) +
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_errorbar(aes(yearmon, ymin = CH4 - CH4_sd, ymax = CH4 + CH4_sd), width = 0.2) +
+  geom_point(aes(yearmon, CH4), color = "#E63946", size=4) +
+  ylab(expression(~CH[4]~(mu~mol~m^-2~s^-1))) +
+  xlab("") +
+  theme_classic(base_size=15) +
+  theme(axis.text = element_text(colour = 'black'),
+        axis.text.x = element_text(angle = 90, hjust = 0.5, vjust = 0.5),
+        axis.title = element_text(colour = 'black'))
+
+ggarrange(co2_week,ch4_week,
+          ggarrange(co2_month, ch4_month,nrow=1,ncol=2, labels = c("C.","D."), font.label = list(face="plain",size=15)),
+          nrow=3,ncol=1,labels = c("A.","B."),
+          font.label = list(face="plain",size=15))
+
+ggsave("./Fig_Output/Week_Month_Time.jpg",width = 8, height=10, units="in",dpi=320)
+
+
+### Plotting diel variations: select data from noon and midnight ----
+diel_flux <- eddy_flux %>% 
+  select(DateTime,NEE_uStar_f,ch4_flux_uStar_f,NEE_uStar_orig,ch4_flux_uStar_orig) %>% 
+  mutate(Year = year(DateTime), 
+         Month = month(DateTime), 
+         Day = day(DateTime), 
+         Hour = hour(DateTime)) %>% 
+  filter(Hour %in% c(11,12,13)|Hour %in% c(23,0,1)) %>% 
+  mutate(diel = ifelse(Hour == 11 | Hour == 12 | Hour == 13, "Day","Night"))
+
+diel_agg <- diel_flux %>% 
+  ungroup() %>% 
+  group_by(Year,Month,Day,diel) %>% 
+  dplyr::summarise(NEE = mean(NEE_uStar_orig, na.rm = TRUE),
+                   NEE_sd = sd(NEE_uStar_orig, na.rm = TRUE),
+                   CH4 = mean(ch4_flux_uStar_orig, na.rm = TRUE),
+                   CH4_sd = sd(ch4_flux_uStar_orig, na.rm = TRUE),
+                   Hour = mean(Hour)) %>% 
+  mutate(season = ifelse(Month == 12 | Month == 1 | Month == 2, "Winter",
+                         ifelse(Month == 3 | Month == 4 | Month == 5, "Spring",
+                                ifelse(Month == 6 | Month == 7 | Month == 8 | Month == 9, "Summer",
+                                       "Fall"))))
+
+diel_agg$Date <- as.POSIXct(paste(diel_agg$Year, diel_agg$Month, diel_agg$Day, sep = '-'), "%Y-%m-%d", tz = 'EST')
+
+# Plot diel separation by date
+co2_diel_time <- diel_agg %>% 
+  drop_na(NEE_sd) %>% 
+  ggplot()+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
+  geom_point(mapping=aes(x=Date,y=NEE,color=diel),size=1.5)+
+  geom_line(mapping=aes(x=Date,y=NEE,color=diel),size=0.8)+
+  geom_ribbon(mapping=aes(x=Date,y=NEE,ymin=NEE-NEE_sd,ymax=NEE+NEE_sd,fill=diel),alpha=0.3)+
+  ylab(expression(~CO[2]~(mu~mol~m^-2~s^-1))) +
+  xlab("")+
+  scale_color_manual(breaks=c("Day","Night"),
+                     values=c("#E63946","#4c8bfe"))+
+  scale_fill_manual(breaks=c("Day","Night"),
+                     values=c("#E63946","#4c8bfe"))+
+  theme_classic(base_size = 15)+
+  theme(legend.title=element_blank())
+
+ch4_diel_time <- diel_agg %>% 
+  drop_na(CH4_sd) %>% 
+  ggplot()+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
+  geom_point(mapping=aes(x=Date,y=CH4,color=diel),size=1.5)+
+  geom_line(mapping=aes(x=Date,y=CH4,color=diel),size=0.8)+
+  geom_ribbon(mapping=aes(x=Date,y=CH4,ymin=CH4-CH4_sd,ymax=CH4+CH4_sd,fill=diel),alpha=0.3)+
+  ylab(expression(~CH[4]~(mu~mol~m^-2~s^-1))) +
+  xlab("")+
+  scale_color_manual(breaks=c("Day","Night"),
+                     values=c("#E63946","#4c8bfe"))+
+  scale_fill_manual(breaks=c("Day","Night"),
+                    values=c("#E63946","#4c8bfe"))+
+  theme_classic(base_size = 15)+
+  theme(legend.title=element_blank())
+
+co2_box_all <- ggplot(diel_agg,mapping=aes(x=diel,y=NEE,color=diel))+
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_boxplot(outlier.shape = NA)+
+  geom_point(alpha=0.3)+
+  scale_color_manual(breaks=c("Day","Night"),
+                     values=c("#E63946","#4c8bfe"))+
+  ylab(expression(~CO[2]~(mu~mol~m^-2~s^-1))) +
+  xlab("")+
+  theme_classic(base_size=15)+
+  theme(legend.title=element_blank())
+
+ch4_box_all <- ggplot(diel_agg,mapping=aes(x=diel,y=CH4,color=diel))+
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_boxplot(outlier.shape = NA)+
+  geom_point(alpha=0.3)+
+  scale_color_manual(breaks=c("Day","Night"),
+                     values=c("#E63946","#4c8bfe"))+
+  ylab(expression(~CH[4]~(mu~mol~m^-2~s^-1))) +
+  xlab("")+
+  theme_classic(base_size=15)+
+  theme(legend.title=element_blank())
+
+ggarrange(co2_diel_time,co2_box_all,ch4_diel_time,ch4_box_all,nrow=2,ncol=2,common.legend=TRUE,
+          labels=c("A.","B.","C.","D."),font.label = list(face="plain",size=15))
+
+ggsave("./Fig_Output/SI_Diel_Time.jpg",width=9,height=8,units="in",dpi=320)
+
+co2_diel <- ggplot(diel_agg,mapping=aes(x=season,y=NEE,color=diel))+
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_boxplot(outlier.shape = NA,size=1)+
+  geom_point(position = position_jitterdodge(),alpha=0.3)+
+  scale_color_manual(breaks=c("Day","Night"),
+                     values=c("#E63946","#4c8bfe"))+
+  ylab(expression(~CO[2]~(mu~mol~m^-2~s^-1))) +
+  xlab("")+
+  theme_classic(base_size=17)+
+  theme(legend.title=element_blank())
+
+ch4_diel <- ggplot(diel_agg,mapping=aes(x=season,y=CH4,color=diel))+
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_boxplot(outlier.shape = NA,size=1)+
+  geom_point(position = position_jitterdodge(),alpha=0.3)+
+  scale_color_manual(breaks=c("Day","Night"),
+                     values=c("#E63946","#4c8bfe"))+
+  ylab(expression(~CH[4]~(mu~mol~m^-2~s^-1))) +
+  xlab("")+
+  theme_classic(base_size=17)+
+  theme(legend.title=element_blank())
+
+ggarrange(co2_diel,ch4_diel,nrow=1,ncol=2,common.legend = TRUE, labels=c("A.","B."),
+          font.label=list(face="plain",size=15))
+
+ggsave("./Fig_Output/GHG_Diel_all.jpg",width=8,height=4,units="in",dpi=320)
 
 ### Thinking about other visualizations ----
 # Plotting cumulative Co2 and Ch4 throughout the study period
@@ -406,26 +694,38 @@ ice_off <- ice %>%
 # Calculate average flux for each ice on/off period
 ice_off_1 <- eddy_flux %>% 
   filter(DateTime >= "2020-12-19 19:00:00" & DateTime < "2020-12-26 19:00:00") %>% 
-  mutate(ice_period = "1") %>% 
+  select(DateTime,NEE_uStar_orig,NEE_uStar_f,ch4_flux_uStar_orig,ch4_flux_uStar_f) %>% 
+  mutate(ice_period = "Off_1") %>% 
   mutate(ice = "off")
 
 ice_on_1 <- eddy_flux %>% 
   filter(DateTime >= "2020-12-26 19:00:00" & DateTime < "2020-12-29 19:00:00")%>% 
-  mutate(ice_period = "2") %>% 
+  select(DateTime,NEE_uStar_orig,NEE_uStar_f,ch4_flux_uStar_orig,ch4_flux_uStar_f) %>% 
+  mutate(ice_period = "On_1") %>% 
   mutate(ice = "on")
 
 ice_off_2 <- eddy_flux %>% 
   filter(DateTime >= "2020-12-29 19:00:00" & DateTime < "2021-01-09 19:00:00")%>% 
-  mutate(ice_period = "3") %>% 
+  select(DateTime,NEE_uStar_orig,NEE_uStar_f,ch4_flux_uStar_orig,ch4_flux_uStar_f) %>% 
+  mutate(ice_period = "Off_2") %>% 
   mutate(ice = "off")
 
 ice_on_2 <- eddy_flux %>% 
   filter(DateTime >= "2021-01-09 19:00:00" & DateTime < "2021-02-09 19:00:00")%>% 
-  mutate(ice_period = "4") %>% 
+  select(DateTime,NEE_uStar_orig,NEE_uStar_f,ch4_flux_uStar_orig,ch4_flux_uStar_f) %>% 
+  mutate(ice_period = "On_2") %>% 
   mutate(ice = "on")
 
-ice_all <- rbind(ice_off_1,ice_on_1,ice_off_2,ice_on_2,ice_off_3,ice_on_3)
+ice_all <- rbind(ice_off_1,ice_on_1,ice_off_2,ice_on_2)
 
+ice_all <- ice_all %>% 
+  mutate(Year = year(DateTime), 
+         Month = month(DateTime), 
+         Day = day(DateTime), 
+         Hour = hour(DateTime)) %>% 
+  mutate(diel = ifelse(Hour >= 7 & Hour <= 19, "Day",
+                       ifelse(Hour >= 19 | Hour <= 7, "Night", NA)))
+  
 # Daily means in winter (ice on/off)
 winter_co2 <- ggplot(fcr_daily)+
   annotate(geom="text",x = as.POSIXct("2020-12-24"),y = 9,label = "Off")+
@@ -437,7 +737,7 @@ winter_co2 <- ggplot(fcr_daily)+
   geom_vline(xintercept = as.POSIXct("2020-12-30"), linetype = "dotted", color="red")+
   geom_vline(xintercept = as.POSIXct("2021-01-10"), linetype = "dotted", color="blue")+
   geom_vline(xintercept = as.POSIXct("2021-02-09"), linetype = "dotted", color="red")+
-  geom_point(fcr_gf, mapping = aes(DateTime, NEE_uStar_orig),alpha = 0.1)+
+  geom_point(eddy_flux, mapping = aes(DateTime, NEE_uStar_orig),alpha = 0.1)+
   geom_hline(yintercept = 0, linetype="dashed")+
   geom_ribbon(mapping = aes(x = Date, y = NEE, ymin = NEE-NEE_sd,ymax = NEE+NEE_sd),fill="#E63946",alpha=0.4)+
   geom_line(mapping = aes(Date, NEE),color="#E63946",size = 1)+
@@ -448,14 +748,17 @@ winter_co2 <- ggplot(fcr_daily)+
   theme_classic(base_size = 15)+
   theme(axis.title.y = element_text(margin = margin(t = 0, r = 0, b = 0, l = 5)))
 
-ice_co2 <- ggplot(ice_all,mapping=aes(x=ice_period,y=NEE_uStar_orig,color=ice))+
+ice_all$ice_period <- factor(ice_all$ice_period, levels=c("Off_1", "On_1", "Off_2", "On_2"))
+
+ice_co2 <- ggplot(ice_all,mapping=aes(x=ice_period,y=NEE_uStar_orig,color=diel))+
   geom_hline(yintercept = 0, linetype = "dashed", color="darkgrey", size = 0.8)+
   ylab(expression(paste("CO"[2]*" (",mu,"mol C m"^-2*" s"^-1*")")))+
   xlab("Ice Period")+
-  geom_boxplot(outlier.shape = NA)+
+  geom_boxplot(outlier.shape = NA,size=1)+
   geom_point(position=position_jitterdodge(),alpha=0.3)+
-  scale_color_manual(breaks=c('on','off'),labels=c('On','Off'),values=c("#E63946","#4c8bfe"))+
+  scale_color_manual(breaks=c('Day','Night'),values=c("#E63946","#4c8bfe"))+
   theme_classic(base_size = 15)+
+  ylim(-10,10)+
   theme(legend.title=element_blank())+
   theme(axis.title.y = element_text(margin = margin(t = 0, r = 0, b = 0, l = 5)))
 
@@ -469,7 +772,7 @@ winter_ch4 <- ggplot(fcr_daily)+
   geom_vline(xintercept = as.POSIXct("2020-12-30"), linetype = "dotted", color="red")+
   geom_vline(xintercept = as.POSIXct("2021-01-10"), linetype = "dotted", color="blue")+
   geom_vline(xintercept = as.POSIXct("2021-02-09"), linetype = "dotted", color="red")+
-  geom_point(fcr_gf, mapping = aes(DateTime, ch4_flux_uStar_orig),alpha = 0.1)+
+  geom_point(eddy_flux, mapping = aes(DateTime, ch4_flux_uStar_orig),alpha = 0.1)+
   geom_hline(yintercept = 0, linetype="dashed")+
   geom_ribbon(mapping = aes(x = Date, y = CH4, ymin = CH4-CH4_sd,ymax = CH4+CH4_sd),fill="#E63946",alpha=0.4)+
   geom_line(mapping = aes(Date, CH4),color="#E63946",size = 1)+
@@ -479,19 +782,21 @@ winter_ch4 <- ggplot(fcr_daily)+
   ylim(-0.03,0.03)+
   theme_classic(base_size = 15)
 
-ice_ch4 <- ggplot(ice_all,mapping=aes(x=ice_period,y=ch4_flux_uStar_orig,color=ice))+
+ice_ch4 <- ggplot(ice_all,mapping=aes(x=ice_period,y=ch4_flux_uStar_orig,color=diel))+
   geom_hline(yintercept = 0, linetype = "dashed", color="darkgrey", size = 0.8)+
   ylab(expression(paste("CH"[4]*" (",mu,"mol C m"^-2*" s"^-1*")")))+
   xlab("Ice Period")+
-  geom_boxplot(outlier.shape = NA)+
+  geom_boxplot(outlier.shape = NA,size=1)+
   geom_point(position=position_jitterdodge(),alpha=0.3)+
-  scale_color_manual(breaks=c('on','off'),labels=c('On','Off'),values=c("#E63946","#4c8bfe"))+
+  scale_color_manual(breaks=c('Day','Night'),values=c("#E63946","#4c8bfe"))+
+  ylim(-0.03,0.03)+
   theme_classic(base_size = 15)+
   theme(legend.title=element_blank())
 
-ggarrange(winter_co2,ice_co2,winter_ch4,ice_ch4,nrow=2,ncol=2,common.legend = TRUE)
+ggarrange(winter_co2,ice_co2,winter_ch4,ice_ch4,nrow=2,ncol=2,common.legend = TRUE,
+          labels=c("A.","B.","C.","D."), font.label = list(face="plain",size=15))
 
-ggsave("./Fig_Output/Ice_on_off.jpg",width = 8, height=8, units="in",dpi=320)
+ggsave("./Fig_Output/Ice_on_off_v2.jpg",width = 8, height=7, units="in",dpi=320)
 
 ### Let's get catwalk data in hand ----
 # To start thinking about environmental variables
