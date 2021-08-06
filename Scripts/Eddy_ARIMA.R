@@ -10,7 +10,8 @@ wd <- getwd()
 setwd(wd)
 
 # Load in libraries
-pacman::p_load(tidyverse,ncdf4,ggplot2,ggpubr,LakeMetabolizer,zoo,scales,lubridate,lognorm,forecast,utils,igraph,RColorBrewer)
+pacman::p_load(tidyverse,ncdf4,ggplot2,ggpubr,LakeMetabolizer,zoo,scales,
+               lubridate,lognorm,forecast,utils,igraph,RColorBrewer,PerformanceAnalytics)
 
 #install.packages('PerformanceAnalytics')
 #library(PerformanceAnalytics)
@@ -143,6 +144,46 @@ fcr_weekly <- eddy_flux %>%
                    LW_out = mean(LW_out, na.rm = TRUE),
                    albedo = mean(albedo, na.rm = TRUE))
 
+# Aggregate to monthly
+fcr_monthly <- eddy_flux %>% 
+  mutate(Year = year(DateTime), 
+         Month = month(DateTime)) %>% 
+  dplyr::group_by(Year, Month) %>% 
+  dplyr::summarise(NEE = mean(NEE_uStar_f, na.rm = TRUE),
+                   NEE05 = mean(NEE_U05_f, na.rm = TRUE),
+                   NEE50 = mean(NEE_U50_f, na.rm = TRUE),
+                   NEE95 = mean(NEE_U95_f, na.rm = TRUE),
+                   NEE_sd = sd(NEE_uStar_f, na.rm = TRUE),
+                   CH4 = mean(ch4_flux_uStar_f, na.rm = TRUE),
+                   CH405 = mean(ch4_flux_U05_f, na.rm = TRUE),
+                   CH450 = mean(ch4_flux_U50_f, na.rm = TRUE),
+                   CH495 = mean(ch4_flux_U95_f, na.rm = TRUE),
+                   CH4_sd = sd(ch4_flux_uStar_f, na.rm = TRUE),
+                   Tmean = mean(Tair_f, na.rm = TRUE),
+                   Tmax = max(Tair_f, na.rm = TRUE),
+                   Tmin = min(Tair_f, na.rm = TRUE),
+                   H = mean(H_f, na.rm = TRUE),
+                   LE = mean(LE_f, na.rm = TRUE),
+                   VPD = mean(VPD, na.rm = TRUE),
+                   RH = mean(rH, na.rm = TRUE),
+                   umean = mean(u, na.rm = TRUE),
+                   umax = max(u),
+                   umin = min(u),
+                   pressure = mean(airP, na.rm = TRUE),
+                   minpress = min(airP, na.rm = TRUE),
+                   maxpress = max(airP, na.rm = TRUE),
+                   PAR_tot = mean(PAR_f, na.rm = TRUE),
+                   precip_sum = sum(precip, na.rm = TRUE),
+                   Rg = mean(Rg_f, na.rm = TRUE),
+                   SW_out = mean(SW_out, na.rm = TRUE),
+                   Rn = mean(Rn_f, na.rm = TRUE),
+                   LW_in = mean(LW_in, na.rm = TRUE),
+                   LW_out = mean(LW_out, na.rm = TRUE),
+                   albedo = mean(albedo, na.rm = TRUE))
+
+# Remove 2021 Apr when we don't have much data!!
+fcr_monthly <- fcr_monthly[-13,]
+
 ### Load in and aggregate environmental data: Exo Sonde (Temp, DO, Chla, FDOM), N2 (from LakeAnalyzer), Temp Diff, Discharge
 # Using Catwalk data: aggregated from EDI and GitHub following 20210715_ColeFlux
 # Load in data
@@ -165,6 +206,13 @@ la <- read_csv("./Data/FCR_results_LA.csv") %>%
   mutate(DateTime = as.POSIXct(DateTime, "%m/%d/%Y", tz = "EST")) %>% 
   filter(DateTime >= as.POSIXct("2020-04-05") & DateTime < as.POSIXct("2021-04-05"))
 
+# Load in VT discharge: will need to be updated with final EDI data!
+q <- read.csv("./Data/20210803_VT_inflow.csv") %>% 
+  mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%dT%H:%M:%SZ", tz = "EST")) %>% 
+  filter(DateTime >= as.POSIXct("2020-04-06 01:00:00") & DateTime < as.POSIXct("2021-04-06 01:00:00"))
+
+# Aggregate data by hourly, daily, weekly, and monthly
+# Aggregate to hourly: catwalk, discharge
 catwalk_hourly <- catwalk %>% 
   mutate(DateTime = format(as.POSIXct(DateTime, "%Y-%m-%d %H"),"%Y-%m-%d %H")) %>% 
   mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d %H", tz = "EST")) %>% 
@@ -186,6 +234,20 @@ catwalk_hourly <- catwalk %>%
             Temp_diff = mean(Temp_diff,na.rm=TRUE),
             Temp_diff_sd = sd(Temp_diff,na.rm=TRUE))
 
+q_hourly <- q %>% 
+  mutate(DateTime = format(as.POSIXct(DateTime, "%Y-%m-%d %H"),"%Y-%m-%d %H")) %>% 
+  mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d %H", tz = "EST")) %>% 
+  group_by(DateTime) %>% 
+  mutate(Year = year(DateTime), 
+         Month = month(DateTime), 
+         Day = day(DateTime), 
+         Hour = hour(DateTime)) %>% 
+  summarise(Flow_cms = mean(VT_Flow_cms,na.rm=TRUE),
+            Flow_cms_sd = sd(VT_Flow_cms,na.rm=TRUE))
+
+env_hourly <- left_join(catwalk_hourly, q_hourly,by="DateTime")
+
+# Aggregate to daily: catwalk, discharge, N2
 catwalk_daily <- catwalk %>% 
   mutate(Year = year(DateTime), 
          Month = month(DateTime), 
@@ -207,8 +269,21 @@ catwalk_daily <- catwalk %>%
 
 catwalk_daily$DateTime <- as.POSIXct(paste(catwalk_daily$Year, catwalk_daily$Month, catwalk_daily$Day, sep = '-'), "%Y-%m-%d", tz = 'EST')
 
-catwalk_daily_2 <- left_join(catwalk_daily,la,by="DateTime")
+q_daily <- q %>% 
+  mutate(Year = year(DateTime), 
+         Month = month(DateTime), 
+         Day = day(DateTime), 
+         Hour = hour(DateTime)) %>% 
+  dplyr::group_by(Year, Month, Day) %>% 
+  summarise(Flow_cms = mean(VT_Flow_cms,na.rm=TRUE),
+            Flow_cms_sd = sd(VT_Flow_cms,na.rm=TRUE))
 
+q_daily$DateTime <- as.POSIXct(paste(q_daily$Year, q_daily$Month, q_daily$Day, sep = '-'), "%Y-%m-%d", tz = 'EST')
+
+catwalk_daily_2 <- left_join(catwalk_daily,q_daily,by=c("DateTime","Year","Month","Day"))
+env_daily <- left_join(catwalk_daily_2,la,by="DateTime")
+
+# Weekly: catwalk, discharge, N2
 catwalk_weekly <- catwalk %>% 
   mutate(Year = year(DateTime), 
          Month = month(DateTime), 
@@ -229,6 +304,16 @@ catwalk_weekly <- catwalk %>%
             Temp_diff = mean(Temp_diff,na.rm=TRUE),
             Temp_diff_sd = sd(Temp_diff,na.rm=TRUE))
 
+q_weekly <- q %>% 
+  mutate(Year = year(DateTime), 
+         Month = month(DateTime), 
+         Week = week(DateTime),
+         Day = day(DateTime), 
+         Hour = hour(DateTime)) %>% 
+  dplyr::group_by(Year, Week) %>%
+  summarise(Flow_cms = mean(VT_Flow_cms,na.rm=TRUE),
+            Flow_cms_sd = sd(VT_Flow_cms,na.rm=TRUE))
+
 la_weekly <- la %>% 
   mutate(Year = year(DateTime), 
          Month = month(DateTime), 
@@ -239,30 +324,256 @@ la_weekly <- la %>%
   summarise(N2 = mean(N2,na.rm=TRUE),
             N2_sd = sd(N2,na.rm=TRUE))
 
-catwalk_weekly_2 <- left_join(catwalk_weekly,la_weekly,by=c("Year","Week"))
+catwalk_weekly_2 <- left_join(catwalk_weekly,q_weekly,by=c("Year","Week"))
+env_weekly <- left_join(catwalk_weekly_2,la_weekly,by=c("Year","Week"))
+
+# Monthly: catwalk, discharge, N2
+catwalk_monthly <- catwalk %>% 
+  mutate(Year = year(DateTime), 
+         Month = month(DateTime)) %>% 
+  dplyr::group_by(Year, Month) %>% 
+  summarise(Temp_C_surface = mean(ThermistorTemp_C_surface,na.rm=TRUE),
+            Temp_C_surface_sd = sd(ThermistorTemp_C_surface,na.rm=TRUE),
+            DO_mgL = mean(EXODO_mgL_1,na.rm=TRUE),
+            DO_mgL_sd = sd(EXODO_mgL_1,na.rm=TRUE),
+            DO_sat = mean(EXODOsat_percent_1,na.rm=TRUE),
+            DO_sat_sd = sd(EXODOsat_percent_1,na.rm=TRUE),
+            Chla_ugL = mean(EXOChla_ugL_1,na.rm=TRUE),
+            Chla_ugL_sd = sd(EXOChla_ugL_1,na.rm=TRUE),
+            fdom_rfu = mean(EXOfDOM_RFU_1,na.rm=TRUE),
+            fdmo_rfu_sd = sd(EXOfDOM_RFU_1,na.rm=TRUE),
+            Temp_diff = mean(Temp_diff,na.rm=TRUE),
+            Temp_diff_sd = sd(Temp_diff,na.rm=TRUE))
+
+q_monthly <- q %>% 
+  mutate(Year = year(DateTime), 
+         Month = month(DateTime)) %>% 
+  dplyr::group_by(Year, Month) %>% 
+  summarise(Flow_cms = mean(VT_Flow_cms,na.rm=TRUE),
+            Flow_cms_sd = sd(VT_Flow_cms,na.rm=TRUE))
+
+la_monthly <- la %>% 
+  mutate(Year = year(DateTime), 
+         Month = month(DateTime)) %>% 
+  dplyr::group_by(Year, Month) %>% 
+  summarise(N2 = mean(N2,na.rm=TRUE),
+            N2_sd = sd(N2,na.rm=TRUE))
+
+catwalk_monthly_2 <- left_join(catwalk_monthly,q_monthly,by=c("Year","Month"))
+env_monthly <- left_join(catwalk_monthly_2,la_monthly,by=c("Year","Month"))
+
+# Remove 2021 Apr when we don't have much data!!
+env_monthly <- env_monthly[-13,]
+
+### Plot Environmental Parameters for Manuscript and SI -----
+# Plot catwalk temp to check?
+temp_time <- ggplot(env_daily,mapping=aes(x=DateTime,y=Temp_C_surface))+
+  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
+  geom_vline(xintercept = as.POSIXct("2020-12-27"), linetype = "dotted", color="blue")+
+  geom_vline(xintercept = as.POSIXct("2020-12-30"), linetype = "dotted", color="red")+
+  geom_vline(xintercept = as.POSIXct("2021-01-10"), linetype = "dotted", color="blue")+
+  geom_vline(xintercept = as.POSIXct("2021-02-09"), linetype = "dotted", color="red")+
+  geom_vline(xintercept = as.POSIXct("2021-02-11"), linetype = "dotted", color="blue")+
+  geom_vline(xintercept = as.POSIXct("2021-02-23"), linetype = "dotted", color="red")+
+  geom_point(catwalk,mapping=aes(x=DateTime,y=ThermistorTemp_C_surface),color="lightgrey",alpha=0.1)+
+  geom_line(size=1)+
+  xlab("") + 
+  scale_x_datetime(labels = date_format("%b"))+
+  ylab(expression(Temp~(C^o)))+
+  theme_classic(base_size=15)
+
+temp_time
+
+dosat_time <- ggplot(env_daily,mapping=aes(x=DateTime,y=DO_sat))+
+  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
+  geom_vline(xintercept = as.POSIXct("2020-12-27"), linetype = "dotted", color="blue")+
+  geom_vline(xintercept = as.POSIXct("2020-12-30"), linetype = "dotted", color="red")+
+  geom_vline(xintercept = as.POSIXct("2021-01-10"), linetype = "dotted", color="blue")+
+  geom_vline(xintercept = as.POSIXct("2021-02-09"), linetype = "dotted", color="red")+
+  geom_vline(xintercept = as.POSIXct("2021-02-11"), linetype = "dotted", color="blue")+
+  geom_vline(xintercept = as.POSIXct("2021-02-23"), linetype = "dotted", color="red")+
+  geom_point(catwalk,mapping=aes(x=DateTime,y=EXODOsat_percent_1),color="lightgrey",alpha=0.1)+
+  geom_line(size=1)+
+  xlab("") + 
+  scale_x_datetime(labels = date_format("%b"))+
+  ylab("DO (%)")+
+  theme_classic(base_size=15)
+
+dosat_time
+
+chla_time <- ggplot(env_daily,mapping=aes(x=DateTime,y=Chla_ugL))+
+  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
+  geom_vline(xintercept = as.POSIXct("2020-12-27"), linetype = "dotted", color="blue")+
+  geom_vline(xintercept = as.POSIXct("2020-12-30"), linetype = "dotted", color="red")+
+  geom_vline(xintercept = as.POSIXct("2021-01-10"), linetype = "dotted", color="blue")+
+  geom_vline(xintercept = as.POSIXct("2021-02-09"), linetype = "dotted", color="red")+
+  geom_vline(xintercept = as.POSIXct("2021-02-11"), linetype = "dotted", color="blue")+
+  geom_vline(xintercept = as.POSIXct("2021-02-23"), linetype = "dotted", color="red")+
+  geom_point(catwalk,mapping=aes(x=DateTime,y=EXOChla_ugL_1),color="lightgrey",alpha=0.1)+
+  geom_line(size=1)+
+  xlab("") + 
+  scale_x_datetime(labels = date_format("%b"))+
+  ylab(expression(Chla~(mu~g~L^-1)))+
+  theme_classic(base_size=15)
+
+chla_time
+
+fdom_time <- ggplot(env_daily,mapping=aes(x=DateTime,y=fdom_rfu))+
+  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
+  geom_vline(xintercept = as.POSIXct("2020-12-27"), linetype = "dotted", color="blue")+
+  geom_vline(xintercept = as.POSIXct("2020-12-30"), linetype = "dotted", color="red")+
+  geom_vline(xintercept = as.POSIXct("2021-01-10"), linetype = "dotted", color="blue")+
+  geom_vline(xintercept = as.POSIXct("2021-02-09"), linetype = "dotted", color="red")+
+  geom_vline(xintercept = as.POSIXct("2021-02-11"), linetype = "dotted", color="blue")+
+  geom_vline(xintercept = as.POSIXct("2021-02-23"), linetype = "dotted", color="red")+
+  geom_point(catwalk,mapping=aes(x=DateTime,y=EXOfDOM_RFU_1),color="lightgrey",alpha=0.1)+
+  geom_line(size=1)+
+  xlab("") + 
+  scale_x_datetime(labels = date_format("%b"))+
+  ylab(expression(FDOM~(R.F.U.)))+
+  theme_classic(base_size=15)
+
+fdom_time
+
+q_time <- ggplot(env_daily,mapping=aes(x=DateTime,y=Flow_cms))+
+  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
+  geom_vline(xintercept = as.POSIXct("2020-12-27"), linetype = "dotted", color="blue")+
+  geom_vline(xintercept = as.POSIXct("2020-12-30"), linetype = "dotted", color="red")+
+  geom_vline(xintercept = as.POSIXct("2021-01-10"), linetype = "dotted", color="blue")+
+  geom_vline(xintercept = as.POSIXct("2021-02-09"), linetype = "dotted", color="red")+
+  geom_vline(xintercept = as.POSIXct("2021-02-11"), linetype = "dotted", color="blue")+
+  geom_vline(xintercept = as.POSIXct("2021-02-23"), linetype = "dotted", color="red")+
+  geom_point(q,mapping=aes(x=DateTime,y=VT_Flow_cms),color="lightgrey",alpha=0.1)+
+  geom_line(size=1)+
+  xlab("") + 
+  scale_x_datetime(labels = date_format("%b"))+
+  ylab(expression(Inflow~(m^3~s^-1)))+
+  theme_classic(base_size=15)
+
+q_time
+
+n2_time <- ggplot(env_daily,mapping=aes(x=DateTime,y=N2))+
+  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
+  geom_vline(xintercept = as.POSIXct("2020-12-27"), linetype = "dotted", color="blue")+
+  geom_vline(xintercept = as.POSIXct("2020-12-30"), linetype = "dotted", color="red")+
+  geom_vline(xintercept = as.POSIXct("2021-01-10"), linetype = "dotted", color="blue")+
+  geom_vline(xintercept = as.POSIXct("2021-02-09"), linetype = "dotted", color="red")+
+  geom_vline(xintercept = as.POSIXct("2021-02-11"), linetype = "dotted", color="blue")+
+  geom_vline(xintercept = as.POSIXct("2021-02-23"), linetype = "dotted", color="red")+
+  geom_line(size=1)+
+  xlab("") + 
+  scale_x_datetime(labels = date_format("%b"))+
+  ylab(expression(N^2))+
+  theme_classic(base_size=15)
+
+n2_time
+
+diff_temp_time <- ggplot(env_daily,mapping=aes(x=DateTime,y=Temp_diff))+
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
+  geom_vline(xintercept = as.POSIXct("2020-12-27"), linetype = "dotted", color="blue")+
+  geom_vline(xintercept = as.POSIXct("2020-12-30"), linetype = "dotted", color="red")+
+  geom_vline(xintercept = as.POSIXct("2021-01-10"), linetype = "dotted", color="blue")+
+  geom_vline(xintercept = as.POSIXct("2021-02-09"), linetype = "dotted", color="red")+
+  geom_vline(xintercept = as.POSIXct("2021-02-11"), linetype = "dotted", color="blue")+
+  geom_vline(xintercept = as.POSIXct("2021-02-23"), linetype = "dotted", color="red")+
+  geom_point(catwalk,mapping=aes(x=DateTime,y=Temp_diff),color="lightgrey",alpha=0.1)+
+  geom_line(size=1)+
+  xlab("") + 
+  scale_x_datetime(labels = date_format("%b"))+
+  ylab(expression(Temp~Diff.))+
+  theme_classic(base_size=15)
+
+diff_temp_time
+
+ggarrange(temp_time,dosat_time,chla_time,fdom_time,q_time,n2_time,diff_temp_time,ncol=4,nrow=2,
+          labels=c("A.","B.","C.","D.","E.","F.","G."), font.label = list(face="plain",size=15))
+
+ggsave("./Fig_Output/Env_data_all.jpg",width = 10, height=6, units="in",dpi=320)
 
 ### Organize all data for hourly, daily, and weekly ----
-co2_hourly <- left_join(fcr_hourly,catwalk_hourly,by="DateTime") %>% 
-  select(NEE,Temp_C_surface,DO_mgL,DO_sat,Chla_ugL,fdom_rfu)
+# Used DO_Sat instead of DO_mgL (as they are redundant!)
+# Remove Temp_diff due to correlations
+co2_hourly <- left_join(fcr_hourly,env_hourly,by="DateTime") %>% 
+  select(NEE,Temp_C_surface,DO_sat,Chla_ugL,fdom_rfu,Flow_cms) %>% 
+  mutate(NEE = na.fill(na.approx(NEE,na.rm=FALSE),"extend"),
+         Temp_C_surface = na.fill(na.approx(Temp_C_surface,na.rm=FALSE),"extend"),
+         DO_sat = na.fill(na.approx(DO_sat,na.rm=FALSE),"extend"),
+         Chla_ugL = na.fill(na.approx(Chla_ugL,na.rm = FALSE),"extend"),
+         fdom_rfu = na.fill(na.approx(fdom_rfu,na.rm=FALSE),"extend"),
+         Flow_cms = na.fill(na.approx(Flow_cms,na.rm = FALSE), "extend"))
 
-ch4_hourly <- left_join(fcr_hourly,catwalk_hourly,by="DateTime") %>% 
-  select(CH4,Temp_C_surface,DO_mgL,DO_sat,Chla_ugL,fdom_rfu)
+# Remove Temp_diff due to correlations
+ch4_hourly <- left_join(fcr_hourly,env_hourly,by="DateTime") %>% 
+  select(CH4,Temp_C_surface,DO_sat,Chla_ugL,fdom_rfu,Flow_cms) %>% 
+  mutate(CH4 = na.fill(na.approx(CH4,na.rm=FALSE),"extend"),
+         Temp_C_surface = na.fill(na.approx(Temp_C_surface,na.rm=FALSE),"extend"),
+         DO_sat = na.fill(na.approx(DO_sat,na.rm=FALSE),"extend"),
+         Chla_ugL = na.fill(na.approx(Chla_ugL,na.rm = FALSE),"extend"),
+         fdom_rfu = na.fill(na.approx(fdom_rfu,na.rm=FALSE),"extend"),
+         Flow_cms = na.fill(na.approx(Flow_cms,na.rm = FALSE), "extend"))
 
-co2_daily <- left_join(fcr_daily,catwalk_daily_2,by=c("DateTime","Year","Month","Day")) %>% 
+# Remove Temp_diff and N2 due to correlations
+co2_daily <- left_join(fcr_daily,env_daily,by=c("DateTime","Year","Month","Day")) %>% 
   ungroup(Year,Month) %>% 
-  select(NEE,Temp_C_surface,DO_mgL,DO_sat,Chla_ugL,fdom_rfu)
+  select(NEE,Temp_C_surface,DO_sat,Chla_ugL,fdom_rfu,Flow_cms) %>% 
+  mutate(NEE = na.fill(na.approx(NEE,na.rm=FALSE),"extend"),
+         Temp_C_surface = na.fill(na.approx(Temp_C_surface,na.rm=FALSE),"extend"),
+         DO_sat = na.fill(na.approx(DO_sat,na.rm=FALSE),"extend"),
+         Chla_ugL = na.fill(na.approx(Chla_ugL,na.rm = FALSE),"extend"),
+         fdom_rfu = na.fill(na.approx(fdom_rfu,na.rm=FALSE),"extend"),
+         Flow_cms = na.fill(na.approx(Flow_cms,na.rm = FALSE), "extend"))
 
-ch4_daily <- left_join(fcr_daily,catwalk_daily_2,by=c("DateTime","Year","Month","Day")) %>% 
+# Remove Temp_diff and N2 due to correlations
+ch4_daily <- left_join(fcr_daily,env_daily,by=c("DateTime","Year","Month","Day")) %>% 
   ungroup(Year,Month) %>% 
-  select(CH4,Temp_C_surface,DO_mgL,DO_sat,Chla_ugL,fdom_rfu)
+  select(CH4,Temp_C_surface,DO_sat,Chla_ugL,fdom_rfu,Flow_cms) %>% 
+  mutate(CH4 = na.fill(na.approx(CH4,na.rm=FALSE),"extend"),
+         Temp_C_surface = na.fill(na.approx(Temp_C_surface,na.rm=FALSE),"extend"),
+         DO_sat = na.fill(na.approx(DO_sat,na.rm=FALSE),"extend"),
+         Chla_ugL = na.fill(na.approx(Chla_ugL,na.rm = FALSE),"extend"),
+         fdom_rfu = na.fill(na.approx(fdom_rfu,na.rm=FALSE),"extend"),
+         Flow_cms = na.fill(na.approx(Flow_cms,na.rm = FALSE), "extend"))
 
-co2_weekly <- left_join(fcr_weekly,catwalk_weekly_2,by=c("Year","Week")) %>% 
+# Remove Temp_diff and N2 due to correlations
+co2_weekly <- left_join(fcr_weekly,env_weekly,by=c("Year","Week")) %>% 
   ungroup(Year,Week) %>% 
-  select(NEE,Temp_C_surface,DO_mgL,DO_sat,Chla_ugL,fdom_rfu)
+  select(NEE,Temp_C_surface,DO_sat,Chla_ugL,fdom_rfu,Flow_cms) %>% 
+  mutate(NEE = na.fill(na.approx(NEE,na.rm=FALSE),"extend"),
+         Temp_C_surface = na.fill(na.approx(Temp_C_surface,na.rm=FALSE),"extend"),
+         DO_sat = na.fill(na.approx(DO_sat,na.rm=FALSE),"extend"),
+         Chla_ugL = na.fill(na.approx(Chla_ugL,na.rm = FALSE),"extend"),
+         fdom_rfu = na.fill(na.approx(fdom_rfu,na.rm=FALSE),"extend"),
+         Flow_cms = na.fill(na.approx(Flow_cms,na.rm = FALSE), "extend"))
 
-ch4_weekly <- left_join(fcr_weekly,catwalk_weekly_2,by=c("Year","Week")) %>% 
+# Remove Temp_diff and N2 due to correlations
+ch4_weekly <- left_join(fcr_weekly,env_weekly,by=c("Year","Week")) %>% 
   ungroup(Year,Week) %>% 
-  select(CH4,Temp_C_surface,DO_mgL,DO_sat,Chla_ugL,fdom_rfu)
+  select(CH4,Temp_C_surface,DO_sat,Chla_ugL,fdom_rfu,Flow_cms) %>% 
+  mutate(CH4 = na.fill(na.approx(CH4,na.rm=FALSE),"extend"),
+         Temp_C_surface = na.fill(na.approx(Temp_C_surface,na.rm=FALSE),"extend"),
+         DO_sat = na.fill(na.approx(DO_sat,na.rm=FALSE),"extend"),
+         Chla_ugL = na.fill(na.approx(Chla_ugL,na.rm = FALSE),"extend"),
+         fdom_rfu = na.fill(na.approx(fdom_rfu,na.rm=FALSE),"extend"),
+         Flow_cms = na.fill(na.approx(Flow_cms,na.rm = FALSE), "extend"))
+
+# Remove Temp_diff, N2, fDOM, and Flow_cms due to correlations
+co2_monthly <- left_join(fcr_monthly,env_monthly,by=c("Year","Month")) %>% 
+  ungroup(Year,Month) %>% 
+  select(NEE,Temp_C_surface,DO_sat,Chla_ugL) %>% 
+  mutate(NEE = na.fill(na.approx(NEE,na.rm=FALSE),"extend"),
+         Temp_C_surface = na.fill(na.approx(Temp_C_surface,na.rm=FALSE),"extend"),
+         DO_sat = na.fill(na.approx(DO_sat,na.rm=FALSE),"extend"),
+         Chla_ugL = na.fill(na.approx(Chla_ugL,na.rm = FALSE),"extend"))
+
+# Remove Temp_diff, N2, fDOM, and Flow_cms due to correlations
+ch4_monthly <- left_join(fcr_monthly,env_monthly,by=c("Year","Month")) %>% 
+  ungroup(Year,Month) %>% 
+  select(CH4,Temp_C_surface,DO_sat,Chla_ugL) %>% 
+  mutate(CH4 = na.fill(na.approx(CH4,na.rm=FALSE),"extend"),
+         Temp_C_surface = na.fill(na.approx(Temp_C_surface,na.rm=FALSE),"extend"),
+         DO_sat = na.fill(na.approx(DO_sat,na.rm=FALSE),"extend"),
+         Chla_ugL = na.fill(na.approx(Chla_ugL,na.rm = FALSE),"extend"))
 
 ### Check for colinearity among variables ----
 # CO2 Hourly
@@ -286,8 +597,20 @@ chart.Correlation(co2_weekly,histogram=TRUE,method=c("pearson"))
 # Remove N2 and Temp_diff - highly correlated with Temp_Surface
 
 # CH4 weekly
-chart.CaptureRatios(ch4_weekly,histogram=TRUE,method=c("pearson"))
+chart.Correlation(ch4_weekly,histogram=TRUE,method=c("pearson"))
 # Remove N2 and Temp_diff - highly correlated with Temp_surface
+
+# CO2 Monthly
+chart.Correlation(co2_monthly,histogram=TRUE,method=c("pearson"))
+# Remove N2 and Temp_diff - highly correlated with Temp_surface
+# Remove Flow_cms - correlated with DO_Sat
+# Remove FDOM - correlated wtih Chla
+
+# CH4 Monthly
+chart.Correlation(ch4_monthly,histogram=TRUE,method=c("pearson"))
+# Remove N2 and Temp_diff - highly correlated with Temp_surface
+# Remove Flow_cms - correlated with DO_Sat
+# Remove FDOM - correlated wtih Chla
 
 ### Check for skewness; following MEL script ----
 # Function to calculate the cube root w/ complex numbers
@@ -314,14 +637,13 @@ for (i in 1:6){
 
 # Nothing: NEE, Temp_c_surface, DO_sat
 # Log: Chla
-# Cube_rt: fdom_rfu
-# Sqrt: DO_mgL
+# Cube_rt: fdom_rfu, Flow_cms
 
 # Scale necessary data
 co2_hourly_scale <- co2_hourly %>% 
-  mutate(DO_mgL = (DO_mgL^2),
-         Chla_ugL = log(Chla_ugL),
-         fdom_rfu = Math.cbrt(fdom_rfu)) %>% 
+  mutate(Chla_ugL = log(Chla_ugL),
+         fdom_rfu = (fdom_rfu)^(1/3),
+         Flow_cms = (Flow_cms)^(1/3)) %>% 
   scale()
 
 # ch4_hourly
@@ -344,9 +666,9 @@ for (i in 1:6){
 # Environmental parameters are the same for CO2
 # Scale necessary data
 ch4_hourly_scale <- ch4_hourly %>% 
-  mutate(DO_mgL = (DO_mgL^2),
-         Chla_ugL = log(Chla_ugL),
-         fdom_rfu = Math.cbrt(fdom_rfu)) %>% 
+  mutate(Chla_ugL = log(Chla_ugL),
+         fdom_rfu = (fdom_rfu)^(1/3),
+         Flow_cms = (Flow_cms)^(1/3)) %>% 
   scale()
 
 # CO2 daily
@@ -368,13 +690,12 @@ for (i in 1:6){
 
 # Nothing: NEE, Temp,
 # Log: DO_sat, Chla,
-# Cube Rt: fdom_rfu
-# Sq: DO
+# Cube Rt: fdom_rfu, Flow_cms
 co2_daily_scale <- co2_daily %>% 
-  mutate(DO_mgL = (DO_mgL^2),
-         DO_sat = log(DO_sat),
+  mutate(DO_sat = log(DO_sat),
          Chla_ugL = log(Chla_ugL),
-         fdom_rfu = Math.cbrt(fdom_rfu)) %>% 
+         fdom_rfu = (fdom_rfu)^(1/3),
+         Flow_cms = (Flow_cms)^(1/3)) %>% 
   scale()
 
 # ch4 daily
@@ -397,10 +718,10 @@ for (i in 1:6){
 # Nothing: CH4
 # Everything else the same as CO2
 ch4_daily_scale <- ch4_daily %>% 
-  mutate(DO_mgL = (DO_mgL^2),
-         DO_sat = log(DO_sat),
+  mutate(DO_sat = log(DO_sat),
          Chla_ugL = log(Chla_ugL),
-         fdom_rfu = Math.cbrt(fdom_rfu)) %>% 
+         fdom_rfu = (fdom_rfu)^(1/3),
+         Flow_cms = (Flow_cms)^(1/3)) %>% 
   scale()
 
 # CO2 weekly
@@ -422,12 +743,11 @@ for (i in 1:6){
 
 # Nothing: NEE, Temp, FDOM
 # Log: DO_sat, Chla
-# Cube rt:
-# Sq: DO
+# Cube rt: Flow_cms
 co2_weekly_scale <- co2_weekly %>% 
-  mutate(DO_mgL = (DO_mgL^2),
-         DO_sat = log(DO_sat),
-         Chla_ugL = log(Chla_ugL)) %>% 
+  mutate(DO_sat = log(DO_sat),
+         Chla_ugL = log(Chla_ugL),
+         Flow_cms = (Flow_cms)^(1/3)) %>% 
   scale()
 
 # ch4 weekly
@@ -450,18 +770,67 @@ for (i in 1:6){
 # Nothing: CH4
 # Environmental parameters the same
 ch4_weekly_scale <- ch4_weekly %>% 
-  mutate(DO_mgL = (DO_mgL^2),
-         DO_sat = log(DO_sat),
+  mutate(DO_sat = log(DO_sat),
+         Chla_ugL = log(Chla_ugL),
+         Flow_cms = (Flow_cms)^(1/3)) %>% 
+  scale()
+
+# Co2 monthly
+for (i in 1:4){
+  print(colnames(co2_monthly)[i])
+  var <- co2_monthly[,i]
+  hist(as.matrix(var), main = colnames(co2_monthly)[i])
+  print(skewness(co2_monthly[,i], na.rm = TRUE))
+  print(skewness(log(co2_monthly[,i]+0.0001), na.rm = TRUE))
+  print(skewness(Math.cbrt(co2_monthly[,i]), na.rm = TRUE))
+  print(skewness(co2_monthly[,i]^2),na.rm=TRUE)
+  var <- log(co2_monthly[,i])
+  hist(as.matrix(var), main = c("Log",colnames(co2_monthly)[i]))
+  var <- Math.cbrt(co2_monthly[,i])
+  hist(as.matrix(var), main = c("cube_rt",colnames(co2_monthly)[i]))
+  var <- (co2_monthly[,i]^2)
+  hist(as.matrix(var), main = c("sq",colnames(co2_monthly)[i]))
+}
+
+# Nothing: NEE, Temp
+# Log: DO_Sat, Chla
+# Cube rt: 
+co2_monthly_scale <- co2_monthly %>% 
+  mutate(DO_sat = log(DO_sat),
+         Chla_ugL = log(Chla_ugL)) %>% 
+  scale()
+
+# Ch4 monthly
+for (i in 1:4){
+  print(colnames(ch4_monthly)[i])
+  var <- ch4_monthly[,i]
+  hist(as.matrix(var), main = colnames(ch4_monthly)[i])
+  print(skewness(ch4_monthly[,i], na.rm = TRUE))
+  print(skewness(log(ch4_monthly[,i]+0.0001), na.rm = TRUE))
+  print(skewness(Math.cbrt(ch4_monthly[,i]), na.rm = TRUE))
+  print(skewness(ch4_monthly[,i]^2),na.rm=TRUE)
+  var <- log(ch4_monthly[,i])
+  hist(as.matrix(var), main = c("Log",colnames(ch4_monthly)[i]))
+  var <- Math.cbrt(ch4_monthly[,i])
+  hist(as.matrix(var), main = c("cube_rt",colnames(ch4_monthly)[i]))
+  var <- (ch4_monthly[,i]^2)
+  hist(as.matrix(var), main = c("sq",colnames(ch4_monthly)[i]))
+}
+
+# Nothing: CH4
+# Environmental parameters the same
+ch4_monthly_scale <- ch4_monthly %>% 
+  mutate(DO_sat = log(DO_sat),
          Chla_ugL = log(Chla_ugL)) %>% 
   scale()
 
 ### ARIMA models ----
-# Remove DO_mgL and just use DO_sat (is redundant...)
 # Following MEL code : )
+# THINGS TO CHANGE: 'cols' (change to the environmental variables); best fit!
 # CO2 hourly
 colnames(co2_hourly_scale)
 
-cols <- c(2,4:6)
+cols <- c(2:6) # Change this to the environmental variables you want to select!!
 sub.final <- NULL
 final <- NULL
 
@@ -514,8 +883,8 @@ final <- distinct(final)
 best <- final %>%
   slice(which.min(AICc))
 
-best.vars <- colnames(co2_hourly_scale)[combn(cols,2)[,1]]
-best.vars.cols <- combn(cols,2)[,1]
+best.vars <- colnames(co2_hourly_scale)[combn(cols,2)[,1]] # Change to reflect the best fit parameters as identified with 'best'
+best.vars.cols <- combn(cols,2)[,1] # Change to reflect the best fit parameters as identified with 'best'
 
 best.fit <- auto.arima(y,xreg = as.matrix(co2_hourly_scale[,best.vars.cols]),max.p = 1, max.P = 1)
 best.fit
@@ -551,7 +920,7 @@ for (i in 1:nrow(good)){
 ### Ch4 Hourly
 colnames(ch4_hourly_scale)
 
-cols <- c(2,4:6)
+cols <- c(2:6) # UPDATE THIS TO THE ENV. VARIABLES
 sub.final <- NULL
 final <- NULL
 
@@ -604,8 +973,8 @@ final <- distinct(final)
 best <- final %>%
   slice(which.min(AICc))
 
-best.vars <- colnames(ch4_hourly_scale)[combn(cols,2)[,2]]
-best.vars.cols <- combn(cols,2)[,2]
+best.vars <- colnames(ch4_hourly_scale)[combn(cols,1)[,3]] # UPDATE THIS FOLLOWING 'BEST'
+best.vars.cols <- combn(cols,1)[,3] # UPDATE THIS FOLLOWING 'BEST'
 
 best.fit <- auto.arima(y,xreg = as.matrix(ch4_hourly_scale[,best.vars.cols]),max.p = 1, max.P = 1)
 best.fit
@@ -641,7 +1010,7 @@ for (i in 1:nrow(good)){
 ### Co2 Daily
 colnames(co2_daily_scale)
 
-cols <- c(2,4:6)
+cols <- c(2:6) # Update this to the environmental predictor columns!
 sub.final <- NULL
 final <- NULL
 
@@ -694,8 +1063,8 @@ final <- distinct(final)
 best <- final %>%
   slice(which.min(AICc))
 
-best.vars <- colnames(co2_daily_scale)[combn(cols,4)[,1]]
-best.vars.cols <- combn(cols,4)[,1]
+best.vars <- colnames(co2_daily_scale)[combn(cols,5)[,1]] # Change to follow 'best'
+best.vars.cols <- combn(cols,5)[,1] # Change to follow 'best'
 
 best.fit <- auto.arima(y,xreg = as.matrix(co2_daily_scale[,best.vars.cols]),max.p = 1, max.P = 1)
 best.fit
@@ -731,7 +1100,7 @@ for (i in 1:nrow(good)){
 ### CH4 Daily
 colnames(ch4_daily_scale)
 
-cols <- c(2,4:6)
+cols <- c(2:6) # Change to reflect columns of environmental predictors
 sub.final <- NULL
 final <- NULL
 
@@ -784,8 +1153,8 @@ final <- distinct(final)
 best <- final %>%
   slice(which.min(AICc))
 
-best.vars <- colnames(ch4_daily_scale)[combn(cols,1)[,3]]
-best.vars.cols <- combn(cols,1)[,3]
+best.vars <- colnames(ch4_daily_scale)[combn(cols,3)[,5]] # Change this to reflect the 'best'
+best.vars.cols <- combn(cols,3)[,5] # Change this to reflect the 'best'
 
 best.fit <- auto.arima(y,xreg = as.matrix(ch4_daily_scale[,best.vars.cols]),max.p = 1, max.P = 1)
 best.fit
@@ -821,7 +1190,7 @@ for (i in 1:nrow(good)){
 ### CO2 Weekly
 colnames(co2_weekly_scale)
 
-cols <- c(2,4:6)
+cols <- c(2:6) # Change to reflect columns of environmental predictors
 sub.final <- NULL
 final <- NULL
 
@@ -874,8 +1243,8 @@ final <- distinct(final)
 best <- final %>%
   slice(which.min(AICc))
 
-best.vars <- colnames(co2_weekly_scale)[combn(cols,3)[,2]]
-best.vars.cols <- combn(cols,3)[,2]
+best.vars <- colnames(co2_weekly_scale)[combn(cols,3)[,2]] # Change this to reflect 'best'
+best.vars.cols <- combn(cols,3)[,2] # Change this to reflect 'best'
 
 best.fit <- auto.arima(y,xreg = as.matrix(co2_weekly_scale[,best.vars.cols]),max.p = 1, max.P = 1)
 best.fit
@@ -911,7 +1280,7 @@ for (i in 1:nrow(good)){
 ### CH4 weekly
 colnames(ch4_weekly_scale)
 
-cols <- c(2,4:6)
+cols <- c(2:6) # Change to reflect columns of environmental predictors
 sub.final <- NULL
 final <- NULL
 
@@ -964,8 +1333,8 @@ final <- distinct(final)
 best <- final %>%
   slice(which.min(AICc))
 
-best.vars <- colnames(ch4_weekly_scale)[combn(cols,1)[,3]]
-best.vars.cols <- combn(cols,1)[,3]
+best.vars <- colnames(ch4_weekly_scale)[combn(cols,3)[,5]] # Change this to reflect 'best'
+best.vars.cols <- combn(cols,3)[,5] # Change this to reflect 'best'
 
 best.fit <- auto.arima(y,xreg = as.matrix(ch4_weekly_scale[,best.vars.cols]),max.p = 1, max.P = 1)
 best.fit
@@ -979,7 +1348,8 @@ abline(a = 0, b = 1)
 median((unlist(ch4_weekly_scale[,1])-unlist(fitted(best.fit))), na.rm = TRUE)
 
 good <- final %>%
-  filter(AICc >= as.numeric(best$AICc[1]) & AICc <= (as.numeric(best$AICc[1]) + 2)) %>%
+  mutate(AICc = as.numeric(AICc)) %>% 
+  filter(AICc >= as.numeric(min(AICc)) & AICc <= (as.numeric(best$AICc[1]) + 2)) %>%
   mutate(Num.covars = as.numeric(Num.covars),
          Covar.cols = as.numeric(Covar.cols))
 
@@ -992,6 +1362,186 @@ for (i in 1:nrow(good)){
   
   
   good.fit.1 <- auto.arima(y,xreg = as.matrix(ch4_weekly_scale[,good.vars.cols.1]),max.p = 1, max.P = 1)
+  print(good.fit.1)
+  print(accuracy(good.fit.1))
+  
+  
+}
+
+### CO2 monthly
+colnames(co2_monthly_scale)
+
+cols <- c(2:4) # Change to reflect columns of environmental predictors
+sub.final <- NULL
+final <- NULL
+
+y <- co2_monthly_scale[,1]
+
+for (i in 1:length(cols)){
+  my.combn <- combn(cols,i)
+  sub.sub.final <- matrix(NA, nrow = ncol(my.combn), ncol = 4)
+  
+  for (j in 1:ncol(my.combn)){
+    
+    skip_to_next <- FALSE
+    
+    tryCatch(fit <- auto.arima(y,xreg = as.matrix(co2_monthly_scale[,my.combn[,j]]),max.p = 1, max.P = 1), error = function(e) { skip_to_next <<- TRUE})
+    
+    if(skip_to_next) { 
+      sub.sub.final[j,4] <- NA
+      sub.sub.final[j,3] <- j
+      sub.sub.final[j,2] <- i
+      sub.sub.final[j,1] <- "co2_monthly"
+      next }
+    
+    sub.sub.final[j,4] <- fit$aicc
+    sub.sub.final[j,3] <- j
+    sub.sub.final[j,2] <- i
+    sub.sub.final[j,1] <- "co2_monthly"
+  }
+  
+  sub.final <- rbind(sub.final,sub.sub.final)
+  print(paste("I have finished with all combinations of length",i,"for co2_monthly",sep = " "))
+}
+
+final <- rbind(final, sub.final)
+
+#run null models for comparison
+null <- matrix(NA, nrow = 1, ncol = 4)
+
+fit <- auto.arima(y, max.p = 1, max.P = 1)
+null[1,4] <- fit$aicc
+null[1,3] <- NA
+null[1,2] <- NA
+null[1,1] <- "co2_monthly"
+
+
+final <- rbind(final, null)
+final <- data.frame(final)
+colnames(final) <- c("Response.variable","Num.covars","Covar.cols","AICc")
+final <- distinct(final)
+
+best <- final %>%
+  slice(which.min(AICc))
+
+best.vars <- colnames(co2_monthly_scale)[combn(cols,2)[,3]] # Change this to reflect 'best'
+best.vars.cols <- combn(cols,2)[,3] # Change this to reflect 'best'
+
+best.fit <- auto.arima(y,xreg = as.matrix(co2_monthly_scale[,best.vars.cols]),max.p = 1, max.P = 1)
+best.fit
+hist(resid(best.fit))
+accuracy(best.fit)
+hist(unlist(co2_monthly_scale[,1]))
+plot_fit <- as.numeric(fitted(best.fit))
+plot_x <- as.numeric(unlist(co2_monthly_scale[,1]))
+plot(plot_x,plot_fit)
+abline(a = 0, b = 1)
+median((unlist(co2_monthly_scale[,1])-unlist(fitted(best.fit))), na.rm = TRUE)
+
+good <- final %>%
+  filter(AICc >= as.numeric(best$AICc[1]) & AICc <= (as.numeric(best$AICc[1]) + 2)) %>%
+  mutate(Num.covars = as.numeric(Num.covars),
+         Covar.cols = as.numeric(Covar.cols))
+
+for (i in 1:nrow(good)){
+  good.vars.1 <- colnames(co2_monthly_scale)[combn(cols,good[i,2])[,good[i,3]]]
+  
+  good.vars.1
+  
+  good.vars.cols.1 <- combn(cols,good[i,2])[,good[i,3]]
+  
+  
+  good.fit.1 <- auto.arima(y,xreg = as.matrix(co2_monthly_scale[,good.vars.cols.1]),max.p = 1, max.P = 1)
+  print(good.fit.1)
+  print(accuracy(good.fit.1))
+  
+  
+}
+
+### ch4 monthly
+colnames(ch4_monthly_scale)
+
+cols <- c(2:4) # Change to reflect columns of environmental predictors
+sub.final <- NULL
+final <- NULL
+
+y <- ch4_monthly_scale[,1]
+
+for (i in 1:length(cols)){
+  my.combn <- combn(cols,i)
+  sub.sub.final <- matrix(NA, nrow = ncol(my.combn), ncol = 4)
+  
+  for (j in 1:ncol(my.combn)){
+    
+    skip_to_next <- FALSE
+    
+    tryCatch(fit <- auto.arima(y,xreg = as.matrix(ch4_monthly_scale[,my.combn[,j]]),max.p = 1, max.P = 1), error = function(e) { skip_to_next <<- TRUE})
+    
+    if(skip_to_next) { 
+      sub.sub.final[j,4] <- NA
+      sub.sub.final[j,3] <- j
+      sub.sub.final[j,2] <- i
+      sub.sub.final[j,1] <- "ch4_monthly"
+      next }
+    
+    sub.sub.final[j,4] <- fit$aicc
+    sub.sub.final[j,3] <- j
+    sub.sub.final[j,2] <- i
+    sub.sub.final[j,1] <- "ch4_monthly"
+  }
+  
+  sub.final <- rbind(sub.final,sub.sub.final)
+  print(paste("I have finished with all combinations of length",i,"for ch4_monthly",sep = " "))
+}
+
+final <- rbind(final, sub.final)
+
+#run null models for comparison
+null <- matrix(NA, nrow = 1, ncol = 4)
+
+fit <- auto.arima(y, max.p = 1, max.P = 1)
+null[1,4] <- fit$aicc
+null[1,3] <- NA
+null[1,2] <- NA
+null[1,1] <- "ch4_monthly"
+
+
+final <- rbind(final, null)
+final <- data.frame(final)
+colnames(final) <- c("Response.variable","Num.covars","Covar.cols","AICc")
+final <- distinct(final)
+
+best <- final %>%
+  slice(which.min(AICc))
+
+best.vars <- colnames(ch4_monthly_scale)[combn(cols,2)[,1]] # Change this to reflect 'best'
+best.vars.cols <- combn(cols,2)[,1] # Change this to reflect 'best'
+
+best.fit <- auto.arima(y,xreg = as.matrix(ch4_monthly_scale[,best.vars.cols]),max.p = 1, max.P = 1)
+best.fit
+hist(resid(best.fit))
+accuracy(best.fit)
+hist(unlist(ch4_monthly_scale[,1]))
+plot_fit <- as.numeric(fitted(best.fit))
+plot_x <- as.numeric(unlist(ch4_monthly_scale[,1]))
+plot(plot_x,plot_fit)
+abline(a = 0, b = 1)
+median((unlist(ch4_monthly_scale[,1])-unlist(fitted(best.fit))), na.rm = TRUE)
+
+good <- final %>%
+  filter(AICc >= as.numeric(best$AICc[1]) & AICc <= (as.numeric(best$AICc[1]) + 2)) %>%
+  mutate(Num.covars = as.numeric(Num.covars),
+         Covar.cols = as.numeric(Covar.cols))
+
+for (i in 1:nrow(good)){
+  good.vars.1 <- colnames(ch4_monthly_scale)[combn(cols,good[i,2])[,good[i,3]]]
+  
+  good.vars.1
+  
+  good.vars.cols.1 <- combn(cols,good[i,2])[,good[i,3]]
+  
+  
+  good.fit.1 <- auto.arima(y,xreg = as.matrix(ch4_monthly_scale[,good.vars.cols.1]),max.p = 1, max.P = 1)
   print(good.fit.1)
   print(accuracy(good.fit.1))
   
