@@ -431,46 +431,39 @@ fcr_monthly <- eddy_flux %>%
 fcr_monthly$yearmon <- with(fcr_monthly, sprintf("%d-%02d", Year, Month))
 
 # daily means
-dailynee <- fcr_daily %>% 
-  ggplot() +
+
+dailynee <- ggplot(fcr_daily) +
   geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
   geom_point(eddy_flux,mapping=aes(x=DateTime,y=NEE_uStar_orig),alpha = 0.1)+
   geom_ribbon(mapping=aes(x=Date,y=NEE,ymin=NEE-NEE_sd,ymax=NEE+NEE_sd),fill="#E63946",alpha=0.5)+
-  geom_line(aes(Date, NEE),color="#E63946",size = 1) +
+  geom_line(aes(Date, NEE,color="EC"),size = 1) +
+  geom_errorbar(ghg_fluxes,mapping=aes(x=DateTime,y=co2_flux_umolm2s_mean,ymin=co2_flux_umolm2s_mean-co2_flux_umolm2s_sd,ymax=co2_flux_umolm2s_mean+co2_flux_umolm2s_sd,color="Diff"),size=1)+
+  geom_point(ghg_fluxes,mapping=aes(DateTime,co2_flux_umolm2s_mean,color="Diff"),size=2) +
+  scale_color_manual(breaks=c("EC","Diff"),
+                      values=c("#E63946","#4c8bfe"))+
   xlab("") +
   ylab(expression(~CO[2]~(mu~mol~m^-2~s^-1))) +
   geom_hline(yintercept = 0, lty = 2) +
-  xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-05-05"))+
-  theme_classic(base_size = 15)
-
+  xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-04-05"))+
+  theme_classic(base_size = 15)+
+  theme(legend.title=element_blank())
 
 dailych4 <- fcr_daily %>% 
   ggplot() +
   geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
   geom_point(eddy_flux,mapping=aes(x=DateTime,y=ch4_flux_uStar_orig),alpha = 0.1)+
   geom_ribbon(mapping=aes(x=Date,y=CH4,ymin=CH4-CH4_sd,ymax=CH4+CH4_sd),fill="#E63946",alpha=0.5)+
-  geom_line(aes(Date, CH4),color="#E63946",size = 1) +
+  geom_line(aes(Date, CH4,color="EC"),size = 1) +
+  geom_errorbar(ghg_fluxes,mapping=aes(x=DateTime,y=ch4_flux_umolm2s_mean,ymin=ch4_flux_umolm2s_mean-ch4_flux_umolm2s_sd,ymax=ch4_flux_umolm2s_mean+ch4_flux_umolm2s_sd,color="Diff"),size=1)+
+  geom_point(ghg_fluxes,mapping=aes(DateTime,ch4_flux_umolm2s_mean,color="Diff"),size=2) +
+  scale_color_manual(breaks=c("EC","Diff"),
+                     values=c("#E63946","#4c8bfe"))+
   xlab("") +
   ylab(expression(~CH[4]~(mu~mol~m^-2~s^-1))) +
   geom_hline(yintercept = 0, lty = 2) +
-  xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-05-05"))+
-  theme_classic(base_size = 15)
-
-ggarrange(dailynee, dailych4, nrow = 2, ncol = 1, align = "v")
-
-ggsave("./Fig_Output/DailyFluxes_Avg.jpg",width = 8, height=8, units="in",dpi=320)
-
-## Plot weekly and monthly time series
-co2_week <- ggplot(fcr_weekly)+
-  geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
-  geom_hline(yintercept = 0, linetype="dashed")+
-  geom_point(eddy_flux,mapping=aes(x=DateTime,y=NEE_uStar_orig),alpha = 0.1)+
-  geom_ribbon(mapping=aes(x=Date,ymin=NEE-NEE_sd,ymax=NEE+NEE_sd),fill="#E63946",alpha=0.3)+
-  geom_line(mapping=aes(x=Date,y=NEE),color="#E63946",size = 1)+
-  geom_point(mapping=aes(x=Date,y=NEE),color="#E63946",size=2)+
-  xlab("") +
-  ylab(expression(~CO[2]~(mu~mol~m^-2~s^-1))) +
-  theme_classic(base_size=15)
+  xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-04-05"))+
+  theme_classic(base_size = 15)+
+  theme(legend.title=element_blank())
 
 co2_month <- ggplot(fcr_monthly) +
   geom_hline(yintercept = 0, linetype="dashed")+
@@ -483,17 +476,6 @@ co2_month <- ggplot(fcr_monthly) +
         axis.text.x = element_text(angle = 90, hjust = 0.5, vjust = 0.5),
         axis.title = element_text(colour = 'black'))
 
-ch4_week <- ggplot(fcr_weekly)+
-  geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
-  geom_hline(yintercept = 0, linetype="dashed")+
-  geom_point(eddy_flux,mapping=aes(x=DateTime,y=ch4_flux_uStar_orig),alpha = 0.1)+
-  geom_ribbon(mapping=aes(x=Date,ymin=CH4-CH4_sd,ymax=CH4+CH4_sd),fill="#E63946",alpha=0.3)+
-  geom_line(mapping=aes(x=Date,y=CH4),color="#E63946",size = 1)+
-  geom_point(mapping=aes(x=Date,y=CH4),color="#E63946",size=2)+
-  xlab("") +
-  ylab(expression(~CH[4]~(mu~mol~m^-2~s^-1))) +
-  theme_classic(base_size=15)
-
 ch4_month <- ggplot(fcr_monthly) +
   geom_hline(yintercept = 0, linetype="dashed")+
   geom_errorbar(aes(yearmon, ymin = CH4 - CH4_sd, ymax = CH4 + CH4_sd), width = 0.2) +
@@ -505,13 +487,65 @@ ch4_month <- ggplot(fcr_monthly) +
         axis.text.x = element_text(angle = 90, hjust = 0.5, vjust = 0.5),
         axis.title = element_text(colour = 'black'))
 
-ggarrange(co2_week,ch4_week,
+ggarrange(dailynee,dailych4,
           ggarrange(co2_month, ch4_month,nrow=1,ncol=2, labels = c("C.","D."), font.label = list(face="plain",size=15)),
           nrow=3,ncol=1,labels = c("A.","B."),
-          font.label = list(face="plain",size=15))
+          font.label = list(face="plain",size=15),common.legend = TRUE)
 
-ggsave("./Fig_Output/Week_Month_Time.jpg",width = 8, height=10, units="in",dpi=320)
+ggsave("./Fig_Output/Day_Month_time.jpg",width = 8, height=10, units="in",dpi=320)
 
+## Plot weekly and monthly time series
+co2_daily <- ggplot(fcr_daily) +
+  geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
+  geom_point(eddy_flux,mapping=aes(x=DateTime,y=NEE_uStar_orig),alpha = 0.1)+
+  geom_ribbon(mapping=aes(x=Date,y=NEE,ymin=NEE-NEE_sd,ymax=NEE+NEE_sd),fill="#E63946",alpha=0.5)+
+  geom_line(aes(Date, NEE),color="#E63946",size = 1) +
+  xlab("") +
+  ylab(expression(~CO[2]~(mu~mol~m^-2~s^-1))) +
+  geom_hline(yintercept = 0, lty = 2) +
+  xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-05-05"))+
+  theme_classic(base_size = 15)
+
+ch4_daily <- ggplot(fcr_daily) +
+  geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
+  geom_point(eddy_flux,mapping=aes(x=DateTime,y=ch4_flux_uStar_orig),alpha = 0.1)+
+  geom_ribbon(mapping=aes(x=Date,y=CH4,ymin=CH4-CH4_sd,ymax=CH4+CH4_sd),fill="#E63946",alpha=0.5)+
+  geom_line(aes(Date, CH4),color="#E63946",size = 1) +
+  xlab("") +
+  ylab(expression(~CH[4]~(mu~mol~m^-2~s^-1))) +
+  geom_hline(yintercept = 0, lty = 2) +
+  xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-05-05"))+
+  theme_classic(base_size = 15)
+
+ggarrange(co2_daily,ch4_daily,ncol=1,nrow=2,labels=c("A.","B."),font.label = list(face="plain",size=15))
+
+ggsave("./Fig_Output/Hourly_time.jpg",width = 8, height=8, units="in",dpi=320)
+
+co2_week <- ggplot(fcr_weekly)+
+  geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_point(eddy_flux,mapping=aes(x=DateTime,y=NEE_uStar_orig),alpha = 0.1)+
+  geom_ribbon(mapping=aes(x=Date,ymin=NEE-NEE_sd,ymax=NEE+NEE_sd),fill="#E63946",alpha=0.3)+
+  geom_line(mapping=aes(x=Date,y=NEE),color="#E63946",size = 1)+
+  geom_point(mapping=aes(x=Date,y=NEE),color="#E63946",size=2)+
+  xlab("") +
+  ylab(expression(~CO[2]~(mu~mol~m^-2~s^-1))) +
+  theme_classic(base_size=15)
+
+ch4_week <- ggplot(fcr_weekly)+
+  geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_point(eddy_flux,mapping=aes(x=DateTime,y=ch4_flux_uStar_orig),alpha = 0.1)+
+  geom_ribbon(mapping=aes(x=Date,ymin=CH4-CH4_sd,ymax=CH4+CH4_sd),fill="#E63946",alpha=0.3)+
+  geom_line(mapping=aes(x=Date,y=CH4),color="#E63946",size = 1)+
+  geom_point(mapping=aes(x=Date,y=CH4),color="#E63946",size=2)+
+  xlab("") +
+  ylab(expression(~CH[4]~(mu~mol~m^-2~s^-1))) +
+  theme_classic(base_size=15)
+
+ggarrange(co2_week,ch4_week,ncol=1,nrow=2,labels=c("A.","B."),font.label = list(face="plain",size=15))
+
+ggsave("./Fig_Output/Weekly_time.jpg",width = 8, height=8, units="in",dpi=320)
 
 ### Plotting diel variations: select data from noon and midnight ----
 diel_flux <- eddy_flux %>% 
