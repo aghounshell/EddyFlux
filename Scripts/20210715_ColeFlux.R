@@ -15,7 +15,8 @@ wd <- getwd()
 setwd(wd)
 
 # Load in libraries
-pacman::p_load(tidyverse,ncdf4,ggplot2,ggpubr,LakeMetabolizer,zoo,scales,lubridate,lognorm,MuMIn,rsq,Metrics,astsa,DescTools)
+pacman::p_load(tidyverse,ncdf4,ggplot2,ggpubr,LakeMetabolizer,zoo,scales,lubridate,
+               lognorm,MuMIn,rsq,Metrics,astsa,DescTools,kSamples)
 
 # First load in wind data from Met station at FCR ----
 # Download 2020 Met data from EDI
@@ -224,6 +225,21 @@ ggplot()+
 # Select dates where we actually have GHG concentrations
 ghg_fluxes <- left_join(ghg_1,fluxes_all,by="DateTime")
 
+# Calculate stats for GHG diffusive fluxes
+ghg_stats <- ghg_fluxes %>% 
+  summarise(min_co2 = min(co2_flux_umolm2s_mean,na.rm = TRUE),
+            max_co2 = max(co2_flux_umolm2s_mean,na.rm=TRUE),
+            med_co2 = median(co2_flux_umolm2s_mean,na.rm=TRUE),
+            mean_co2 = mean(co2_flux_umolm2s_mean,na.rm=TRUE),
+            sd_co2 = sd(co2_flux_umolm2s_mean,na.rm=TRUE),
+            cv_co2 = sd(co2_flux_umolm2s_mean,na.rm=TRUE)/mean(co2_flux_umolm2s_mean,na.rm=TRUE)*100,
+            min_ch4 = min(ch4_flux_umolm2s_mean,na.rm = TRUE),
+            max_ch4 = max(ch4_flux_umolm2s_mean,na.rm=TRUE),
+            med_ch4 = median(ch4_flux_umolm2s_mean,na.rm=TRUE),
+            mean_ch4 = mean(ch4_flux_umolm2s_mean,na.rm=TRUE),
+            sd_ch4 = sd(ch4_flux_umolm2s_mean,na.rm=TRUE),
+            cv_ch4 = sd(ch4_flux_umolm2s_mean,na.rm=TRUE)/mean(ch4_flux_umolm2s_mean,na.rm=TRUE)*100)
+
 ch4_diff <- ggplot(ghg_fluxes,mapping=aes(DateTime,ch4_flux_umolm2s_mean))+
   geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
   geom_errorbar(mapping=aes(x=DateTime,ymin=ch4_flux_umolm2s_mean-ch4_flux_umolm2s_sd,ymax=ch4_flux_umolm2s_mean+ch4_flux_umolm2s_sd),color="#E63946",size=1)+
@@ -268,7 +284,7 @@ ggplot(eddy_flux)+
   #geom_line(mapping=aes(x=DateTime,y=ch4_flux_U2.5_f,color="U2.5"))
   geom_ribbon(mapping=aes(x=DateTime,y=ch4_flux_uStar_f,ymin=ch4_flux_uStar_f-ch4_flux_uStar_fsd,ymax=ch4_flux_uStar_f+ch4_flux_uStar_fsd,color="f"),alpha=0.3)
 
-# Aggregate to hourly and calculate the variability (SD) - follosing script for figures_BD
+# Aggregate to hourly and calculate the variability (SD) - following script for figures_BD
 fcr_hourly <- eddy_flux %>% 
   mutate(DateTime = format(as.POSIXct(DateTime, "%Y-%m-%d %H"),"%Y-%m-%d %H")) %>% 
   mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d %H", tz = "EST")) %>% 
@@ -308,6 +324,21 @@ fcr_hourly <- eddy_flux %>%
             LW_in = mean(LW_in, na.rm = TRUE),
             LW_out = mean(LW_out, na.rm = TRUE),
             albedo = mean(albedo, na.rm = TRUE))
+
+# Calculate min, max, median, mean, standard deviation, and coefficient of variation
+fcr_hourly_stats <- fcr_hourly %>% 
+  summarise(min_co2 = min(NEE,na.rm = TRUE),
+                max_co2 = max(NEE,na.rm=TRUE),
+                med_co2 = median(NEE,na.rm=TRUE),
+                mean_co2 = mean(NEE,na.rm=TRUE),
+                sd_co2 = sd(NEE,na.rm=TRUE),
+                cv_co2 = sd(NEE,na.rm=TRUE)/mean(NEE,na.rm=TRUE)*100,
+            min_ch4 = min(CH4,na.rm = TRUE),
+            max_ch4 = max(CH4,na.rm=TRUE),
+            med_ch4 = median(CH4,na.rm=TRUE),
+            mean_ch4 = mean(CH4,na.rm=TRUE),
+            sd_ch4 = sd(CH4,na.rm=TRUE),
+            cv_ch4 = sd(CH4,na.rm=TRUE)/mean(CH4,na.rm=TRUE)*100)
 
 # Aggregate to daily and calculate the variability (SD) - following script for figures_BD
 # data in umolm2s
@@ -351,6 +382,21 @@ fcr_daily <- eddy_flux %>%
 
 fcr_daily$Date <- as.POSIXct(paste(fcr_daily$Year, fcr_daily$Month, fcr_daily$Day, sep = '-'), "%Y-%m-%d", tz = 'EST')
 
+fcr_daily_stats <- fcr_daily %>% 
+  ungroup() %>% 
+  summarise(min_co2 = min(NEE,na.rm = TRUE),
+            max_co2 = max(NEE,na.rm=TRUE),
+            med_co2 = median(NEE,na.rm=TRUE),
+            mean_co2 = mean(NEE,na.rm=TRUE),
+            sd_co2 = sd(NEE,na.rm=TRUE),
+            cv_co2 = sd(NEE,na.rm=TRUE)/mean(NEE,na.rm=TRUE)*100,
+            min_ch4 = min(CH4,na.rm = TRUE),
+            max_ch4 = max(CH4,na.rm=TRUE),
+            med_ch4 = median(CH4,na.rm=TRUE),
+            mean_ch4 = mean(CH4,na.rm=TRUE),
+            sd_ch4 = sd(CH4,na.rm=TRUE),
+            cv_ch4 = sd(CH4,na.rm=TRUE)/mean(CH4,na.rm=TRUE)*100)
+
 # Aggregate into weekly
 fcr_weekly <- eddy_flux %>% 
   mutate(Year = year(DateTime), 
@@ -391,6 +437,22 @@ fcr_weekly <- eddy_flux %>%
 
 fcr_weekly$Date <- make_datetime(year = fcr_weekly$Year) + weeks(fcr_weekly$Week)
 
+fcr_weekly_stats <- fcr_weekly %>% 
+  ungroup() %>% 
+  summarise(min_co2 = min(NEE,na.rm = TRUE),
+            max_co2 = max(NEE,na.rm=TRUE),
+            med_co2 = median(NEE,na.rm=TRUE),
+            mean_co2 = mean(NEE,na.rm=TRUE),
+            sd_co2 = sd(NEE,na.rm=TRUE),
+            cv_co2 = sd(NEE,na.rm=TRUE)/mean(NEE,na.rm=TRUE)*100,
+            min_ch4 = min(CH4,na.rm = TRUE),
+            max_ch4 = max(CH4,na.rm=TRUE),
+            med_ch4 = median(CH4,na.rm=TRUE),
+            mean_ch4 = mean(CH4,na.rm=TRUE),
+            sd_ch4 = sd(CH4,na.rm=TRUE),
+            cv_ch4 = sd(CH4,na.rm=TRUE)/mean(CH4,na.rm=TRUE)*100)
+
+
 # Aggregate to Monthly
 fcr_monthly <- eddy_flux %>% 
   mutate(Year = year(DateTime), 
@@ -429,6 +491,26 @@ fcr_monthly <- eddy_flux %>%
                    albedo = mean(albedo, na.rm = TRUE))
 
 fcr_monthly$yearmon <- with(fcr_monthly, sprintf("%d-%02d", Year, Month))
+
+fcr_monthly_stats <- fcr_monthly %>% 
+  ungroup() %>% 
+  summarise(min_co2 = min(NEE,na.rm = TRUE),
+            max_co2 = max(NEE,na.rm=TRUE),
+            med_co2 = median(NEE,na.rm=TRUE),
+            mean_co2 = mean(NEE,na.rm=TRUE),
+            sd_co2 = sd(NEE,na.rm=TRUE),
+            cv_co2 = sd(NEE,na.rm=TRUE)/mean(NEE,na.rm=TRUE)*100,
+            min_ch4 = min(CH4,na.rm = TRUE),
+            max_ch4 = max(CH4,na.rm=TRUE),
+            med_ch4 = median(CH4,na.rm=TRUE),
+            mean_ch4 = mean(CH4,na.rm=TRUE),
+            sd_ch4 = sd(CH4,na.rm=TRUE),
+            cv_ch4 = sd(CH4,na.rm=TRUE)/mean(CH4,na.rm=TRUE)*100)
+
+# Combine all stats into one
+fcr_stats <- rbind(fcr_hourly_stats,fcr_daily_stats,fcr_weekly_stats,fcr_monthly_stats,ghg_stats)
+
+write_csv(fcr_stats,"./Data/20210815_Stats.csv")
 
 # daily means
 
@@ -634,6 +716,62 @@ ggarrange(co2_diel_time,co2_box_all,ch4_diel_time,ch4_box_all,nrow=2,ncol=2,comm
 
 ggsave("./Fig_Output/SI_Diel_Time.jpg",width=9,height=8,units="in",dpi=320)
 
+# Calculate difference between medians for each season using Kruskal Wallis test
+diel_agg$NEE[is.nan(diel_agg$NEE)] <-NA
+
+diel_agg_stats <- diel_agg %>% 
+  group_by(season,diel) %>% 
+  summarise(p25_nee = quantile(NEE,0.25,na.rm=TRUE),
+            med_nee = median(NEE,na.rm=TRUE),
+            p75_nee = quantile(NEE,0.75,na.rm=TRUE),
+            p25_ch4 = quantile(CH4,0.25,na.rm=TRUE),
+            med_ch4 = median(CH4,na.rm=TRUE),
+            p75_ch4 = quantile(CH4,0.75,na.rm=TRUE))
+
+diel_agg_stats_all <- diel_agg %>% 
+  ungroup() %>% 
+  group_by(diel) %>% 
+  summarise(p25_nee = quantile(NEE,0.25,na.rm=TRUE),
+            med_nee = median(NEE,na.rm=TRUE),
+            p75_nee = quantile(NEE,0.75,na.rm=TRUE),
+            p25_ch4 = quantile(CH4,0.25,na.rm=TRUE),
+            med_ch4 = median(CH4,na.rm=TRUE),
+            p75_ch4 = quantile(CH4,0.75,na.rm=TRUE)) %>% 
+  mutate(season = "All") %>% 
+  relocate(season,.before = p25_nee)
+
+diel_agg_stats_comb <- rbind(diel_agg_stats,diel_agg_stats_all)
+
+write_csv(diel_agg_stats_comb,"./Fig_output/20210815_diel_stats.csv")
+
+diel_agg_summer <- diel_agg %>% 
+  filter(season == "Summer")
+
+diel_agg_fall <- diel_agg %>% 
+  filter(season == "Fall")
+
+diel_agg_winter <- diel_agg %>% 
+  filter(season == "Winter")
+
+diel_agg_spring <- diel_agg %>% 
+  filter(season == "Spring")
+
+kruskal.test(NEE ~ diel,data=diel_agg_summer)
+kruskal.test(CH4 ~ diel,data=diel_agg_summer)
+
+kruskal.test(NEE ~ diel,data=diel_agg_fall)
+kruskal.test(CH4 ~ diel,data=diel_agg_fall)
+
+kruskal.test(NEE ~ diel,data=diel_agg_winter)
+kruskal.test(CH4 ~ diel,data=diel_agg_winter)
+
+kruskal.test(NEE ~ diel,data=diel_agg_spring)
+kruskal.test(CH4 ~ diel,data=diel_agg_spring)
+
+kruskal.test(NEE ~ diel,data=diel_agg)
+kruskal.test(CH4 ~ diel,data=diel_agg)
+
+# Plot diel fluxes by season
 co2_diel <- ggplot(diel_agg,mapping=aes(x=season,y=NEE,color=diel))+
   geom_hline(yintercept = 0, linetype="dashed")+
   geom_boxplot(outlier.shape = NA,size=1)+
