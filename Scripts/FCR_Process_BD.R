@@ -26,8 +26,9 @@ ec[ec == -9999] <- NA
 
 # Set new dataframe with list of dates+times: from 4 April 2020 to 6 May 2021,
 # every 30 minutes
-ts <- seq.POSIXt(as.POSIXct("2020-04-04 11:30:00",'%Y-%m-%d %H:%M:%S', tz="EST"), 
-                 as.POSIXct("2021-05-06 13:30:00",'%Y-%m-%d %H:%M:%S', tz="EST"), by = "30 min")
+# Constrain to study time period: 2020-04-05 and 2021-04-06
+ts <- seq.POSIXt(as.POSIXct("2020-04-05 00:00:00",'%Y-%m-%d %H:%M:%S', tz="EST"), 
+                 as.POSIXct("2021-04-05 23:30:00",'%Y-%m-%d %H:%M:%S', tz="EST"), by = "30 min")
 ts2 <- data.frame(datetime = ts)
 
 # Join Eddy Flux data with list of dates+time
@@ -50,7 +51,7 @@ ec2 %>% group_by(year = year(datetime), month = factor(month.abb[month(datetime)
 ec2 %>% select(datetime, co2_flux, ch4_flux) %>% 
   summarise(co2_available = 100-sum(is.na(co2_flux))/n()*100,
             ch4_available = 100-sum(is.na(ch4_flux))/n()*100)
-# 76% data for CO2; 60% data for CH4
+# 79% data for CO2; 60% data for CH4
 
 # Check data availability by month
 ec2 %>% group_by(year(datetime), month(datetime)) %>% select(datetime, co2_flux, ch4_flux) %>% 
@@ -120,19 +121,24 @@ ggplot()+
   geom_point(aes(x=ec2$wind_speed,y=met2$WS_ms_Avg))+
   theme_classic(base_size = 15)
 
+# Calculate percent of missing wind data
+ec2 %>% select(datetime, wind_speed) %>% 
+  summarise(wnd_na = sum(is.na(wind_speed))/n()*100)
+
 # Use linear model to convert from Met to EC for missing time points
 linearMod <- lm(ec2$wind_speed ~ met2$WS_ms_Avg)
-# For data period: EC = Met*0.5238 + 0.1489
+summary(linearMod)
+# For data period: EC = Met*0.533689 + 0.134411
 
 # Check conversion
 plot(ec2$wind_speed)
-points(met2$WS_ms_Avg*0.5238+0.1489, col = 'red')
+points(met2$WS_ms_Avg*0.533689+0.134411, col = 'red')
 
 ###########################################
-# Use converted windspeed from the Met data to fill in time points with missing
+# Use converted wind speed from the Met data to fill in time points with missing
 # data (EC)
 ec2$wind_speed <- ifelse(is.na(ec2$wind_speed),
-                         met2$WS_ms_Avg*0.5238+0.1489, ec2$wind_speed)
+                         met2$WS_ms_Avg*0.533689+0.134411, ec2$wind_speed)
 
 ec2$wind_dir <- ifelse(is.na(ec2$wind_dir),
                        met2$WindDir, ec2$wind_dir)
@@ -158,7 +164,7 @@ met4 <- left_join(ts2, met3)
 ec_filt %>% select(datetime, co2_flux, ch4_flux) %>% 
   summarise(co2_available = 100- sum(is.na(co2_flux))/n()*100,
             ch4_available = 100-sum(is.na(ch4_flux))/n()*100)
-# Now have 53% CO2 data and 42% CH4 data
+# Now have 56% CO2 data and 42% CH4 data
 
 # Count number of timepoints that have data
 ec_filt %>% select(datetime, co2_flux, ch4_flux) %>% 
@@ -208,14 +214,6 @@ ec_filt$ch4_flux <- ifelse(ec_filt$qc_ch4_flux==1 & ec_filt$qc_co2_flux>=2, NA, 
 ec_filt$ch4_flux <- ifelse(ec_filt$qc_ch4_flux==1 & ec_filt$qc_LE>=2, NA, ec_filt$ch4_flux)
 ec_filt$ch4_flux <- ifelse(ec_filt$qc_ch4_flux==1 & ec_filt$qc_H>=2, NA, ec_filt$ch4_flux)
 
-# Remove CH4 when it rains
-ec_filt$precip <- met2$Rain_sum
-ec_filt$ch4_flux <- ifelse(ec_filt$precip > 0, NA, ec_filt$ch4_flux)
-
-# Remove CH4 data when thermocouple was not working (apr 05 - apr 25)
-ec_filt$ch4_flux <- ifelse(ec_filt$datetime >= '2021-04-05' & ec_filt$datetime <= '2021-04-25', 
-                           NA, ec_filt$ch4_flux)
-
 # Removing qc >= 2 for H and LE
 ec_filt$H <- ifelse(ec_filt$qc_H >= 2, NA, ec_filt$H)
 ec_filt$LE <- ifelse(ec_filt$qc_LE >= 2, NA, ec_filt$LE)
@@ -242,6 +240,27 @@ ec_filt$LE <- ifelse(ec_filt$LE >= 500 | ec_filt$LE <= -500, NA, ec_filt$LE)
 plot(ec_filt$co2_flux, type = 'o')
 plot(ec_filt$ch4_flux, type = 'o')
 
+################################################################
+# count NA after filtering for bad fluxes
+ec_filt %>% select(datetime, co2_flux, ch4_flux) %>% 
+  summarise(co2_available = 100- sum(is.na(co2_flux))/n()*100,
+            ch4_available = 100-sum(is.na(ch4_flux))/n()*100)
+# Now have 37% CO2 data and 28% CH4 data
+
+# Count number of timepoints that have data
+ec_filt %>% select(datetime, co2_flux, ch4_flux) %>% 
+  summarise(co2_available = n() - sum(is.na(co2_flux)),
+            ch4_available = n() -sum(is.na(ch4_flux)))
+################################################################
+
+# Remove CH4 when it rains
+ec_filt$precip <- met2$Rain_sum
+ec_filt$ch4_flux <- ifelse(ec_filt$precip > 0, NA, ec_filt$ch4_flux)
+
+# Remove CH4 data when thermocouple was not working (apr 05 - apr 25)
+ec_filt$ch4_flux <- ifelse(ec_filt$datetime >= '2021-04-05' & ec_filt$datetime <= '2021-04-25', 
+                           NA, ec_filt$ch4_flux)
+
 # Merge with timeseries
 eddy_fcr <- left_join(ts2, ec_filt, by = 'datetime')
 
@@ -251,7 +270,7 @@ eddy_fcr <- left_join(ts2, ec_filt, by = 'datetime')
 eddy_fcr %>% select(datetime, co2_flux, ch4_flux) %>% 
   summarise(co2_available = 100-sum(is.na(co2_flux))/n()*100,
             ch4_available = 100-sum(is.na(ch4_flux))/n()*100)
-# 35% CO2 data; 33% CH4 data
+# 37% CO2 data; 27% CH4 data
 
 # Number of timepoints available
 eddy_fcr %>% select(datetime, co2_flux, ch4_flux) %>% 
@@ -342,12 +361,17 @@ ggplot()+
   geom_point(aes(x=eddy_fcr$air_temp_celsius,y=met2$AirTC_Avg))+
   theme_classic(base_size = 15)
 
+# Calculate percent of missing air temp data
+eddy_fcr %>% select(datetime, air_temp_celsius) %>% 
+  summarise(temp_na = sum(is.na(air_temp_celsius))/n()*100)
+
 # Use linear model to estimate EC temp from Met temp
 linearMod <- lm(eddy_fcr$air_temp_celsius ~ met2$AirTC_Avg)
-# EC = Met*0.9329 - 0.5611
+summary(linearMod)
+# EC = Met*0.93201-0.58405
 
 eddy_fcr$air_temp_celsius <- ifelse(is.na(eddy_fcr$air_temp_celsius),
-                                    met2$AirTC_Avg*0.9329-0.5611, eddy_fcr$air_temp_celsius)
+                                    met2$AirTC_Avg*0.93201-0.58405, eddy_fcr$air_temp_celsius)
 
 # Check Air Temp
 ggplot(eddy_fcr,mapping=aes(x=datetime,y=air_temp_celsius))+
@@ -359,12 +383,17 @@ ggplot()+
   geom_point(aes(x=eddy_fcr$sonic_temp_celsius,y=met2$AirTC_Avg))+
   theme_classic(base_size = 15)
 
+# Calculate percent of missing sonic temp data
+eddy_fcr %>% select(datetime, sonic_temp_celsius) %>% 
+  summarise(temp_na = sum(is.na(sonic_temp_celsius))/n()*100)
+
 # Use linear model to estimate EC temp and Met temp
 linearMod <- lm(eddy_fcr$sonic_temp_celsius ~ met2$AirTC_Avg)
-# EC = Met*1.017 - 0.234
+summary(linearMod)
+# EC = Met*1.017914 - 0.260521
 
 eddy_fcr$sonic_temp_celsius <- ifelse(is.na(eddy_fcr$sonic_temp_celsius),
-                                      eddy_fcr$air_temp_celsius*1.017-0.234, eddy_fcr$sonic_temp_celsius)
+                                      eddy_fcr$air_temp_celsius*1.017914-0.260521, eddy_fcr$sonic_temp_celsius)
 
 # Check sonic temp
 ggplot(eddy_fcr,mapping=aes(x=datetime,y=sonic_temp_celsius))+
@@ -377,12 +406,17 @@ ggplot()+
   geom_point(aes(x=eddy_fcr$RH,y=met2$RH))+
   theme_classic(base_size = 15)
 
+# Calculate percent of missing sonic temp data
+eddy_fcr %>% select(datetime, RH) %>% 
+  summarise(RH_na = sum(is.na(RH))/n()*100)
+
 # Use linear model to estimate EC RH from Met RH
 linearMod <- lm(eddy_fcr$RH ~ met2$RH)
-# EC = Met*0.8116 + 6.8434
+summary(linearMod)
+# EC = Met*0.812051 + 6.626110
 
 eddy_fcr$RH <- ifelse(is.na(eddy_fcr$RH),
-                      met2$RH*0.8116+6.8434, eddy_fcr$RH)
+                      met2$RH*0.812051+6.626110, eddy_fcr$RH)
 
 # Add Met data to gapfill fluxes
 eddy_fcr$SW_in <- met2$SW_in
@@ -464,7 +498,7 @@ eddy_fcr3 <- eddy_fcr_footprint_full %>%
 eddy_fcr3 %>% select(DateTime, NEE, ch4_flux) %>% 
   summarise(co2_available = 100-sum(is.na(NEE))/n()*100,
             ch4_available = 100-sum(is.na(ch4_flux))/n()*100)
-# 26% CO2 data; 20% CH4 data
+# 28% CO2 data; 21% CH4 data
 
 # Total number of available time points
 eddy_fcr3 %>% select(DateTime, NEE, ch4_flux) %>% 
@@ -598,6 +632,6 @@ ggplot()+
   geom_abline(intercept = 0)
 
 # Save the exported data
-write_csv(fcr_gf, "./Data/20210615_EC_processed.csv")
+write_csv(fcr_gf, "./Data/20210813_EC_processed.csv")
 
 # Saved Rfile as: EC_Process.R
