@@ -766,12 +766,14 @@ kruskal.test(NEE ~ diel,data=diel_agg_winter)
 kruskal.test(CH4 ~ diel,data=diel_agg_winter)
 
 kruskal.test(NEE ~ diel,data=diel_agg_spring)
-kruskal.test(CH4 ~ diel,data=diel_agg_spring)
+kruskal.test(CH4 ~ diel,data=diel_agg_spring) # Statistically significant
 
 kruskal.test(NEE ~ diel,data=diel_agg)
 kruskal.test(CH4 ~ diel,data=diel_agg)
 
 # Plot diel fluxes by season
+diel_agg$season <- factor(diel_agg$season, levels=c("Spring", "Summer", "Fall", "Winter"))
+
 co2_diel <- ggplot(diel_agg,mapping=aes(x=season,y=NEE,color=diel))+
   geom_hline(yintercept = 0, linetype="dashed")+
   geom_boxplot(outlier.shape = NA,size=1)+
@@ -787,6 +789,7 @@ ch4_diel <- ggplot(diel_agg,mapping=aes(x=season,y=CH4,color=diel))+
   geom_hline(yintercept = 0, linetype="dashed")+
   geom_boxplot(outlier.shape = NA,size=1)+
   geom_point(position = position_jitterdodge(),alpha=0.3)+
+  annotate("text",label = "*", x = 1, y = 0.075, size = 7)+
   scale_color_manual(breaks=c("Day","Night"),
                      values=c("#E63946","#4c8bfe"))+
   ylab(expression(~CH[4]~(mu~mol~m^-2~s^-1))) +
@@ -797,7 +800,7 @@ ch4_diel <- ggplot(diel_agg,mapping=aes(x=season,y=CH4,color=diel))+
 ggarrange(co2_diel,ch4_diel,nrow=1,ncol=2,common.legend = TRUE, labels=c("A.","B."),
           font.label=list(face="plain",size=15))
 
-ggsave("./Fig_Output/GHG_Diel_all.jpg",width=8,height=4,units="in",dpi=320)
+ggsave("./Fig_Output/GHG_Diel_all.jpg",width=9,height=4,units="in",dpi=320)
 
 ### Thinking about other visualizations ----
 # Plotting cumulative Co2 and Ch4 throughout the study period
@@ -868,36 +871,124 @@ ice_off_1 <- eddy_flux %>%
   filter(DateTime >= "2020-12-19 19:00:00" & DateTime < "2020-12-26 19:00:00") %>% 
   select(DateTime,NEE_uStar_orig,NEE_uStar_f,ch4_flux_uStar_orig,ch4_flux_uStar_f) %>% 
   mutate(ice_period = "Off_1") %>% 
-  mutate(ice = "off")
-
-ice_on_1 <- eddy_flux %>% 
-  filter(DateTime >= "2020-12-26 19:00:00" & DateTime < "2020-12-29 19:00:00")%>% 
-  select(DateTime,NEE_uStar_orig,NEE_uStar_f,ch4_flux_uStar_orig,ch4_flux_uStar_f) %>% 
-  mutate(ice_period = "On_1") %>% 
-  mutate(ice = "on")
-
-ice_off_2 <- eddy_flux %>% 
-  filter(DateTime >= "2020-12-29 19:00:00" & DateTime < "2021-01-09 19:00:00")%>% 
-  select(DateTime,NEE_uStar_orig,NEE_uStar_f,ch4_flux_uStar_orig,ch4_flux_uStar_f) %>% 
-  mutate(ice_period = "Off_2") %>% 
-  mutate(ice = "off")
-
-ice_on_2 <- eddy_flux %>% 
-  filter(DateTime >= "2021-01-09 19:00:00" & DateTime < "2021-02-09 19:00:00")%>% 
-  select(DateTime,NEE_uStar_orig,NEE_uStar_f,ch4_flux_uStar_orig,ch4_flux_uStar_f) %>% 
-  mutate(ice_period = "On_2") %>% 
-  mutate(ice = "on")
-
-ice_all <- rbind(ice_off_1,ice_on_1,ice_off_2,ice_on_2)
-
-ice_all <- ice_all %>% 
+  mutate(ice = "off") %>% 
   mutate(Year = year(DateTime), 
          Month = month(DateTime), 
          Day = day(DateTime), 
          Hour = hour(DateTime)) %>% 
   mutate(diel = ifelse(Hour >= 7 & Hour <= 19, "Day",
                        ifelse(Hour >= 19 | Hour <= 7, "Night", NA)))
-  
+
+kruskal.test(NEE_uStar_orig ~ diel, data=ice_off_1)
+kruskal.test(ch4_flux_uStar_orig ~ diel, data=ice_off_1)
+
+ice_on_1 <- eddy_flux %>% 
+  filter(DateTime >= "2020-12-26 19:00:00" & DateTime < "2020-12-29 19:00:00")%>% 
+  select(DateTime,NEE_uStar_orig,NEE_uStar_f,ch4_flux_uStar_orig,ch4_flux_uStar_f) %>% 
+  mutate(ice_period = "On_1") %>% 
+  mutate(ice = "on") %>% 
+  mutate(Year = year(DateTime), 
+         Month = month(DateTime), 
+         Day = day(DateTime), 
+         Hour = hour(DateTime)) %>% 
+  mutate(diel = ifelse(Hour >= 7 & Hour <= 19, "Day",
+                       ifelse(Hour >= 19 | Hour <= 7, "Night", NA)))
+
+kruskal.test(NEE_uStar_orig ~ diel, data=ice_on_1)
+kruskal.test(ch4_flux_uStar_orig ~ diel, data=ice_on_1)
+
+ice_off_2 <- eddy_flux %>% 
+  filter(DateTime >= "2020-12-29 19:00:00" & DateTime < "2021-01-09 19:00:00")%>% 
+  select(DateTime,NEE_uStar_orig,NEE_uStar_f,ch4_flux_uStar_orig,ch4_flux_uStar_f) %>% 
+  mutate(ice_period = "Off_2") %>% 
+  mutate(ice = "off") %>% 
+  mutate(Year = year(DateTime), 
+         Month = month(DateTime), 
+         Day = day(DateTime), 
+         Hour = hour(DateTime)) %>% 
+  mutate(diel = ifelse(Hour >= 7 & Hour <= 19, "Day",
+                       ifelse(Hour >= 19 | Hour <= 7, "Night", NA)))
+
+kruskal.test(NEE_uStar_orig ~ diel, data=ice_off_2)
+kruskal.test(ch4_flux_uStar_orig ~ diel, data=ice_off_2)
+
+ice_on_2 <- eddy_flux %>% 
+  filter(DateTime >= "2021-01-09 19:00:00" & DateTime < "2021-02-09 19:00:00")%>% 
+  select(DateTime,NEE_uStar_orig,NEE_uStar_f,ch4_flux_uStar_orig,ch4_flux_uStar_f) %>% 
+  mutate(ice_period = "On_2") %>% 
+  mutate(ice = "on") %>% 
+  mutate(Year = year(DateTime), 
+         Month = month(DateTime), 
+         Day = day(DateTime), 
+         Hour = hour(DateTime)) %>% 
+  mutate(diel = ifelse(Hour >= 7 & Hour <= 19, "Day",
+                       ifelse(Hour >= 19 | Hour <= 7, "Night", NA)))
+
+kruskal.test(NEE_uStar_orig ~ diel, data=ice_on_2)
+kruskal.test(ch4_flux_uStar_orig ~ diel, data=ice_on_2)
+
+ice_all <- rbind(ice_off_1,ice_on_1,ice_off_2,ice_on_2)
+
+# Test for significance for all ice on vs. ice off
+kruskal.test(NEE_uStar_orig ~ ice, data=ice_all)
+# Not statistically significant (p = 0.592)
+kruskal.test(ch4_flux_uStar_orig ~ ice, data=ice_all)
+# Not statistically significant (p = 0.1085)
+
+# Ice_1
+ice_1 <- ice_all %>% 
+  filter(ice_period %in% c("Off_1","On_1"))
+
+kruskal.test(NEE_uStar_orig ~ ice, data=ice_1)
+kruskal.test(ch4_flux_uStar_orig ~ ice, data=ice_1)
+
+# Ice_2
+ice_2 <- ice_all %>% 
+  filter(ice_period %in% c("Off_2","On_2"))
+
+kruskal.test(NEE_uStar_orig ~ ice, data=ice_2)
+kruskal.test(ch4_flux_uStar_orig ~ ice, data=ice_2)
+
+# Ice stats
+ice_stats <- ice_all %>% 
+  group_by(ice_period,diel) %>% 
+  summarise(p25_nee = quantile(NEE_uStar_orig,0.25,na.rm=TRUE),
+            med_nee = median(NEE_uStar_orig,na.rm=TRUE),
+            p75_nee = quantile(NEE_uStar_orig,0.75,na.rm=TRUE),
+            p25_ch4 = quantile(ch4_flux_uStar_orig,0.25,na.rm=TRUE),
+            med_ch4 = median(ch4_flux_uStar_orig,na.rm=TRUE),
+            p75_ch4 = quantile(ch4_flux_uStar_orig,0.75,na.rm=TRUE))
+
+ice_stats_2 <- ice_all %>% 
+  ungroup() %>% 
+  group_by(ice_period) %>% 
+  summarise(p25_nee = quantile(NEE_uStar_orig,0.25,na.rm=TRUE),
+            med_nee = median(NEE_uStar_orig,na.rm=TRUE),
+            p75_nee = quantile(NEE_uStar_orig,0.75,na.rm=TRUE),
+            p25_ch4 = quantile(ch4_flux_uStar_orig,0.25,na.rm=TRUE),
+            med_ch4 = median(ch4_flux_uStar_orig,na.rm=TRUE),
+            p75_ch4 = quantile(ch4_flux_uStar_orig,0.75,na.rm=TRUE)) %>% 
+  mutate(diel = "All") %>% 
+  relocate(diel,.before = p25_nee)
+
+
+ice_stats_all <- ice_all %>% 
+  ungroup() %>% 
+  group_by(ice) %>% 
+  summarise(p25_nee = quantile(NEE_uStar_orig,0.25,na.rm=TRUE),
+            med_nee = median(NEE_uStar_orig,na.rm=TRUE),
+            p75_nee = quantile(NEE_uStar_orig,0.75,na.rm=TRUE),
+            p25_ch4 = quantile(ch4_flux_uStar_orig,0.25,na.rm=TRUE),
+            med_ch4 = median(ch4_flux_uStar_orig,na.rm=TRUE),
+            p75_ch4 = quantile(ch4_flux_uStar_orig,0.75,na.rm=TRUE)) %>% 
+  rename(ice_period = ice) %>% 
+  mutate(diel = "All") %>% 
+  relocate(diel,.before = p25_nee)
+
+ice_stats_final <- rbind(ice_stats,ice_stats_2,ice_stats_all)
+
+write.csv(ice_stats_final,"./Fig_output/20210816_Ice_stats.csv")
+
 # Daily means in winter (ice on/off)
 winter_co2 <- ggplot(fcr_daily)+
   annotate(geom="text",x = as.POSIXct("2020-12-24"),y = 9,label = "Off")+
@@ -956,6 +1047,8 @@ winter_ch4 <- ggplot(fcr_daily)+
 
 ice_ch4 <- ggplot(ice_all,mapping=aes(x=ice_period,y=ch4_flux_uStar_orig,color=diel))+
   geom_hline(yintercept = 0, linetype = "dashed", color="darkgrey", size = 0.8)+
+  annotate("text",label = "*", x = "On_1", y = 0.025, size = 5)+
+  annotate("text",label = "*", x = "Off_2", y = 0.025, size = 5)+
   ylab(expression(paste("CH"[4]*" (",mu,"mol C m"^-2*" s"^-1*")")))+
   xlab("Ice Period")+
   geom_boxplot(outlier.shape = NA,size=1)+
