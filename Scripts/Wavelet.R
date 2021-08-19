@@ -586,3 +586,107 @@ ggarrange(co2_monthlyPower,co2_dailyPower,ch4_monthlyPower,ch4_dailyPower,ncol=2
           font.label=list(face="plain",size=15))
 
 ggsave("./Fig_Output/GlobalPower_All.jpg",width=9,height=7,units="in",dpi=320)
+
+### Check for days when daily or diel time points are significant ----
+#taking calcs from wavelet.plot.new function
+signif_test <- t(matrix(co2_output$Signif, dim(co2_output$wave)[2], dim(co2_output$wave)[1]))
+signif_testa <- co2_output$Power/signif_test            #puts signif in 52549 x 16 matrix 
+
+a <- signif_testa 
+b <- co2_output$Power
+
+# Check time periods
+time_period <- as.data.frame(round((2^(log2(co2_output$period))),digits=2))
+
+### YES!! This works to assign 1 or 0 to true or false values at one scale 
+c <- as.data.frame(b >= signif_test)  #this tells us if the power value > signif value 
+
+#c7 gets T/F values for if signif at daily timescale 
+c_day <- c %>%  
+  select(V42:V43,V54:V57)
+c_day <- as.vector(c_day)
+
+#if else gives us numerics for logistic regression. 1 = T, 0 = F
+coutput_day <- ifelse(c_day$V54 == TRUE & c_day$V55 == TRUE & c_day$V56 == TRUE & c_day$V57 == TRUE, 1, 0)
+
+coutput_diel <- ifelse(c_day$V42 == TRUE & c_day$V43 == TRUE, 1,0)
+
+coutput <- cbind(co2_data,coutput_day,coutput_diel)
+
+coutput <- coutput %>% 
+  mutate(hour = hour(DateTime)) %>% 
+  filter(hour == 12)
+
+coutput_sum <- coutput %>% 
+  summarise(day_sum = sum(coutput_day),
+            diel_sum = sum(coutput_diel))
+# Day = 105 days
+# Diel = 57 days
+
+# Do same thing for CH4 data
+#taking calcs from wavelet.plot.new function
+signif_test_ch4 <- t(matrix(ch4_output$Signif, dim(ch4_output$wave)[2], dim(ch4_output$wave)[1]))
+signif_testa_ch4 <- ch4_output$Power/signif_test_ch4            #puts signif in 52549 x 16 matrix 
+
+a_ch4 <- signif_testa_ch4 
+b_ch4 <- ch4_output$Power
+
+### YES!! This works to assign 1 or 0 to true or false values at one scale 
+c_ch4 <- as.data.frame(b_ch4 >= signif_test_ch4)  #this tells us if the power value > signif value 
+
+#c7 gets T/F values for if signif at daily timescale 
+c_day_ch4 <- c_ch4 %>%  
+  select(V42:V43,V54:V57)
+c_day_ch4 <- as.vector(c_day_ch4)
+
+#if else gives us numerics for logistic regression. 1 = T, 0 = F
+coutput_day_ch4 <- ifelse(c_day_ch4$V54 == TRUE & c_day_ch4$V55 == TRUE & c_day_ch4$V56 == TRUE & c_day_ch4$V57 == TRUE, 1, 0)
+
+coutput_diel_ch4 <- ifelse(c_day_ch4$V42 == TRUE & c_day_ch4$V43 == TRUE, 1,0)
+
+coutput_ch4 <- cbind(ch4_data,coutput_day_ch4,coutput_diel_ch4)
+
+# Select only days with noon
+coutput_ch4 <- coutput_ch4 %>% 
+  mutate(hour = hour(DateTime)) %>% 
+  filter(hour == 12)
+
+coutput_sum_ch4 <- coutput_ch4 %>% 
+  summarise(day_sum = sum(coutput_day_ch4),
+            diel_sum = sum(coutput_diel_ch4))
+# Day = 89 days
+# Diel = 64 days
+
+# Plot significant timescales by date
+day_sig <- ggplot()+
+  annotate("text",x=as.POSIXct("2021-04-05"),y=1.05,label="Sig.",size=5)+
+  annotate("text",x=as.POSIXct("2021-04-01"),y=0.2,label="Not Sig.",size=5)+
+  geom_point(coutput,mapping=aes(x=DateTime,y=coutput_day,color="co2"),alpha=0.5)+
+  geom_point(coutput_ch4,mapping=aes(x=DateTime,y=coutput_day_ch4+0.1,color="ch4"),alpha=0.5)+
+  ylab("Daily Significance")+
+  xlab("")+
+  scale_color_manual(breaks=c("co2","ch4"), labels=c((expression(~CO[2])),expression(~CH[4])),
+                     values=c("#E63946","#4c8bfe"))+
+  theme_classic(base_size = 15)+
+  theme(axis.text.y=element_blank(),
+        axis.ticks.y=element_blank(),
+        legend.title=element_blank())
+
+diel_sig <- ggplot()+
+  annotate("text",x=as.POSIXct("2021-04-05"),y=1.05,label="Sig.",size=5)+
+  annotate("text",x=as.POSIXct("2021-04-01"),y=0.2,label="Not Sig.",size=5)+
+  geom_point(coutput,mapping=aes(x=DateTime,y=coutput_diel,color="co2"),alpha=0.5)+
+  geom_point(coutput_ch4,mapping=aes(x=DateTime,y=coutput_diel_ch4+0.1,color="ch4"),alpha=0.5)+
+  ylab("Diel Significance")+
+  xlab("")+
+  scale_color_manual(breaks=c("co2","ch4"), labels=c((expression(~CO[2])),expression(~CH[4])),
+                     values=c("#E63946","#4c8bfe"))+
+  theme_classic(base_size = 15)+
+  theme(axis.text.y=element_blank(),
+        axis.ticks.y=element_blank(),
+        legend.title=element_blank())
+
+ggarrange(day_sig,diel_sig,nrow=2,ncol=1,common.legend=TRUE,
+          labels=c("A.","B."),font.label = list(face="plain",size=15))
+
+ggsave("./Fig_Output/SI_Timescale_Sig.jpg",width=8,height=6,units="in",dpi=320)

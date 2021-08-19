@@ -1013,16 +1013,16 @@ winter_co2 <- ggplot(fcr_daily)+
 
 ice_all$ice_period <- factor(ice_all$ice_period, levels=c("Off_1", "On_1", "Off_2", "On_2"))
 
-ice_co2 <- ggplot(ice_all,mapping=aes(x=ice_period,y=NEE_uStar_orig,color=diel))+
+ice_co2 <- ggplot(ice_all,mapping=aes(x=ice_period,y=NEE_uStar_orig,color=ice_period))+
   geom_hline(yintercept = 0, linetype = "dashed", color="darkgrey", size = 0.8)+
   ylab(expression(paste("CO"[2]*" (",mu,"mol C m"^-2*" s"^-1*")")))+
   xlab("Ice Period")+
   geom_boxplot(outlier.shape = NA,size=1)+
   geom_point(position=position_jitterdodge(),alpha=0.3)+
-  scale_color_manual(breaks=c('Day','Night'),values=c("#E63946","#4c8bfe"))+
+  scale_color_manual(breaks=c('Off_1','On_1','Off_2','On_2'),values=c("#E63946","#4c8bfe","#E63946","#4c8bfe"))+
   theme_classic(base_size = 15)+
   ylim(-10,10)+
-  theme(legend.title=element_blank())+
+  theme(legend.position="none")+
   theme(axis.title.y = element_text(margin = margin(t = 0, r = 0, b = 0, l = 5)))
 
 winter_ch4 <- ggplot(fcr_daily)+
@@ -1045,7 +1045,41 @@ winter_ch4 <- ggplot(fcr_daily)+
   ylim(-0.03,0.03)+
   theme_classic(base_size = 15)
 
-ice_ch4 <- ggplot(ice_all,mapping=aes(x=ice_period,y=ch4_flux_uStar_orig,color=diel))+
+ice_all$ice_period <- factor(ice_all$ice_period, levels=c("Off_1", "On_1", "Off_2", "On_2"))
+
+ice_ch4 <- ggplot(ice_all,mapping=aes(x=ice_period,y=ch4_flux_uStar_orig,color=ice_period))+
+  geom_hline(yintercept = 0, linetype = "dashed", color="darkgrey", size = 0.8)+
+  ylab(expression(paste("CH"[4]*" (",mu,"mol C m"^-2*" s"^-1*")")))+
+  xlab("Ice Period")+
+  geom_boxplot(outlier.shape = NA,size=1)+
+  geom_point(position=position_jitterdodge(),alpha=0.3)+
+  scale_color_manual(breaks=c('Off_1','On_1','Off_2','On_2'),values=c("#E63946","#4c8bfe","#E63946","#4c8bfe"))+
+  ylim(-0.03,0.03)+
+  theme_classic(base_size = 15)+
+  theme(legend.position="none")+
+  theme(legend.title=element_blank())
+
+ggarrange(winter_co2,ice_co2,winter_ch4,ice_ch4,nrow=2,ncol=2,common.legend = FALSE,
+          labels=c("A.","B.","C.","D."), font.label = list(face="plain",size=15))
+
+ggsave("./Fig_Output/Ice_on_off_v3.jpg",width = 8, height=7, units="in",dpi=320)
+
+# Plot seprated by diel
+ice_all$ice_period <- factor(ice_all$ice_period, levels=c("Off_1", "On_1", "Off_2", "On_2"))
+
+ice_co2_d <- ggplot(ice_all,mapping=aes(x=ice_period,y=NEE_uStar_orig,color=diel))+
+  geom_hline(yintercept = 0, linetype = "dashed", color="darkgrey", size = 0.8)+
+  ylab(expression(paste("CO"[2]*" (",mu,"mol C m"^-2*" s"^-1*")")))+
+  xlab("Ice Period")+
+  geom_boxplot(outlier.shape = NA,size=1)+
+  geom_point(position=position_jitterdodge(),alpha=0.3)+
+  scale_color_manual(breaks=c('Day','Night'),values=c("#E63946","#4c8bfe"))+
+  theme_classic(base_size = 15)+
+  ylim(-10,10)+
+  theme(legend.title=element_blank())+
+  theme(axis.title.y = element_text(margin = margin(t = 0, r = 0, b = 0, l = 5)))
+
+ice_ch4_d <- ggplot(ice_all,mapping=aes(x=ice_period,y=ch4_flux_uStar_orig,color=diel))+
   geom_hline(yintercept = 0, linetype = "dashed", color="darkgrey", size = 0.8)+
   annotate("text",label = "*", x = "On_1", y = 0.025, size = 5)+
   annotate("text",label = "*", x = "Off_2", y = 0.025, size = 5)+
@@ -1058,10 +1092,10 @@ ice_ch4 <- ggplot(ice_all,mapping=aes(x=ice_period,y=ch4_flux_uStar_orig,color=d
   theme_classic(base_size = 15)+
   theme(legend.title=element_blank())
 
-ggarrange(winter_co2,ice_co2,winter_ch4,ice_ch4,nrow=2,ncol=2,common.legend = TRUE,
-          labels=c("A.","B.","C.","D."), font.label = list(face="plain",size=15))
+ggarrange(ice_co2_d,ice_ch4_d,nrow=1,ncol=2,common.legend = TRUE,
+          labels=c("A.","B."), font.label = list(face="plain",size=15))
 
-ggsave("./Fig_Output/Ice_on_off_v2.jpg",width = 8, height=7, units="in",dpi=320)
+ggsave("./Fig_Output/Ice_on_off_diel.jpg",width = 10, height=5, units="in",dpi=320)
 
 ### Let's get catwalk data in hand ----
 # To start thinking about environmental variables
