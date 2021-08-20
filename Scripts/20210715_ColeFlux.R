@@ -817,7 +817,7 @@ eddy_flux_sum <- eddy_flux %>%
 
 # Calculate cumulative fluxes and uncertainty for ghg data
 cumulative_fluxes <- fluxes_all %>% 
-  filter(DateTime >= as.POSIXct("2020-04-04 01:00:00")) %>% 
+  filter(DateTime >= as.POSIXct("2020-04-06 01:00:00") & DateTime < as.POSIXct("2021-04-06 01:00:00")) %>% 
   mutate(co2_sum_g_m2_d = cumsum(co2_flux_umolm2s_mean*1800*12.01/1000000)) %>% 
   mutate(ch4_sum_g_m2_d = cumsum(ch4_flux_umolm2s_mean*1800*12.01/1000000)) %>% 
   mutate(co2_v = (co2_flux_umolm2s_sd*1800*12.01/1000000)^2) %>% 
@@ -857,6 +857,38 @@ sum_ch4 <- ggplot()+
 ggarrange(sum_co2,sum_ch4,nrow=1,ncol=2,common.legend = TRUE)
 
 ggsave("./Fig_Output/Summed_Fluxes_v2.jpg",width = 10, height=5, units="in",dpi=320)
+
+# Check winter fluxes vs. summer fluxes
+eddy_flux_sum %>% 
+  filter(DateTime <= as.POSIXct("2020-11-01")) %>% 
+  summarise(co2 = mean(NEE_uStar_f,na.rm=TRUE),
+            ch4 = mean(ch4_flux_uStar_f,na.rm=TRUE))
+
+eddy_flux_sum %>% 
+  filter(DateTime > as.POSIXct("2020-11-01")) %>% 
+  summarise(co2 = mean(NEE_uStar_f,na.rm=TRUE),
+            ch4 = mean(ch4_flux_uStar_f,na.rm=TRUE))
+
+eddy_flux_sum %>% 
+  filter(DateTime < as.POSIXct("2020-10-01")) %>% 
+  summarise(co2 = mean(NEE_uStar_f,na.rm=TRUE),
+            ch4 = mean(ch4_flux_uStar_f,na.rm=TRUE))
+
+cumulative_fluxes %>% 
+  filter(DateTime < as.POSIXct("2020-10-01")) %>% 
+  summarise(co2 = mean(co2_flux_umolm2s_mean,na.rm=TRUE),
+            ch4 = mean(ch4_flux_umolm2s_mean,na.rm=TRUE))
+
+eddy_flux_sum %>% 
+  filter(DateTime > as.POSIXct("2020-10-01")) %>% 
+  summarise(co2 = mean(NEE_uStar_f,na.rm=TRUE),
+            ch4 = mean(ch4_flux_uStar_f,na.rm=TRUE))
+
+cumulative_fluxes %>% 
+  filter(DateTime > as.POSIXct("2020-10-01")) %>% 
+  summarise(co2 = mean(co2_flux_umolm2s_mean,na.rm=TRUE),
+            ch4 = mean(ch4_flux_umolm2s_mean,na.rm=TRUE))
+
 
 ### Think about winter variability (especially with ice!)
 ice <- read_csv("./Data/Ice_Data.csv")
