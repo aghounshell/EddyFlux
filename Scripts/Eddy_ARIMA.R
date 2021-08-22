@@ -495,13 +495,19 @@ ggsave("./Fig_Output/Env_data_all.jpg",width = 10, height=6, units="in",dpi=320)
 # Used DO_Sat instead of DO_mgL (as they are redundant!)
 # Remove Temp_diff due to correlations
 co2_hourly <- left_join(fcr_hourly,env_hourly,by="DateTime") %>% 
-  select(NEE,Temp_C_surface,DO_sat,Chla_ugL,fdom_rfu,Flow_cms) %>% 
+  select(NEE,Temp_C_surface,DO_sat,Chla_ugL,fdom_rfu,Flow_cms,Temp_diff) %>% 
   mutate(NEE = na.fill(na.approx(NEE,na.rm=FALSE),"extend"),
          Temp_C_surface = na.fill(na.approx(Temp_C_surface,na.rm=FALSE),"extend"),
          DO_sat = na.fill(na.approx(DO_sat,na.rm=FALSE),"extend"),
          Chla_ugL = na.fill(na.approx(Chla_ugL,na.rm = FALSE),"extend"),
          fdom_rfu = na.fill(na.approx(fdom_rfu,na.rm=FALSE),"extend"),
-         Flow_cms = na.fill(na.approx(Flow_cms,na.rm = FALSE), "extend"))
+         Flow_cms = na.fill(na.approx(Flow_cms,na.rm = FALSE), "extend"),
+         Temp_diff = na.fill(na.approx(Temp_diff,na.rm=FALSE),"extend"))
+
+hourly_cor = as.data.frame(cor(co2_hourly))
+
+hourly_cor <- hourly_cor %>% 
+  mutate(N2 = 0)
 
 # Remove Temp_diff due to correlations
 ch4_hourly <- left_join(fcr_hourly,env_hourly,by="DateTime") %>% 
@@ -516,13 +522,17 @@ ch4_hourly <- left_join(fcr_hourly,env_hourly,by="DateTime") %>%
 # Remove Temp_diff and N2 due to correlations
 co2_daily <- left_join(fcr_daily,env_daily,by=c("DateTime","Year","Month","Day")) %>% 
   ungroup(Year,Month) %>% 
-  select(NEE,Temp_C_surface,DO_sat,Chla_ugL,fdom_rfu,Flow_cms) %>% 
+  select(NEE,Temp_C_surface,DO_sat,Chla_ugL,fdom_rfu,Flow_cms,Temp_diff,N2) %>% 
   mutate(NEE = na.fill(na.approx(NEE,na.rm=FALSE),"extend"),
          Temp_C_surface = na.fill(na.approx(Temp_C_surface,na.rm=FALSE),"extend"),
          DO_sat = na.fill(na.approx(DO_sat,na.rm=FALSE),"extend"),
          Chla_ugL = na.fill(na.approx(Chla_ugL,na.rm = FALSE),"extend"),
          fdom_rfu = na.fill(na.approx(fdom_rfu,na.rm=FALSE),"extend"),
-         Flow_cms = na.fill(na.approx(Flow_cms,na.rm = FALSE), "extend"))
+         Flow_cms = na.fill(na.approx(Flow_cms,na.rm = FALSE), "extend"),
+         Temp_diff = na.fill(na.approx(Temp_diff,na.rm=FALSE),"extend"),
+         N2 = na.fill(na.approx(N2,na.rm=FALSE),"extend"))
+
+daily_cor = as.data.frame(cor(co2_daily))
 
 # Remove Temp_diff and N2 due to correlations
 ch4_daily <- left_join(fcr_daily,env_daily,by=c("DateTime","Year","Month","Day")) %>% 
@@ -538,13 +548,17 @@ ch4_daily <- left_join(fcr_daily,env_daily,by=c("DateTime","Year","Month","Day")
 # Remove Temp_diff and N2 due to correlations
 co2_weekly <- left_join(fcr_weekly,env_weekly,by=c("Year","Week")) %>% 
   ungroup(Year,Week) %>% 
-  select(NEE,Temp_C_surface,DO_sat,Chla_ugL,fdom_rfu,Flow_cms) %>% 
+  select(NEE,Temp_C_surface,DO_sat,Chla_ugL,fdom_rfu,Flow_cms,Temp_diff,N2) %>% 
   mutate(NEE = na.fill(na.approx(NEE,na.rm=FALSE),"extend"),
          Temp_C_surface = na.fill(na.approx(Temp_C_surface,na.rm=FALSE),"extend"),
          DO_sat = na.fill(na.approx(DO_sat,na.rm=FALSE),"extend"),
          Chla_ugL = na.fill(na.approx(Chla_ugL,na.rm = FALSE),"extend"),
          fdom_rfu = na.fill(na.approx(fdom_rfu,na.rm=FALSE),"extend"),
-         Flow_cms = na.fill(na.approx(Flow_cms,na.rm = FALSE), "extend"))
+         Flow_cms = na.fill(na.approx(Flow_cms,na.rm = FALSE), "extend"),
+         Temp_diff = na.fill(na.approx(Temp_diff,na.rm=FALSE),"extend"),
+         N2 = na.fill(na.approx(N2,na.rm=FALSE),"extend"))
+
+weekly_cor = as.data.frame(cor(co2_weekly))
 
 # Remove Temp_diff and N2 due to correlations
 ch4_weekly <- left_join(fcr_weekly,env_weekly,by=c("Year","Week")) %>% 
@@ -560,11 +574,21 @@ ch4_weekly <- left_join(fcr_weekly,env_weekly,by=c("Year","Week")) %>%
 # Remove Temp_diff, N2, fDOM, and Flow_cms due to correlations
 co2_monthly <- left_join(fcr_monthly,env_monthly,by=c("Year","Month")) %>% 
   ungroup(Year,Month) %>% 
-  select(NEE,Temp_C_surface,DO_sat,Chla_ugL) %>% 
+  select(NEE,Temp_C_surface,DO_sat,Chla_ugL,fdom_rfu,Flow_cms,Temp_diff,N2) %>% 
   mutate(NEE = na.fill(na.approx(NEE,na.rm=FALSE),"extend"),
          Temp_C_surface = na.fill(na.approx(Temp_C_surface,na.rm=FALSE),"extend"),
          DO_sat = na.fill(na.approx(DO_sat,na.rm=FALSE),"extend"),
-         Chla_ugL = na.fill(na.approx(Chla_ugL,na.rm = FALSE),"extend"))
+         Chla_ugL = na.fill(na.approx(Chla_ugL,na.rm = FALSE),"extend"),
+         fdom_rfu = na.fill(na.approx(fdom_rfu,na.rm=FALSE),"extend"),
+         Flow_cms = na.fill(na.approx(Flow_cms,na.rm = FALSE), "extend"),
+         Temp_diff = na.fill(na.approx(Temp_diff,na.rm=FALSE),"extend"),
+         N2 = na.fill(na.approx(N2,na.rm=FALSE),"extend"))
+
+monthly_cor = as.data.frame(cor(co2_monthly))
+
+all_cor <- rbind(hourly_cor,daily_cor,weekly_cor,monthly_cor)
+
+write_csv(all_cor,"./Fig_output/20210822_env_cor.csv")
 
 # Remove Temp_diff, N2, fDOM, and Flow_cms due to correlations
 ch4_monthly <- left_join(fcr_monthly,env_monthly,by=c("Year","Month")) %>% 

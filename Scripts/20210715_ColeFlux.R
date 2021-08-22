@@ -242,30 +242,30 @@ ghg_stats <- ghg_fluxes %>%
 
 ch4_diff <- ggplot(ghg_fluxes,mapping=aes(DateTime,ch4_flux_umolm2s_mean))+
   geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
-  geom_errorbar(mapping=aes(x=DateTime,ymin=ch4_flux_umolm2s_mean-ch4_flux_umolm2s_sd,ymax=ch4_flux_umolm2s_mean+ch4_flux_umolm2s_sd),color="#E63946",size=1)+
-  geom_line(color="#E63946",size = 1) +
-  geom_point(color="#E63946",size=2) +
+  geom_errorbar(mapping=aes(x=DateTime,ymin=ch4_flux_umolm2s_mean-ch4_flux_umolm2s_sd,ymax=ch4_flux_umolm2s_mean+ch4_flux_umolm2s_sd),size=1)+
+  geom_line(size = 1) +
+  geom_point(size=3) +
   xlab("") +
   ylab(expression(~CH[4]~(mu~mol~m^-2~s^-1))) +
   geom_hline(yintercept = 0, lty = 2) +
-  #xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-05-05"))+
+  xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-04-06"))+
   theme_classic(base_size = 15)
 
 
 co2_diff <- ggplot(ghg_fluxes,mapping=aes(DateTime,co2_flux_umolm2s_mean))+
   geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
-  geom_errorbar(mapping=aes(x=DateTime,ymin=co2_flux_umolm2s_mean-co2_flux_umolm2s_sd,ymax=co2_flux_umolm2s_mean+co2_flux_umolm2s_sd),color="#E63946",size=1)+
-  geom_line(color="#E63946",size = 1) +
-  geom_point(color="#E63946",size=2) +
+  geom_errorbar(mapping=aes(x=DateTime,ymin=co2_flux_umolm2s_mean-co2_flux_umolm2s_sd,ymax=co2_flux_umolm2s_mean+co2_flux_umolm2s_sd),size=1)+
+  geom_line(size = 1) +
+  geom_point(size=3) +
   xlab("") +
   ylab(expression(~CO[2]~(mu~mol~m^-2~s^-1))) +
   geom_hline(yintercept = 0, lty = 2) +
-  #xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-05-05"))+
+  xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-04-06"))+
   theme_classic(base_size = 15)
 
-ggarrange(co2_diff,ch4_diff,ncol=1,nrow=2)
+ggarrange(co2_diff,ch4_diff,ncol=1,nrow=2,labels=c("A.","B."),font.label = list(face="plain",size=15))
 
-ggsave("./Fig_Output/Diff_fluxes.jpg",width = 6, height=5, units="in",dpi=320)
+ggsave("./Fig_Output/SI_Diff_fluxes.jpg",width = 8, height=6, units="in",dpi=320)
 
 ### Load in Eddy Flux data ----
 # Load in data from Brenda - 30 minute fluxes from 2020-04-04 to 2021-05-06
