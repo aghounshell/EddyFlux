@@ -18,50 +18,50 @@ eddy_flux <- read_csv("./Data/20210615_EC_processed.csv") %>%
   filter(DateTime >= as.POSIXct("2020-04-05 20:00:00") & DateTime < as.POSIXct("2021-04-05 20:00:00"))
 
 # Aggregate to hourly (most common time step used for all analyses)
-fcr_hourly <- eddy_flux %>% 
-  mutate(DateTime = format(as.POSIXct(DateTime, "%Y-%m-%d %H"),"%Y-%m-%d %H")) %>% 
-  mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d %H", tz = "EST")) %>% 
-  group_by(DateTime) %>% 
-  mutate(Year = year(DateTime), 
-         Month = month(DateTime), 
-         Day = day(DateTime), 
-         Hour = hour(DateTime)) %>% 
-  summarise(NEE = mean(NEE_uStar_f, na.rm = TRUE),
-            NEE05 = mean(NEE_U05_f, na.rm = TRUE),
-            NEE50 = mean(NEE_U50_f, na.rm = TRUE),
-            NEE95 = mean(NEE_U95_f, na.rm = TRUE),
-            NEE_sd = sd(NEE_uStar_f, na.rm = TRUE),
-            CH4 = mean(ch4_flux_uStar_f, na.rm = TRUE),
-            CH405 = mean(ch4_flux_U05_f, na.rm = TRUE),
-            CH450 = mean(ch4_flux_U50_f, na.rm = TRUE),
-            CH495 = mean(ch4_flux_U95_f, na.rm = TRUE),
-            CH4_sd = sd(ch4_flux_uStar_f, na.rm = TRUE),
-            Tmean = mean(Tair_f, na.rm = TRUE),
-            Tmax = max(Tair_f, na.rm = TRUE),
-            Tmin = min(Tair_f, na.rm = TRUE),
-            H = mean(H_f, na.rm = TRUE),
-            LE = mean(LE_f, na.rm = TRUE),
-            VPD = mean(VPD, na.rm = TRUE),
-            RH = mean(rH, na.rm = TRUE),
-            umean = mean(u, na.rm = TRUE),
-            umax = max(u),
-            umin = min(u),
-            pressure = mean(airP, na.rm = TRUE),
-            minpress = min(airP, na.rm = TRUE),
-            maxpress = max(airP, na.rm = TRUE),
-            PAR_tot = mean(PAR_f, na.rm = TRUE),
-            precip_sum = sum(precip, na.rm = TRUE),
-            Rg = mean(Rg_f, na.rm = TRUE),
-            SW_out = mean(SW_out, na.rm = TRUE),
-            Rn = mean(Rn_f, na.rm = TRUE),
-            LW_in = mean(LW_in, na.rm = TRUE),
-            LW_out = mean(LW_out, na.rm = TRUE),
-            albedo = mean(albedo, na.rm = TRUE))
+#fcr_hourly <- eddy_flux %>% 
+#  mutate(DateTime = format(as.POSIXct(DateTime, "%Y-%m-%d %H"),"%Y-%m-%d %H")) %>% 
+#  mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d %H", tz = "EST")) %>% 
+#  group_by(DateTime) %>% 
+#  mutate(Year = year(DateTime), 
+#         Month = month(DateTime), 
+#         Day = day(DateTime), 
+#         Hour = hour(DateTime)) %>% 
+#  summarise(NEE = mean(NEE_uStar_f, na.rm = TRUE),
+#            NEE05 = mean(NEE_U05_f, na.rm = TRUE),
+#            NEE50 = mean(NEE_U50_f, na.rm = TRUE),
+#            NEE95 = mean(NEE_U95_f, na.rm = TRUE),
+#            NEE_sd = sd(NEE_uStar_f, na.rm = TRUE),
+#            CH4 = mean(ch4_flux_uStar_f, na.rm = TRUE),
+#            CH405 = mean(ch4_flux_U05_f, na.rm = TRUE),
+#            CH450 = mean(ch4_flux_U50_f, na.rm = TRUE),
+#            CH495 = mean(ch4_flux_U95_f, na.rm = TRUE),
+#            CH4_sd = sd(ch4_flux_uStar_f, na.rm = TRUE),
+#            Tmean = mean(Tair_f, na.rm = TRUE),
+#            Tmax = max(Tair_f, na.rm = TRUE),
+#            Tmin = min(Tair_f, na.rm = TRUE),
+#            H = mean(H_f, na.rm = TRUE),
+#            LE = mean(LE_f, na.rm = TRUE),
+#            VPD = mean(VPD, na.rm = TRUE),
+#            RH = mean(rH, na.rm = TRUE),
+#            umean = mean(u, na.rm = TRUE),
+#            umax = max(u),
+#            umin = min(u),
+#            pressure = mean(airP, na.rm = TRUE),
+#            minpress = min(airP, na.rm = TRUE),
+#            maxpress = max(airP, na.rm = TRUE),
+#            PAR_tot = mean(PAR_f, na.rm = TRUE),
+#            precip_sum = sum(precip, na.rm = TRUE),
+#            Rg = mean(Rg_f, na.rm = TRUE),
+#            SW_out = mean(SW_out, na.rm = TRUE),
+#            Rn = mean(Rn_f, na.rm = TRUE),
+#            LW_in = mean(LW_in, na.rm = TRUE),
+#            LW_out = mean(LW_out, na.rm = TRUE),
+#            albedo = mean(albedo, na.rm = TRUE))
 
-# Format for wavelet analysis: start with gap-filled data every hour
-co2_data <- fcr_hourly %>% 
-  select(DateTime,NEE) %>% 
-  mutate(Time = 1:length(fcr_hourly$DateTime)) %>% 
+# Format for wavelet analysis: Following M. Johnson's comment, conduct wavelet on half-hourly data
+co2_data <- eddy_flux %>% 
+  select(DateTime,NEE_uStar_f) %>% 
+  mutate(Time = 1:length(eddy_flux$DateTime)) %>% 
   filter(DateTime <= as.POSIXct("2021-04-05 16:00:00"))
 
 headers<-names(co2_data)
@@ -69,7 +69,7 @@ all<-headers[2]
 temp<-matrix(-99,length(co2_data$Time),length(all),byrow=F)
 head(temp)
 
-temp <- scale(co2_data$NEE)
+temp <- scale(co2_data$NEE_uStar_f)
 
 snt_co2_data<-as.data.frame(temp)
 snt_co2_data<-setNames(snt_co2_data, all)#new dataframe with standard normal transformed data
@@ -94,11 +94,11 @@ wavelet.plot.new<-function (wave.list, wavelet.levels = quantile(wave.list$Power
 {
   y <- wave.list$y
   x <- wave.list$x
-  x <- x/24  ## added here; makes x axis = # of days since 2018-10-02 
+  x <- x/48  ## added here; makes x axis = # of days since 2018-10-02 
   wave <- wave.list$wave
   period <- wave.list$period
   Signif <- wave.list$Signif
-  coi <- wave.list$coi/24 # this fixes COI to correspond w/ editing period values so they = days 
+  coi <- wave.list$coi/48 # this fixes COI to correspond w/ editing period values so they = days 
   coi[coi == 0] <- 1e-12
   Power <- wave.list$Power 
   siglvl <- wave.list$siglvl
@@ -260,9 +260,9 @@ snt_co2_data <- snt_co2_data %>%
   mutate(Time = round(as.numeric(c(0.00001:nrow(snt_co2_data))), digits = 0))  ##changing time to 0:xx instead 1:xx to make x axis represent days since 2 oct 2018
 head(snt_co2_data)
 
-co2_output<-morlet(snt_co2_data$NEE, snt_co2_data$Time, dj=(1/12), siglvl = 0.95, p2= 12) ###p2 is 2^ whatever value thats set. # NULL sets p2 to 15. #Chose 14.5 so that plot has minimal area above COI
+co2_output<-morlet(snt_co2_data$NEE_uStar_f, snt_co2_data$Time, dj=(1/12), siglvl = 0.95, p2= 13) ###p2 is 2^ whatever value thats set. # NULL sets p2 to 15. #Chose 14.5 so that plot has minimal area above COI
 
-co2_output$period <- round((co2_output$period/24), digits = 4)  #This works with correcting period to days for y axis 
+co2_output$period <- round((co2_output$period/48), digits = 4)  #This works with correcting period to days for y axis 
 
 #### Making mean global power plots and calculations ####
 #calculating mean power per period 
@@ -282,9 +282,9 @@ co2_powerplot <- co2_powerplot %>%
 ###################
 # Methane!
 # Format for wavelet analysis: start with gap-filled averaged to hourly
-ch4_data <- fcr_hourly %>% 
-  select(DateTime,CH4) %>% 
-  mutate(Time = 1:length(fcr_hourly$DateTime)) %>% 
+ch4_data <- eddy_flux %>% 
+  select(DateTime,ch4_flux_uStar_f) %>% 
+  mutate(Time = 1:length(eddy_flux$DateTime)) %>% 
   filter(DateTime <= as.POSIXct("2021-04-05 16:00:00"))
 
 headers<-names(ch4_data)
@@ -292,7 +292,7 @@ all<-headers[2]
 temp<-matrix(-99,length(ch4_data$Time),length(all),byrow=F)
 head(temp)
 
-temp <- scale(ch4_data$CH4)
+temp <- scale(ch4_data$ch4_flux_uStar_f)
 
 snt_ch4_data<-as.data.frame(temp)
 snt_ch4_data<-setNames(snt_ch4_data, all)#new dataframe with standard normal transformed data
@@ -317,11 +317,11 @@ wavelet.plot.new<-function (wave.list, wavelet.levels = quantile(wave.list$Power
 {
   y <- wave.list$y
   x <- wave.list$x
-  x <- x/24  ## added here; makes x axis = # of days since 2018-10-02 
+  x <- x/48  ## added here; makes x axis = # of days since 2018-10-02 
   wave <- wave.list$wave
   period <- wave.list$period
   Signif <- wave.list$Signif
-  coi <- wave.list$coi/24 # this fixes COI to correspond w/ editing period values so they = days 
+  coi <- wave.list$coi/48 # this fixes COI to correspond w/ editing period values so they = days 
   coi[coi == 0] <- 1e-12
   Power <- wave.list$Power 
   siglvl <- wave.list$siglvl
@@ -483,9 +483,9 @@ snt_ch4_data <- snt_ch4_data %>%
   mutate(Time = round(as.numeric(c(0.00001:nrow(snt_ch4_data))), digits = 0))  ##changing time to 0:xx instead 1:xx to make x axis represent days since 2 oct 2018
 head(snt_ch4_data)
 
-ch4_output<-morlet(snt_ch4_data$CH4, snt_ch4_data$Time, dj=(1/12), siglvl = 0.95, p2= 12) ###p2 is 2^ whatever value thats set. # NULL sets p2 to 15. #Chose 14.5 so that plot has minimal area above COI
+ch4_output<-morlet(snt_ch4_data$ch4_flux_uStar_f, snt_ch4_data$Time, dj=(1/12), siglvl = 0.95, p2= 13) ###p2 is 2^ whatever value thats set. # NULL sets p2 to 15. #Chose 14.5 so that plot has minimal area above COI
 
-ch4_output$period <- round((ch4_output$period/24), digits = 4)  #This works with correcting period to days for y axis 
+ch4_output$period <- round((ch4_output$period/48), digits = 4)  #This works with correcting period to days for y axis 
 
 #### Making mean global power plots and calculations ####
 #calculating mean power per period 
@@ -504,15 +504,15 @@ ch4_powerplot <- ch4_powerplot %>%
 
 # Format graphs for MS
 # Wavelet analysis
-jpeg('./Fig_output/wavelet_co2_final.jpg',width=1050,height=650)
+jpeg('./Fig_output/wavelet_co2_halfhour.jpg',width=1050,height=650)
 wavelet.plot.new(co2_output) #export in 977 x 701 for all numbers to show on color grid; 1000 x 650
 dev.off()
 
-jpeg('./Fig_output/wavelet_ch4_final.jpg',width=1050,height=650)
+jpeg('./Fig_output/wavelet_ch4_halfhour.jpg',width=1050,height=650)
 wavelet.plot.new(ch4_output)
 dev.off()
 
-jpeg('./Fig_output/Wavelet_both.jpg',width=1100,height = 1300)
+jpeg('./Fig_output/Wavelet_both_halfhour.jpg',width=1100,height = 1300)
 ggarrange(wavelet.plot.new(co2_output),wavelet.plot.new(ch4_output),nrow=2,ncol=1,labels=c("A.","B."),
           font.label=list(face="plain",size=30))
 dev.off()
@@ -522,18 +522,18 @@ rect1 <- data.frame (xmin = 0, xmax = 2, ymin=-Inf, ymax=Inf) #making rectangle 
 
 co2_monthlyPower <- ggplot(data = co2_powerplot, mapping = aes(x = period, y = mean_power))+
   geom_vline(xintercept = 7,linetype="dashed")+
-  annotate(geom="text",x = 4,y = 30,label = "7 d.")+
+  annotate(geom="text",x = 4,y = 45,label = "7 d.")+
   geom_vline(xintercept = 14,linetype="dashed")+
-  annotate(geom="text",x = 19,y = 30,label = "14 d.")+
+  annotate(geom="text",x = 19,y = 45,label = "14 d.")+
   geom_vline(xintercept = 30,linetype="dashed")+
-  annotate(geom="text",x = 35,y = 30,label = "30 d.")+
+  annotate(geom="text",x = 35,y = 45,label = "30 d.")+
   geom_line()+
   geom_point(color = "black", size = 1)+
   labs(x = "Period (days)",
        y = (expression(paste("Mean ",Power^2,))))+
   geom_rect(data= rect1, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), fill="blue", alpha=0.1, inherit.aes = FALSE) +
   xlim(0,60)+
-  ylim(0,30)+
+  ylim(0,45)+
   theme_classic(base_size = 15)
 
 #Day mean power plot 
@@ -541,6 +541,37 @@ co2_powerplotday <- co2_powerplot %>%
   filter(period <= 2)
 
 co2_dailyPower <- ggplot(data = co2_powerplotday, mapping = aes(x = period, y = mean_power))+
+  geom_vline(xintercept = 1,linetype="dashed")+
+  annotate(geom="text",x = 1.15,y = 10,label = "1 d.")+
+  geom_vline(xintercept = 0.5,linetype="dashed")+
+  annotate(geom="text",x = 0.7,y = 10,label = "12 hr.")+
+  geom_line()+
+  geom_point(color = "black", size = 1)+
+  labs(x = "Period (days)",
+       y = (expression(paste("Mean ",Power^2,))))+
+  theme_classic(base_size = 15)
+
+ch4_monthlyPower <- ggplot(data = ch4_powerplot, mapping = aes(x = period, y = mean_power))+
+  geom_vline(xintercept = 7,linetype="dashed")+
+  annotate(geom="text",x = 4,y = 100,label = "7 d.")+
+  geom_vline(xintercept = 14,linetype="dashed")+
+  annotate(geom="text",x = 19,y = 100,label = "14 d.")+
+  geom_vline(xintercept = 30,linetype="dashed")+
+  annotate(geom="text",x = 35,y = 100,label = "30 d.")+
+  geom_line()+
+  geom_point(color = "black", size = 1)+
+  labs(x = "Period (days)",
+       y = (expression(paste("Mean ",Power^2,))))+
+  geom_rect(data= rect1, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), fill="blue", alpha=0.1, inherit.aes = FALSE) +
+  xlim(0,60)+
+  ylim(0,100)+
+  theme_classic(base_size = 15)
+
+#Day mean power plot 
+ch4_powerplotday <- ch4_powerplot %>% 
+  filter(period <= 2)
+
+ch4_dailyPower <- ggplot(data = ch4_powerplotday, mapping = aes(x = period, y = mean_power))+
   geom_vline(xintercept = 1,linetype="dashed")+
   annotate(geom="text",x = 1.15,y = 7,label = "1 d.")+
   geom_vline(xintercept = 0.5,linetype="dashed")+
@@ -551,41 +582,10 @@ co2_dailyPower <- ggplot(data = co2_powerplotday, mapping = aes(x = period, y = 
        y = (expression(paste("Mean ",Power^2,))))+
   theme_classic(base_size = 15)
 
-ch4_monthlyPower <- ggplot(data = ch4_powerplot, mapping = aes(x = period, y = mean_power))+
-  geom_vline(xintercept = 7,linetype="dashed")+
-  annotate(geom="text",x = 4,y = 60,label = "7 d.")+
-  geom_vline(xintercept = 14,linetype="dashed")+
-  annotate(geom="text",x = 19,y = 60,label = "14 d.")+
-  geom_vline(xintercept = 30,linetype="dashed")+
-  annotate(geom="text",x = 35,y = 60,label = "30 d.")+
-  geom_line()+
-  geom_point(color = "black", size = 1)+
-  labs(x = "Period (days)",
-       y = (expression(paste("Mean ",Power^2,))))+
-  geom_rect(data= rect1, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), fill="blue", alpha=0.1, inherit.aes = FALSE) +
-  xlim(0,60)+
-  ylim(0,60)+
-  theme_classic(base_size = 15)
-
-#Day mean power plot 
-ch4_powerplotday <- ch4_powerplot %>% 
-  filter(period <= 2)
-
-ch4_dailyPower <- ggplot(data = ch4_powerplotday, mapping = aes(x = period, y = mean_power))+
-  geom_vline(xintercept = 1,linetype="dashed")+
-  annotate(geom="text",x = 1.15,y = 5,label = "1 d.")+
-  geom_vline(xintercept = 0.5,linetype="dashed")+
-  annotate(geom="text",x = 0.7,y = 5,label = "12 hr.")+
-  geom_line()+
-  geom_point(color = "black", size = 1)+
-  labs(x = "Period (days)",
-       y = (expression(paste("Mean ",Power^2,))))+
-  theme_classic(base_size = 15)
-
 ggarrange(co2_monthlyPower,co2_dailyPower,ch4_monthlyPower,ch4_dailyPower,ncol=2,nrow=2,labels=c("A.","B.","C.","D."),
           font.label=list(face="plain",size=15))
 
-ggsave("./Fig_Output/GlobalPower_All.jpg",width=9,height=7,units="in",dpi=320)
+ggsave("./Fig_Output/GlobalPower_All_halfhourly.jpg",width=9,height=7,units="in",dpi=320)
 
 ### Check for days when daily or diel time points are significant ----
 #taking calcs from wavelet.plot.new function
@@ -689,4 +689,4 @@ diel_sig <- ggplot()+
 ggarrange(day_sig,diel_sig,nrow=2,ncol=1,common.legend=TRUE,
           labels=c("A.","B."),font.label = list(face="plain",size=15))
 
-ggsave("./Fig_Output/SI_Timescale_Sig.jpg",width=8,height=6,units="in",dpi=320)
+ggsave("./Fig_Output/SI_Timescale_Sig_halfhourly.jpg",width=8,height=6,units="in",dpi=320)
