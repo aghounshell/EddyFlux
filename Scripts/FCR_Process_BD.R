@@ -1,7 +1,11 @@
 # Processing Eddy Flux data from FCR
 # Following initial data corrections in Eddy Pro (using standard processing)
+# Specifically for data collected from 4 April 2020 (beginning of EC record) to 6 April 2021
+
 # Original code from Brenda D'Achuna, 21 May 2021
-# Modifed by Alex Hounshell on 21 May 2021
+# Modified by Alex Hounshell on 21 May 2021
+
+####################################################################
 
 # Clear workspace
 rm(list = ls())
@@ -24,7 +28,7 @@ ec$datetime <- as_datetime(ec$datetime)
 # convert -9999 to NA
 ec[ec == -9999] <- NA
 
-# Set new dataframe with list of dates+times: from 4 April 2020 to 6 May 2021,
+# Set new dataframe with list of dates+times:
 # every 30 minutes
 # Constrain to study time period: 2020-04-05 and 2021-04-06
 ts <- seq.POSIXt(as.POSIXct("2020-04-05 00:00:00",'%Y-%m-%d %H:%M:%S', tz="EST"), 
@@ -61,6 +65,7 @@ ec2 %>% group_by(year(datetime), month(datetime)) %>% select(datetime, co2_flux,
 
 # Reading in data from the Met Station for gapfilling purposes
 # Include data from: EDI (2020) and from GitHub (2021 - cleaned following MET_QAQC_2020.R)
+## THIS WILL NEED TO BE UPDATED!!!
 
 # Downloaded from EDI: 21 May 2021
 #inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/389/5/3d1866fecfb8e17dc902c76436239431" 
@@ -74,11 +79,12 @@ met_edi <- read.csv("./Data/Met_final_2015_2020.csv", header=T) %>%
 # Load met data from 2021 (from GitHub, cleaned w/ script: MET_QAQC_2020.R)
 met_21 <- read.csv("./Data/Met_GitHub_2021.csv", header=T) %>% 
   mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d %H:%M:%S", tz="EST")))
+## THIS WILL NEED TO BE UPDATED!!!
 
 # Combine into one data frame: EDI + GitHub data
 met_all <- rbind(met_edi,met_21)
 
-# Start timeseries on the 00:15:00 to facilitated 30-min averages
+# Start timeseries on the 00:15:00 to facilitate 30-min averages
 met_all <- met_all %>% 
   filter(DateTime >= as.POSIXct("2019-12-31 00:15:00"))
 
@@ -573,7 +579,7 @@ Eproc$sPlotHHFluxes('ch4_flux_uStar_f')
 filled_fcr <- Eproc$sExportResults()
 fcr_gf <- cbind(eddy_fcr3, filled_fcr)
 
-### Quick plots as a cut-check/initial cut
+### Quick plots as a gut-check/initial cut
 
 fcr_gf %>% ggplot() + 
   geom_point(aes(DateTime, ch4_flux_uStar_orig), alpha = 0.3) +
@@ -613,25 +619,5 @@ ggplot()+
   theme_classic(base_size = 15)+
   xlab("") + ylab(expression(~CH[4]~flux~(g~m^-2~d^-1)))
 
-# Check comparisons of 50 vs. 70 percentiles
-ggplot()+
-  geom_point(mapping=aes(x=fcr_gf_70$ch4_flux_U70_f,y=fcr_gf$ch4_flux_U50_f))+
-  geom_abline(intercept = 0)
-
-ggplot()+
-  geom_point(mapping=aes(x=fcr_gf_70$NEE_U70_f,y=fcr_gf$NEE_U50_f))+
-  geom_abline(intercept = 0)
-
-# Check comparisons of f vs. 50 percentiles
-ggplot()+
-  geom_point(mapping=aes(x=fcr_gf$ch4_flux_uStar_f,y=fcr_gf$ch4_flux_U50_f))+
-  geom_abline(intercept = 0)
-
-ggplot()+
-  geom_point(mapping=aes(x=fcr_gf$NEE_uStar_f,y=fcr_gf$NEE_U50_f))+
-  geom_abline(intercept = 0)
-
 # Save the exported data
 write_csv(fcr_gf, "./Data/20210813_EC_processed.csv")
-
-# Saved Rfile as: EC_Process.R
