@@ -71,8 +71,6 @@ template_geographic_coverage(path = "C:/Users/ahoun/Desktop/EddyFlux/EDI",
 #https://pteo.paranoiaworks.mobi/diacriticsremover/
 #paste text and click remove diacritics
 
-#### STOPPED HERE ####
-
 #Step 8: Methods
 #copy-paste the methods from your Microsoft Word document into methods.txt
 #if you want to check your methods for non-allowed characters, go to:

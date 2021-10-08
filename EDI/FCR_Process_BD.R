@@ -19,14 +19,11 @@ setwd(wd)
 
 # Read compiled file: From Eddy Pro using basic processing
 # Original file from Brenda on 11 May 2021
-ec <- read_csv("./Data/FCR_2021-05-06_upto.csv")
+ec <- read_csv("./Data/20211008_EddyPro_cleaned.csv")
 
 # Format time
 ec$datetime <- as.POSIXct(paste(ec$date, ec$time), format="%m/%d/%Y %H:%M:%S", tz="EST")
 ec$datetime <- as_datetime(ec$datetime)
-
-# convert -9999 to NA
-ec[ec == -9999] <- NA
 
 # Set new dataframe with list of dates+times:
 # every 30 minutes
