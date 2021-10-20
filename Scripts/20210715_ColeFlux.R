@@ -284,6 +284,53 @@ ggplot(eddy_flux)+
   #geom_line(mapping=aes(x=DateTime,y=ch4_flux_U2.5_f,color="U2.5"))
   geom_ribbon(mapping=aes(x=DateTime,y=ch4_flux_uStar_f,ymin=ch4_flux_uStar_f-ch4_flux_uStar_fsd,ymax=ch4_flux_uStar_f+ch4_flux_uStar_fsd,color="f"),alpha=0.3)
 
+# Assess differences between measured and gap-filled data
+co2_comp <- ggplot(eddy_flux,mapping=aes(x=NEE_uStar_orig, y=NEE_uStar_fall))+
+  geom_abline(intercept = 0, color="darkgrey")+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  geom_point()+
+  stat_smooth(method = "lm")+
+  xlab(expression(~Measured~CO[2]~(mu~mol~m^-2~s^-1))) +
+  ylab(expression(~Gap-filled~CO[2]~(mu~mol~m^-2~s^-1))) +
+  theme_classic(base_size = 15)
+
+ch4_comp <- ggplot(eddy_flux,mapping=aes(x=ch4_flux_uStar_orig, y=ch4_flux_uStar_fall))+
+  geom_abline(intercept = 0, color="darkgrey")+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  geom_point()+
+  stat_smooth(method = "lm")+
+  xlab(expression(~Measured~CH[4]~(mu~mol~m^-2~s^-1))) +
+  ylab(expression(~Gap-filled~CH[4]~(mu~mol~m^-2~s^-1))) +
+  theme_classic(base_size = 15)
+
+co2_time_comp <- ggplot(eddy_flux)+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  geom_point(mapping=aes(x=DateTime, y=NEE_uStar_f, color="Gap-filled"),shape=1)+
+  geom_point(mapping=aes(x=DateTime, y=NEE_uStar_orig, color="Measured"))+
+  scale_color_manual(breaks=c("Gap-filled","Measured"),
+                     values=c("darkgrey","black"))+
+  ylab(expression(~CO[2]~(mu~mol~m^-2~s^-1))) +
+  xlab("")+
+  theme_classic(base_size = 15)+
+  theme(legend.title=element_blank())
+
+ch4_time_comp <- ggplot(eddy_flux)+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  geom_point(mapping=aes(x=DateTime, y=ch4_flux_uStar_f, color="Gap-filled"),shape=1)+
+  geom_point(mapping=aes(x=DateTime, y=ch4_flux_uStar_orig, color="Measured"))+
+  scale_color_manual(breaks=c("Gap-filled","Measured"),
+                     values=c("darkgrey","black"))+
+  ylab(expression(~CH[4]~(mu~mol~m^-2~s^-1))) +
+  xlab("")+
+  theme_classic(base_size = 15)+
+  theme(legend.title=element_blank())
+
+ggarrange(co2_time_comp,ch4_time_comp,co2_comp,ch4_comp,ncol=2,nrow=2,
+          labels=c("A.","B.","C.","D."),font.label = list(face="plain",size=15),
+          common.legend = TRUE)
+
+ggsave("./Fig_Output/GapFilledComps.jpg",width = 10, height = 9, units="in",dpi=320)
+
 # Aggregate to hourly and calculate the variability (SD) - following script for figures_BD
 fcr_hourly <- eddy_flux %>% 
   mutate(DateTime = format(as.POSIXct(DateTime, "%Y-%m-%d %H"),"%Y-%m-%d %H")) %>% 
