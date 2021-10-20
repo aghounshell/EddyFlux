@@ -242,21 +242,20 @@ ghg_stats <- ghg_fluxes %>%
 
 ch4_diff <- ggplot(ghg_fluxes,mapping=aes(DateTime,ch4_flux_umolm2s_mean))+
   geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
-  geom_errorbar(mapping=aes(x=DateTime,ymin=ch4_flux_umolm2s_mean-ch4_flux_umolm2s_sd,ymax=ch4_flux_umolm2s_mean+ch4_flux_umolm2s_sd),size=1)+
-  geom_line(size = 1) +
-  geom_point(size=3) +
+  geom_errorbar(mapping=aes(x=DateTime,ymin=ch4_flux_umolm2s_mean-ch4_flux_umolm2s_sd,ymax=ch4_flux_umolm2s_mean+ch4_flux_umolm2s_sd),size=1,color="#4c8bfe")+
+  geom_line(size = 1,color="#4c8bfe") +
+  geom_point(size=3,color="#4c8bfe") +
   xlab("") +
   ylab(expression(~CH[4]~(mu~mol~m^-2~s^-1))) +
   geom_hline(yintercept = 0, lty = 2) +
   xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-04-06"))+
   theme_classic(base_size = 15)
 
-
 co2_diff <- ggplot(ghg_fluxes,mapping=aes(DateTime,co2_flux_umolm2s_mean))+
   geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
-  geom_errorbar(mapping=aes(x=DateTime,ymin=co2_flux_umolm2s_mean-co2_flux_umolm2s_sd,ymax=co2_flux_umolm2s_mean+co2_flux_umolm2s_sd),size=1)+
-  geom_line(size = 1) +
-  geom_point(size=3) +
+  geom_errorbar(mapping=aes(x=DateTime,ymin=co2_flux_umolm2s_mean-co2_flux_umolm2s_sd,ymax=co2_flux_umolm2s_mean+co2_flux_umolm2s_sd),size=1,color="#4c8bfe")+
+  geom_line(size = 1,color="#4c8bfe") +
+  geom_point(size=3,color="#4c8bfe") +
   xlab("") +
   ylab(expression(~CO[2]~(mu~mol~m^-2~s^-1))) +
   geom_hline(yintercept = 0, lty = 2) +
@@ -621,7 +620,7 @@ ggarrange(dailynee,dailych4,
           nrow=3,ncol=1,labels = c("A.","B."),
           font.label = list(face="plain",size=15),common.legend = TRUE)
 
-ggsave("./Fig_Output/Day_Month_time.jpg",width = 8, height=10, units="in",dpi=320)
+ggsave("./Fig_Output/Day_Month_time.jpg",width = 8, height=11, units="in",dpi=320)
 
 ## Plot weekly and monthly time series
 co2_daily <- ggplot(fcr_daily) +
@@ -881,6 +880,7 @@ sum_co2 <- ggplot()+
   geom_line(cumulative_fluxes,mapping=aes(x=DateTime,y=co2_sum_g_m2_d,color="Diff"),size=1)+
   geom_ribbon(cumulative_fluxes,mapping=aes(x=DateTime,y=co2_sum_g_m2_d,ymin=co2_sum_g_m2_d-co2_sum_sd,ymax=co2_sum_g_m2_d+co2_sum_sd),fill="#4c8bfe",alpha=0.3)+
   ylab(expression(paste("CO"[2]*" (g C m"^-2*")")))+
+  xlab("")+
   xlim(as.POSIXct("2020-04-04"),as.POSIXct("2021-04-05"))+
   scale_color_manual(breaks=c("EC","Diff"), 
                      values=c("#E63946","#4c8bfe"))+
@@ -895,15 +895,17 @@ sum_ch4 <- ggplot()+
   geom_line(cumulative_fluxes,mapping=aes(x=DateTime,y=ch4_sum_g_m2_d,color="Diff"),size=1)+
   geom_ribbon(cumulative_fluxes,mapping=aes(x=DateTime,y=ch4_sum_g_m2_d,ymin=ch4_sum_g_m2_d-ch4_sum_sd,ymax=ch4_sum_g_m2_d+ch4_sum_sd),fill="#4c8bfe",alpha=0.3)+
   ylab(expression(paste("CH"[4]*" (g C m"^-2*")")))+
+  xlab("")+
   xlim(as.POSIXct("2020-04-04"),as.POSIXct("2021-04-05"))+
   scale_color_manual(breaks=c("EC","Diff"), 
                      values=c("#E63946","#4c8bfe"))+
   theme_classic(base_size = 15)+
   labs(color="")
 
-ggarrange(sum_co2,sum_ch4,nrow=1,ncol=2,common.legend = TRUE)
+ggarrange(sum_co2,sum_ch4,nrow=1,ncol=2,common.legend = TRUE,labels=c("A.","B."),
+          font.label=list(face="plain",size=15))
 
-ggsave("./Fig_Output/Summed_Fluxes_v2.jpg",width = 10, height=5, units="in",dpi=320)
+ggsave("./Fig_Output/Summed_Fluxes_v2.jpg",width = 9, height=4.5, units="in",dpi=320)
 
 # Check winter fluxes vs. summer fluxes
 eddy_flux_sum %>% 
@@ -1096,9 +1098,9 @@ ice_co2 <- ggplot(ice_all,mapping=aes(x=ice_period,y=NEE_uStar_orig,color=ice_pe
   geom_hline(yintercept = 0, linetype = "dashed", color="darkgrey", size = 0.8)+
   ylab(expression(paste("CO"[2]*" (",mu,"mol C m"^-2*" s"^-1*")")))+
   xlab("Ice Period")+
-  geom_boxplot(outlier.shape = NA,size=1)+
+  geom_boxplot(outlier.shape = NA,size=0.7)+
   geom_point(position=position_jitterdodge(),alpha=0.3)+
-  scale_color_manual(breaks=c('Off_1','On_1','Off_2','On_2'),values=c("#E63946","#4c8bfe","#E63946","#4c8bfe"))+
+  scale_color_manual(breaks=c('Off_1','On_1','Off_2','On_2'),values=c("#008080","#477CC2","#008080","#477CC2"))+
   theme_classic(base_size = 15)+
   ylim(-10,10)+
   theme(legend.position="none")+
@@ -1130,9 +1132,9 @@ ice_ch4 <- ggplot(ice_all,mapping=aes(x=ice_period,y=ch4_flux_uStar_orig,color=i
   geom_hline(yintercept = 0, linetype = "dashed", color="darkgrey", size = 0.8)+
   ylab(expression(paste("CH"[4]*" (",mu,"mol C m"^-2*" s"^-1*")")))+
   xlab("Ice Period")+
-  geom_boxplot(outlier.shape = NA,size=1)+
+  geom_boxplot(outlier.shape = NA,size=0.7)+
   geom_point(position=position_jitterdodge(),alpha=0.3)+
-  scale_color_manual(breaks=c('Off_1','On_1','Off_2','On_2'),values=c("#E63946","#4c8bfe","#E63946","#4c8bfe"))+
+  scale_color_manual(breaks=c('Off_1','On_1','Off_2','On_2'),values=c("#008080","#477CC2","#008080","#477CC2"))+
   ylim(-0.03,0.03)+
   theme_classic(base_size = 15)+
   theme(legend.position="none")+
@@ -1141,7 +1143,7 @@ ice_ch4 <- ggplot(ice_all,mapping=aes(x=ice_period,y=ch4_flux_uStar_orig,color=i
 ggarrange(winter_co2,ice_co2,winter_ch4,ice_ch4,nrow=2,ncol=2,common.legend = FALSE,
           labels=c("A.","B.","C.","D."), font.label = list(face="plain",size=15))
 
-ggsave("./Fig_Output/Ice_on_off_v3.jpg",width = 8, height=7, units="in",dpi=320)
+ggsave("./Fig_Output/Ice_on_off_v3.jpg",width = 8, height=6, units="in",dpi=320)
 
 # Plot seprated by diel
 ice_all$ice_period <- factor(ice_all$ice_period, levels=c("Off_1", "On_1", "Off_2", "On_2"))
@@ -1152,7 +1154,7 @@ ice_co2_d <- ggplot(ice_all,mapping=aes(x=ice_period,y=NEE_uStar_orig,color=diel
   xlab("Ice Period")+
   geom_boxplot(outlier.shape = NA,size=1)+
   geom_point(position=position_jitterdodge(),alpha=0.3)+
-  scale_color_manual(breaks=c('Day','Night'),values=c("#E63946","#4c8bfe"))+
+  scale_color_manual(breaks=c('Day','Night'),values=c("#F4BB01","#183662"))+
   theme_classic(base_size = 15)+
   ylim(-10,10)+
   theme(legend.title=element_blank())+
@@ -1166,7 +1168,7 @@ ice_ch4_d <- ggplot(ice_all,mapping=aes(x=ice_period,y=ch4_flux_uStar_orig,color
   xlab("Ice Period")+
   geom_boxplot(outlier.shape = NA,size=1)+
   geom_point(position=position_jitterdodge(),alpha=0.3)+
-  scale_color_manual(breaks=c('Day','Night'),values=c("#E63946","#4c8bfe"))+
+  scale_color_manual(breaks=c('Day','Night'),values=c("#F4BB01","#183662"))+
   ylim(-0.03,0.03)+
   theme_classic(base_size = 15)+
   theme(legend.title=element_blank())
@@ -1365,172 +1367,4 @@ catwalk_mean <- catwalk_all %>%
   mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d", tz = "EST")) %>% 
   group_by(DateTime) %>% 
   summarise_all(mean,na.rm=TRUE)
-
-# Plot catwalk temp to check?
-temp_time <- ggplot()+
-  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
-  geom_vline(xintercept = as.POSIXct("2020-12-27"), linetype = "dotted", color="blue")+
-  geom_vline(xintercept = as.POSIXct("2020-12-30"), linetype = "dotted", color="red")+
-  geom_vline(xintercept = as.POSIXct("2021-01-10"), linetype = "dotted", color="blue")+
-  geom_vline(xintercept = as.POSIXct("2021-02-09"), linetype = "dotted", color="red")+
-  geom_vline(xintercept = as.POSIXct("2021-02-11"), linetype = "dotted", color="blue")+
-  geom_vline(xintercept = as.POSIXct("2021-02-23"), linetype = "dotted", color="red")+
-  geom_point(catwalk_all,mapping=aes(x=DateTime,y=ThermistorTemp_C_surface),color="lightgrey",alpha=0.1)+
-  geom_line(catwalk_mean,mapping=aes(x=DateTime,y=ThermistorTemp_C_surface),size=1)+
-  xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-05-05"))+
-  xlab("") + ylab(expression(Temp~(C^o)))+
-  theme_classic(base_size=15)
-
-temp_time
-
-dosat_time <- ggplot()+
-  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
-  geom_vline(xintercept = as.POSIXct("2020-12-27"), linetype = "dotted", color="blue")+
-  geom_vline(xintercept = as.POSIXct("2020-12-30"), linetype = "dotted", color="red")+
-  geom_vline(xintercept = as.POSIXct("2021-01-10"), linetype = "dotted", color="blue")+
-  geom_vline(xintercept = as.POSIXct("2021-02-09"), linetype = "dotted", color="red")+
-  geom_vline(xintercept = as.POSIXct("2021-02-11"), linetype = "dotted", color="blue")+
-  geom_vline(xintercept = as.POSIXct("2021-02-23"), linetype = "dotted", color="red")+
-  geom_point(catwalk_all,mapping=aes(x=DateTime,y=EXODOsat_percent_1),color="lightgrey",alpha=0.1)+
-  geom_line(catwalk_mean,mapping=aes(x=DateTime,y=EXODOsat_percent_1),size=1)+
-  xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-05-05"))+
-  xlab("") + ylab(expression(DO~(Perc.~Saturation)))+
-  theme_classic(base_size=15)
-
-dosat_time
-
-chla_time <- ggplot()+
-  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
-  geom_vline(xintercept = as.POSIXct("2020-12-27"), linetype = "dotted", color="blue")+
-  geom_vline(xintercept = as.POSIXct("2020-12-30"), linetype = "dotted", color="red")+
-  geom_vline(xintercept = as.POSIXct("2021-01-10"), linetype = "dotted", color="blue")+
-  geom_vline(xintercept = as.POSIXct("2021-02-09"), linetype = "dotted", color="red")+
-  geom_vline(xintercept = as.POSIXct("2021-02-11"), linetype = "dotted", color="blue")+
-  geom_vline(xintercept = as.POSIXct("2021-02-23"), linetype = "dotted", color="red")+
-  geom_point(catwalk_all,mapping=aes(x=DateTime,y=EXOChla_ugL_1),color="lightgrey",alpha=0.1)+
-  geom_line(catwalk_mean,mapping=aes(x=DateTime,y=EXOChla_ugL_1),size=1)+
-  xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-05-05"))+
-  xlab("") + ylab(expression(Chla~(mu~g~L^-1)))+
-  theme_classic(base_size=15)
-
-chla_time
-
-fdom_time <- ggplot()+
-  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
-  geom_vline(xintercept = as.POSIXct("2020-12-27"), linetype = "dotted", color="blue")+
-  geom_vline(xintercept = as.POSIXct("2020-12-30"), linetype = "dotted", color="red")+
-  geom_vline(xintercept = as.POSIXct("2021-01-10"), linetype = "dotted", color="blue")+
-  geom_vline(xintercept = as.POSIXct("2021-02-09"), linetype = "dotted", color="red")+
-  geom_vline(xintercept = as.POSIXct("2021-02-11"), linetype = "dotted", color="blue")+
-  geom_vline(xintercept = as.POSIXct("2021-02-23"), linetype = "dotted", color="red")+
-  geom_point(catwalk_all,mapping=aes(x=DateTime,y=EXOfDOM_RFU_1),color="lightgrey",alpha=0.1)+
-  geom_line(catwalk_mean,mapping=aes(x=DateTime,y=EXOfDOM_RFU_1),size=1)+
-  xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-05-05"))+
-  xlab("") + ylab(expression(FDOM~(R.F.U.)))+
-  theme_classic(base_size=15)
-
-fdom_time
-
-# Format catwalk temp data for use in LakeAnalyzer in Matlab
-catwalk_temp <- catwalk_all %>% 
-  select(DateTime,ThermistorTemp_C_surface, ThermistorTemp_C_1, ThermistorTemp_C_2, ThermistorTemp_C_3,
-         ThermistorTemp_C_4, ThermistorTemp_C_5, ThermistorTemp_C_6, ThermistorTemp_C_7, ThermistorTemp_C_8,
-         ThermistorTemp_C_9) %>% 
-  mutate(DateTime = format(as.POSIXct(DateTime, "%Y-%m-%d"),"%Y-%m-%d")) %>% 
-  mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d", tz = "EST")) %>% 
-  group_by(DateTime) %>% 
-  summarise_all(mean,na.rm=TRUE) %>% 
-  rename(dateTime = DateTime, temp0.1 = ThermistorTemp_C_surface, temp1.0 = ThermistorTemp_C_1, 
-         temp2.0 = ThermistorTemp_C_2, temp3.0 = ThermistorTemp_C_3, temp4.0 = ThermistorTemp_C_4,
-         temp5.0 = ThermistorTemp_C_5, temp6.0 = ThermistorTemp_C_6, temp7.0 = ThermistorTemp_C_7,
-         temp8.0 = ThermistorTemp_C_8, temp9.0 = ThermistorTemp_C_9)
-  
-
-# Export out for LakeAnalyzer in Matlab
-write.csv(catwalk_temp,"./Data/LA_Thermistor.wrt")
-
-# Load Lake Analyzer results back in
-therm_la <- read_csv("./Data/FCR_Results_LA.csv") %>% 
-  mutate(DateTime = as.POSIXct(strptime(DateTime, "%m/%d/%Y", tz="EST"))) 
-
-# Plot thermocline depth for the study period (just to see)
-ggplot(therm_la)+
-  geom_line(mapping=aes(x=DateTime,y=-SthermD,color="SthermD"))+
-  #geom_line(mapping=aes(x=DateTime,y=-thermD,color="thermD"))+
-  xlim(as.POSIXct("2020-04-05"),as.POSIXct("2020-10-31"))+
-  theme_classic(base_size = 15)
-
-them_la_mean <- therm_la %>% 
-  filter(DateTime >= "2020-04-05" & DateTime <= "2020-11-01") %>% 
-  summarise_all(mean,na.rm=TRUE)
-
-# Plot buoyancy frequency (N2)
-n2_time <- ggplot()+
-  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
-  geom_vline(xintercept = as.POSIXct("2020-12-27"), linetype = "dotted", color="blue")+
-  geom_vline(xintercept = as.POSIXct("2020-12-30"), linetype = "dotted", color="red")+
-  geom_vline(xintercept = as.POSIXct("2021-01-10"), linetype = "dotted", color="blue")+
-  geom_vline(xintercept = as.POSIXct("2021-02-09"), linetype = "dotted", color="red")+
-  geom_vline(xintercept = as.POSIXct("2021-02-11"), linetype = "dotted", color="blue")+
-  geom_vline(xintercept = as.POSIXct("2021-02-23"), linetype = "dotted", color="red")+
-  geom_line(therm_la,mapping=aes(x=DateTime,y=N2),size=1)+
-  xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-05-05"))+
-  xlab("") + ylab("N2")+
-  theme_classic(base_size=15)
-
-n2_time
-
-ggarrange(temp_time,dosat_time,chla_time,fdom_time,n2_time,ncol=2,nrow=3)
-
-ggsave("./Fig_Output/Catwalk_data.jpg",width = 8, height=10, units="in",dpi=320)
-  
-### OLD CODE ----
-### Load in atmospheric CH4 and CO2 data from Beech Island, SC, USA ----
-# https://gml.noaa.gov/dv/data/index.php?site=SCT
-# Following: https://github.com/aghounshell/GHG/blob/master/Scripts/Atm_CH4.R amd
-# https://github.com/aghounshell/GHG/blob/master/Scripts/Atm_CO2.R
-
-# CH4
-ch4_atm <- nc_open('./Data/ch4_sct_tower-insitu_1_ccgg_HourlyData.nc')
-
-# Export metadata out as text file
-{sink('./Data/ch4_sct.txt')
-  print(ch4_atm)
-  sink()}
-
-# Extract date/time, elevation, and CH4 (ppb)
-datetime <- ncvar_get(ch4_atm,"time")
-datetime <- as.POSIXct(datetime, origin = "1970-01-01", tz="UTC")
-elevation <- ncvar_get(ch4_atm,"elevation")
-ch4 <- ncvar_get(ch4_atm,"value")
-
-# Combine datetime and CH4 into one data frame
-methane <- cbind.data.frame(datetime,ch4)
-methane <- methane %>% 
-  mutate(datetime = format(as.POSIXct(datetime,"%Y-%m-%d %H:%M:%S",tz="UTC"),format="%Y-%m-%d"))
-
-# Average to daily and select for 2020-01-01 to 2021-05-19
-ch4_avg <- methane %>% 
-  group_by(datetime) %>% 
-  summarize_all(funs(mean)) %>% 
-  arrange(datetime)
-
-# CO2
-co2_atm <- nc_open('./Data/co2_sct_tower-insitu_1_ccgg_HourlyData.nc')
-
-# Export metadata out as text file
-{sink('./Data/co2_sct.txt')
-  print(ch4_atm)
-  sink()}
-
-# Extract date/time, elevation, and CH4 (ppb)
-datetime <- ncvar_get(co2_atm,"time")
-datetime <- as.POSIXct(datetime, origin = "1970-01-01", tz="UTC")
-elevation <- ncvar_get(co2_atm,"elevation")
-co2 <- ncvar_get(co2_atm,"value")
-
-# Combine datetime and CH4 into one data frame
-carbondioxide <- cbind.data.frame(datetime,co2)
-carbondioxide <- carbondioxide %>% 
-  mutate(datetime = format(as.POSIXct(datetime,"%Y-%m-%d %H:%M:%S",tz="UTC"),format="%Y-%m-%d"))
 

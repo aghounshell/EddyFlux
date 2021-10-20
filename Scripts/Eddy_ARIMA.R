@@ -481,15 +481,15 @@ diff_temp_time <- ggplot(env_daily,mapping=aes(x=DateTime,y=Temp_diff))+
   geom_line(size=1)+
   xlab("") + 
   scale_x_datetime(labels = date_format("%b"))+
-  ylab(expression(Temp~Diff.))+
+  ylab(expression(Temp~Diff.~(C^o)))+
   theme_classic(base_size=15)
 
 diff_temp_time
 
-ggarrange(temp_time,dosat_time,chla_time,fdom_time,q_time,n2_time,diff_temp_time,ncol=4,nrow=2,
+ggarrange(temp_time,dosat_time,chla_time,fdom_time,q_time,n2_time,diff_temp_time,ncol=3,nrow=3,
           labels=c("A.","B.","C.","D.","E.","F.","G."), font.label = list(face="plain",size=15))
 
-ggsave("./Fig_Output/Env_data_all.jpg",width = 10, height=6, units="in",dpi=320)
+ggsave("./Fig_Output/Env_data_all.jpg",width = 8, height=8, units="in",dpi=320)
 
 ### Organize all data for hourly, daily, and weekly ----
 # Used DO_Sat instead of DO_mgL (as they are redundant!)
