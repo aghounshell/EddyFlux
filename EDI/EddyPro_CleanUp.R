@@ -29,7 +29,7 @@ ec <- ec %>%
          Tdew,wind_speed,max_wind_speed,wind_dir,`u*`,TKE,L,`(z-d)/L`,bowen_ratio,
          `T*`,x_peak,x_offset,`x_10%`,`x_30%`,`x_50%`,`x_70%`,`x_90%`,un_Tau,
          Tau_scf,un_H,H_scf,un_LE,LE_scf,un_co2_flux,co2_scf,un_h2o_flux,
-         h2o_scf,un_ch4_flux,ch4_scf) %>% 
+         h2o_scf,un_ch4_flux,ch4_scf,u_var,v_var,w_var,rssi_77_mean) %>% 
   rename(Tau_kgms2 = Tau,
          H_wm2 = H,
          LE_wm2 = LE,
@@ -83,10 +83,15 @@ ec <- ec %>%
          un_LE_wm2 = un_LE,
          un_co2_flux_umolm2s = un_co2_flux,
          un_h2o_flux_umolm2s = un_h2o_flux,
-         un_ch4_flux_umolm2s = un_ch4_flux)
+         un_ch4_flux_umolm2s = un_ch4_flux,
+         u_var_ms = u_var,
+         v_var_ms = v_var,
+         w_var_ms = w_var)
 
 # Remove -9999 and replace with NAs
 ec[ec ==-9999] <- NA
 
 # Output data
 write_csv(ec, "./Data/20211008_EddyPro_Cleaned.csv")
+
+write_csv(ec, "./EDI/20211008_EddyPro_Cleaned.csv")

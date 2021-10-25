@@ -40,7 +40,7 @@ ec2 %>% group_by(year = year(datetime), month = factor(month.abb[month(datetime)
                                                                                                  "Jul", "Aug", "Sep", "Oct", 'Nov', 
                                                                                                  'Dec', 'Jan', 'Feb', 'Mar')), 
                     hour = hour(datetime)) %>% 
-  summarise(air_temperature = mean(air_temperature, na.rm = TRUE)) %>% 
+  summarise(air_temperature = mean(air_temperature_k, na.rm = TRUE)) %>% 
   ggplot(aes(hour, air_temperature, col = factor(year))) + geom_point() + 
   facet_wrap(~month) + theme_bw() + ylab('Air Temp') + xlab("") +
   scale_color_brewer(palette = "Dark2")
@@ -49,15 +49,15 @@ ec2 %>% group_by(year = year(datetime), month = factor(month.abb[month(datetime)
 # Count how many initial NAs are in CO2 and CH4 data
 # Without any data processing!
 #################################################################
-ec2 %>% select(datetime, co2_flux, ch4_flux) %>% 
-  summarise(co2_available = 100-sum(is.na(co2_flux))/n()*100,
-            ch4_available = 100-sum(is.na(ch4_flux))/n()*100)
+ec2 %>% select(datetime, co2_flux_umolm2s, ch4_flux_umolm2s) %>% 
+  summarise(co2_available = 100-sum(is.na(co2_flux_umolm2s))/n()*100,
+            ch4_available = 100-sum(is.na(ch4_flux_umolm2s))/n()*100)
 # 79% data for CO2; 60% data for CH4
 
 # Check data availability by month
-ec2 %>% group_by(year(datetime), month(datetime)) %>% select(datetime, co2_flux, ch4_flux) %>% 
-  summarise(co2_available = 100-sum(is.na(co2_flux))/n()*100,
-            ch4_available = 100-sum(is.na(ch4_flux))/n()*100)
+ec2 %>% group_by(year(datetime), month(datetime)) %>% select(datetime, co2_flux_umolm2s, ch4_flux_umolm2s) %>% 
+  summarise(co2_available = 100-sum(is.na(co2_flux_umolm2s))/n()*100,
+            ch4_available = 100-sum(is.na(ch4_flux_umolm2s))/n()*100)
 #################################################################
 
 # Reading in data from the Met Station for gapfilling purposes
@@ -76,7 +76,7 @@ met_edi <- read.csv("./Data/Met_final_2015_2020.csv", header=T) %>%
 # Load met data from 2021 (from GitHub, cleaned w/ script: MET_QAQC_2020.R)
 met_21 <- read.csv("./Data/Met_GitHub_2021.csv", header=T) %>% 
   mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d %H:%M:%S", tz="EST")))
-## THIS WILL NEED TO BE UPDATED!!!
+## THIS WILL NEED TO BE UPDATED!!! WHEN MET DATA IS UPDATED ON EDI!
 
 # Combine into one data frame: EDI + GitHub data
 met_all <- rbind(met_edi,met_21)
@@ -121,34 +121,34 @@ met2 <- left_join(ts2, met_30_2, by = 'datetime')
 
 # Compare wind speeds from EC and Met
 ggplot()+
-  geom_point(aes(x=ec2$wind_speed,y=met2$WS_ms_Avg))+
+  geom_point(aes(x=ec2$wind_speed_ms,y=met2$WS_ms_Avg))+
   theme_classic(base_size = 15)
 
 # Calculate percent of missing wind data
-ec2 %>% select(datetime, wind_speed) %>% 
-  summarise(wnd_na = sum(is.na(wind_speed))/n()*100)
+ec2 %>% select(datetime, wind_speed_ms) %>% 
+  summarise(wnd_na = sum(is.na(wind_speed_ms))/n()*100)
 
 # Use linear model to convert from Met to EC for missing time points
-linearMod <- lm(ec2$wind_speed ~ met2$WS_ms_Avg)
+linearMod <- lm(ec2$wind_speed_ms ~ met2$WS_ms_Avg)
 summary(linearMod)
 # For data period: EC = Met*0.533689 + 0.134411
 
 # Check conversion
-plot(ec2$wind_speed)
+plot(ec2$wind_speed_ms)
 points(met2$WS_ms_Avg*0.533689+0.134411, col = 'red')
 
 ###########################################
 # Use converted wind speed from the Met data to fill in time points with missing
 # data (EC)
-ec2$wind_speed <- ifelse(is.na(ec2$wind_speed),
-                         met2$WS_ms_Avg*0.533689+0.134411, ec2$wind_speed)
+ec2$wind_speed_ms <- ifelse(is.na(ec2$wind_speed_ms),
+                         met2$WS_ms_Avg*0.533689+0.134411, ec2$wind_speed_ms)
 
 ec2$wind_dir <- ifelse(is.na(ec2$wind_dir),
                        met2$WindDir, ec2$wind_dir)
 
 # Visualize wind directions that are IN FRONT of the catwalk
 ec2 %>% filter(wind_dir >= 250 | wind_dir <= 80) %>% 
-  ggplot(aes(wind_dir, wind_speed)) + 
+  ggplot(aes(wind_dir, wind_speed_ms)) + 
   geom_point() +
   scale_x_continuous(limits = c(0, 360),
                      breaks = seq(0, 360, 45)) +
@@ -164,105 +164,105 @@ met4 <- left_join(ts2, met3)
 
 ################################################################
 # count NA after filtering for wind direction BEHIND catwalk
-ec_filt %>% select(datetime, co2_flux, ch4_flux) %>% 
-  summarise(co2_available = 100- sum(is.na(co2_flux))/n()*100,
-            ch4_available = 100-sum(is.na(ch4_flux))/n()*100)
+ec_filt %>% select(datetime, co2_flux_umolm2s, ch4_flux_umolm2s) %>% 
+  summarise(co2_available = 100- sum(is.na(co2_flux_umolm2s))/n()*100,
+            ch4_available = 100-sum(is.na(ch4_flux_umolm2s))/n()*100)
 # Now have 56% CO2 data and 42% CH4 data
 
 # Count number of timepoints that have data
-ec_filt %>% select(datetime, co2_flux, ch4_flux) %>% 
-  summarise(co2_available = n() - sum(is.na(co2_flux)),
-            ch4_available = n() -sum(is.na(ch4_flux)))
+ec_filt %>% select(datetime, co2_flux_umolm2s, ch4_flux_umolm2s) %>% 
+  summarise(co2_available = n() - sum(is.na(co2_flux_umolm2s)),
+            ch4_available = n() -sum(is.na(ch4_flux_umolm2s)))
 ################################################################
 
 # Remove large CO2 values
 # Visualize data that is above/below abs(100)
-plot(ec_filt$co2_flux)
+plot(ec_filt$co2_flux_umolm2s)
 abline(h=100)
 abline(h=-100)
 
 # Remove values that are greater than abs(100)
 # NOTE: Updated from Brenda's code to use abs(100); instead of -70 to 100 filtering
 # Waldo et al. 2021 used: values greater than abs(15000)
-ec_filt$co2_flux <- ifelse(ec_filt$co2_flux > 100 | ec_filt$co2_flux < -100, NA, ec_filt$co2_flux)
+ec_filt$co2_flux_umolm2s <- ifelse(ec_filt$co2_flux_umolm2s > 100 | ec_filt$co2_flux_umolm2s < -100, NA, ec_filt$co2_flux_umolm2s)
 
 # Remove CO2 data if QC >= 2 (aka: data that has been flagged by Eddy Pro)
-ec_filt$co2_flux <- ifelse(ec_filt$qc_co2_flux >= 2, NA, ec_filt$co2_flux)
+ec_filt$co2_flux_umolm2s <- ifelse(ec_filt$qc_co2_flux >= 2, NA, ec_filt$co2_flux_umolm2s)
 
 # Additionally remove CO2 data when H and LE > 2 (following CH4 filtering)
-ec_filt$co2_flux <- ifelse(ec_filt$qc_co2_flux==1 & ec_filt$qc_LE>=2, NA, ec_filt$co2_flux)
-ec_filt$co2_flux <- ifelse(ec_filt$qc_co2_flux==1 & ec_filt$qc_H>=2, NA, ec_filt$co2_flux)
+ec_filt$co2_flux_umolm2s <- ifelse(ec_filt$qc_co2_flux==1 & ec_filt$qc_LE>=2, NA, ec_filt$co2_flux_umolm2s)
+ec_filt$co2_flux_umolm2s <- ifelse(ec_filt$qc_co2_flux==1 & ec_filt$qc_H>=2, NA, ec_filt$co2_flux_umolm2s)
 
 # Remove large CH4 values
 # Visualize data that is above/below abs(0.25)
-plot(ec_filt$ch4_flux)
+plot(ec_filt$ch4_flux_umolm2s)
 abline(h=0.25)
 abline(h=-0.25)
 
 # Remove values that are greater than abs(0.25)
 # NOTE: Updated from Brenda's code to use abs(0.25)
 # Waldo et al. 2021 used: values greater than abs(500)
-ec_filt$ch4_flux <- ifelse(ec_filt$ch4_flux >= 0.25 | ec_filt$ch4_flux <= -0.25, NA, ec_filt$ch4_flux)
+ec_filt$ch4_flux_umolm2s <- ifelse(ec_filt$ch4_flux_umolm2s >= 0.25 | ec_filt$ch4_flux_umolm2s <= -0.25, NA, ec_filt$ch4_flux_umolm2s)
 
 # Remove ch4 values when signal strength < 20
-ec_filt$ch4_flux <- ifelse(ec_filt$rssi_77_mean < 20, NA, ec_filt$ch4_flux)
+ec_filt$ch4_flux_umolm2s <- ifelse(ec_filt$rssi_77_mean < 20, NA, ec_filt$ch4_flux_umolm2s)
 
 # Remove CH4 data if QC >= 2
-ec_filt$ch4_flux <- ifelse(ec_filt$qc_ch4_flux >=2, NA, ec_filt$ch4_flux)
+ec_filt$ch4_flux_umolm2s <- ifelse(ec_filt$qc_ch4_flux >=2, NA, ec_filt$ch4_flux_umolm2s)
 
 # Additionally, remove CH4 when other parameters are QA/QC'd 
 # Following Waldo et al. 2021: Remove additional ch4 flux data 
 # (aka: anytime ch4_qc flag = 1 & another qc_flag =2, remove)
-ec_filt$ch4_flux <- ifelse(ec_filt$qc_ch4_flux==1 & ec_filt$qc_co2_flux>=2, NA, ec_filt$ch4_flux)
-ec_filt$ch4_flux <- ifelse(ec_filt$qc_ch4_flux==1 & ec_filt$qc_LE>=2, NA, ec_filt$ch4_flux)
-ec_filt$ch4_flux <- ifelse(ec_filt$qc_ch4_flux==1 & ec_filt$qc_H>=2, NA, ec_filt$ch4_flux)
+ec_filt$ch4_flux_umolm2s <- ifelse(ec_filt$qc_ch4_flux==1 & ec_filt$qc_co2_flux>=2, NA, ec_filt$ch4_flux_umolm2s)
+ec_filt$ch4_flux_umolm2s <- ifelse(ec_filt$qc_ch4_flux==1 & ec_filt$qc_LE>=2, NA, ec_filt$ch4_flux_umolm2s)
+ec_filt$ch4_flux_umolm2s <- ifelse(ec_filt$qc_ch4_flux==1 & ec_filt$qc_H>=2, NA, ec_filt$ch4_flux_umolm2s)
 
 # Removing qc >= 2 for H and LE
-ec_filt$H <- ifelse(ec_filt$qc_H >= 2, NA, ec_filt$H)
-ec_filt$LE <- ifelse(ec_filt$qc_LE >= 2, NA, ec_filt$LE)
+ec_filt$H_wm2 <- ifelse(ec_filt$qc_H >= 2, NA, ec_filt$H_wm2)
+ec_filt$LE_wm2 <- ifelse(ec_filt$qc_LE >= 2, NA, ec_filt$LE_wm2)
 
 # Remove high H values: greater than abs(200)
 # NOTE: Updated to have same upper and lower magnitude bound
 # Waldo et al. 2021 used abs of 200 for H
-plot(ec_filt$H)
+plot(ec_filt$H_wm2)
 abline(h=200)
 abline(h=-200)
 
-ec_filt$H <- ifelse(ec_filt$H >= 200 | ec_filt$H <= -200, NA, ec_filt$H)
+ec_filt$H_wm2 <- ifelse(ec_filt$H_wm2 >= 200 | ec_filt$H_wm2 <= -200, NA, ec_filt$H_wm2)
 
 # Remove high LE values: greter than abs(300)
 # NOTE: Updated to have same upper and lower magnitude bounds
 # Waldo et al. 2021 used abs of 1000 for LE
-plot(ec_filt$LE)
+plot(ec_filt$LE_wm2)
 abline(h=500)
 abline(h=-500)
 
-ec_filt$LE <- ifelse(ec_filt$LE >= 500 | ec_filt$LE <= -500, NA, ec_filt$LE)
+ec_filt$LE_wm2 <- ifelse(ec_filt$LE_wm2 >= 500 | ec_filt$LE_wm2 <= -500, NA, ec_filt$LE_wm2)
 
 # Plotting co2 and ch4 to see if we can filter implausible values
-plot(ec_filt$co2_flux, type = 'o')
-plot(ec_filt$ch4_flux, type = 'o')
+plot(ec_filt$co2_flux_umolm2s, type = 'o')
+plot(ec_filt$ch4_flux_umolm2s, type = 'o')
 
 ################################################################
 # count NA after filtering for bad fluxes
-ec_filt %>% select(datetime, co2_flux, ch4_flux) %>% 
-  summarise(co2_available = 100- sum(is.na(co2_flux))/n()*100,
-            ch4_available = 100-sum(is.na(ch4_flux))/n()*100)
+ec_filt %>% select(datetime, co2_flux_umolm2s, ch4_flux_umolm2s) %>% 
+  summarise(co2_available = 100- sum(is.na(co2_flux_umolm2s))/n()*100,
+            ch4_available = 100-sum(is.na(ch4_flux_umolm2s))/n()*100)
 # Now have 37% CO2 data and 28% CH4 data
 
 # Count number of timepoints that have data
-ec_filt %>% select(datetime, co2_flux, ch4_flux) %>% 
-  summarise(co2_available = n() - sum(is.na(co2_flux)),
-            ch4_available = n() -sum(is.na(ch4_flux)))
+ec_filt %>% select(datetime, co2_flux_umolm2s, ch4_flux_umolm2s) %>% 
+  summarise(co2_available = n() - sum(is.na(co2_flux_umolm2s)),
+            ch4_available = n() -sum(is.na(ch4_flux_umolm2s)))
 ################################################################
 
 # Remove CH4 when it rains
 ec_filt$precip <- met2$Rain_sum
-ec_filt$ch4_flux <- ifelse(ec_filt$precip > 0, NA, ec_filt$ch4_flux)
+ec_filt$ch4_flux_umolm2s <- ifelse(ec_filt$precip > 0, NA, ec_filt$ch4_flux_umolm2s)
 
 # Remove CH4 data when thermocouple was not working (apr 05 - apr 25)
-ec_filt$ch4_flux <- ifelse(ec_filt$datetime >= '2021-04-05' & ec_filt$datetime <= '2021-04-25', 
-                           NA, ec_filt$ch4_flux)
+ec_filt$ch4_flux_umolm2s <- ifelse(ec_filt$datetime >= '2021-04-05' & ec_filt$datetime <= '2021-04-25', 
+                           NA, ec_filt$ch4_flux_umolm2s)
 
 # Merge with timeseries
 eddy_fcr <- left_join(ts2, ec_filt, by = 'datetime')
@@ -270,20 +270,20 @@ eddy_fcr <- left_join(ts2, ec_filt, by = 'datetime')
 #######################################################################
 # counting data again after filtering by:
 # wind direction, qc, rain, unreasonable values, signal strength
-eddy_fcr %>% select(datetime, co2_flux, ch4_flux) %>% 
-  summarise(co2_available = 100-sum(is.na(co2_flux))/n()*100,
-            ch4_available = 100-sum(is.na(ch4_flux))/n()*100)
+eddy_fcr %>% select(datetime, co2_flux_umolm2s, ch4_flux_umolm2s) %>% 
+  summarise(co2_available = 100-sum(is.na(co2_flux_umolm2s))/n()*100,
+            ch4_available = 100-sum(is.na(ch4_flux_umolm2s))/n()*100)
 # 37% CO2 data; 27% CH4 data
 
 # Number of timepoints available
-eddy_fcr %>% select(datetime, co2_flux, ch4_flux) %>% 
-  summarise(co2_available = n() - sum(is.na(co2_flux)),
-            ch4_available = n() -sum(is.na(ch4_flux)))
+eddy_fcr %>% select(datetime, co2_flux_umolm2s, ch4_flux_umolm2s) %>% 
+  summarise(co2_available = n() - sum(is.na(co2_flux_umolm2s)),
+            ch4_available = n() -sum(is.na(ch4_flux_umolm2s)))
 
 # Data availability by month
-eddy_fcr %>% group_by(year(datetime), month(datetime)) %>% select(datetime, co2_flux, ch4_flux) %>% 
-  summarise(co2_available = 100-sum(is.na(co2_flux))/n()*100,
-            ch4_available = 100-sum(is.na(ch4_flux))/n()*100)
+eddy_fcr %>% group_by(year(datetime), month(datetime)) %>% select(datetime, co2_flux_umolm2s, ch4_flux_umolm2s) %>% 
+  summarise(co2_available = 100-sum(is.na(co2_flux_umolm2s))/n()*100,
+            ch4_available = 100-sum(is.na(ch4_flux_umolm2s))/n()*100)
 
 ########################################################################
 # Despike data using dspike.R function
@@ -292,15 +292,15 @@ eddy_fcr %>% group_by(year(datetime), month(datetime)) %>% select(datetime, co2_
 source("./Scripts/despike.R")
 
 # Calculate low, medium, and high data flags
-flag <- spike_flag(eddy_fcr$co2_flux,z = 7)
-NEE_low <- ifelse(flag == 1, NA, eddy_fcr$co2_flux)
-flag <- spike_flag(eddy_fcr$co2_flux,z = 5.5)
-NEE_medium <- ifelse(flag == 1, NA, eddy_fcr$co2_flux)
-flag <- spike_flag(eddy_fcr$co2_flux,z = 4)
-NEE_high <- ifelse(flag == 1, NA, eddy_fcr$co2_flux)
+flag <- spike_flag(eddy_fcr$co2_flux_umolm2s,z = 7)
+NEE_low <- ifelse(flag == 1, NA, eddy_fcr$co2_flux_umolm2s)
+flag <- spike_flag(eddy_fcr$co2_flux_umolm2s,z = 5.5)
+NEE_medium <- ifelse(flag == 1, NA, eddy_fcr$co2_flux_umolm2s)
+flag <- spike_flag(eddy_fcr$co2_flux_umolm2s,z = 4)
+NEE_high <- ifelse(flag == 1, NA, eddy_fcr$co2_flux_umolm2s)
 
 # Plot flagged data:
-plot(eddy_fcr$datetime,eddy_fcr$co2_flux,xlab = "Date", ylab = "NEE (umol m-2s-1)", col = "gray70")
+plot(eddy_fcr$datetime,eddy_fcr$co2_flux_umolm2s,xlab = "Date", ylab = "NEE (umol m-2s-1)", col = "gray70")
 points(eddy_fcr$datetime,NEE_low,col = "gray10")
 points(eddy_fcr$datetime,NEE_medium,col = "blue")
 points(eddy_fcr$datetime,NEE_high,col = "red")
@@ -312,15 +312,15 @@ eddy_fcr$NEE.med <- NEE_medium
 eddy_fcr$NEE.high <- NEE_high
 
 #Despike CH4 flux
-flag <- spike_flag(eddy_fcr$ch4_flux,z = 7)
-CH4_low <- ifelse(flag == 1, NA, eddy_fcr$ch4_flux)
-flag <- spike_flag(eddy_fcr$ch4_flux,z = 5.5)
-CH4_medium <- ifelse(flag == 1, NA, eddy_fcr$ch4_flux)
-flag <- spike_flag(eddy_fcr$ch4_flux,z = 4)
-CH4_high <- ifelse(flag == 1, NA, eddy_fcr$ch4_flux)
+flag <- spike_flag(eddy_fcr$ch4_flux_umolm2s,z = 7)
+CH4_low <- ifelse(flag == 1, NA, eddy_fcr$ch4_flux_umolm2s)
+flag <- spike_flag(eddy_fcr$ch4_flux_umolm2s,z = 5.5)
+CH4_medium <- ifelse(flag == 1, NA, eddy_fcr$ch4_flux_umolm2s)
+flag <- spike_flag(eddy_fcr$ch4_flux_umolm2s,z = 4)
+CH4_high <- ifelse(flag == 1, NA, eddy_fcr$ch4_flux_umolm2s)
 
 # Plot flagged data:
-plot(eddy_fcr$datetime,eddy_fcr$ch4_flux,xlab = "Date", ylab = "CH4 (umol m-2s-1)", col = "gray70")
+plot(eddy_fcr$datetime,eddy_fcr$ch4_flux_umolm2s,xlab = "Date", ylab = "CH4 (umol m-2s-1)", col = "gray70")
 points(eddy_fcr$datetime,CH4_low,col = "gray10")
 points(eddy_fcr$datetime,CH4_medium,col = "blue")
 points(eddy_fcr$datetime,CH4_high,col = "red")
@@ -333,8 +333,8 @@ eddy_fcr$ch4.high <- CH4_high
 
 ##########################################################################
 # Convert EC temperature to celsius
-eddy_fcr$air_temp_celsius <- eddy_fcr$air_temperature - 273.15
-eddy_fcr$sonic_temp_celsius <- eddy_fcr$sonic_temperature - 273.15
+eddy_fcr$air_temp_celsius <- eddy_fcr$air_temperature_k - 273.15
+eddy_fcr$sonic_temp_celsius <- eddy_fcr$sonic_temperature_k - 273.15
 
 # Plot temperature
 ggplot(eddy_fcr,mapping=aes(x=datetime,y=air_temp_celsius))+
@@ -456,15 +456,15 @@ plot(eddy_fcr$VPD/1000)  # in kpa
 
 ###############################################################################
 # Filter out all the values (x_peak) that are out of the reservoir
-eddy_fcr$footprint_flag <- ifelse(eddy_fcr$wind_dir >= 15 & eddy_fcr$wind_dir <= 90 & eddy_fcr$x_peak >= 40, 1, 
-                                  ifelse(eddy_fcr$wind_dir < 15 & eddy_fcr$wind_dir > 327 & eddy_fcr$x_peak > 120, 1,
-                                         ifelse(eddy_fcr$wind_dir < 302 & eddy_fcr$wind_dir >= 250 & eddy_fcr$x_peak > 50, 1, 0)))
+eddy_fcr$footprint_flag <- ifelse(eddy_fcr$wind_dir >= 15 & eddy_fcr$wind_dir <= 90 & eddy_fcr$x_peak_m >= 40, 1, 
+                                  ifelse(eddy_fcr$wind_dir < 15 & eddy_fcr$wind_dir > 327 & eddy_fcr$x_peak_m > 120, 1,
+                                         ifelse(eddy_fcr$wind_dir < 302 & eddy_fcr$wind_dir >= 250 & eddy_fcr$x_peak_m > 50, 1, 0)))
 
 # Remove flagged data
 eddy_fcr_footprint <- eddy_fcr %>% filter(footprint_flag == 0)
 
 # Visualize wind directions that were kept
-eddy_fcr_footprint %>% ggplot(aes(wind_dir, x_peak)) + 
+eddy_fcr_footprint %>% ggplot(aes(wind_dir, x_peak_m)) + 
   geom_hline(yintercept = 40, col = 'goldenrod2', lwd = 2) +
   geom_hline(yintercept = 50, col = 'green', lwd = 1.4) +
   geom_hline(yintercept = 100, col = 'blue', lwd = 1.4) +
@@ -485,14 +485,15 @@ eddy_fcr_footprint_full <- left_join(ts2, eddy_fcr_footprint)
 
 # Setting up a new process on REddyProc
 eddy_fcr3 <- eddy_fcr_footprint_full %>% 
-  select(DateTime = datetime, daytime, NEE = NEE.med, ch4_flux = ch4.med, VPD, 
-         H, LE, Tair = sonic_temp_celsius, rH = RH, Ustar = `u*`, u = wind_speed, 
-         pressure = air_pressure, L, z_d_L = `(z-d)/L`, sigma_v = v_var, 
+  select(DateTime = datetime, NEE = NEE.med, ch4_flux = ch4.med, VPD, 
+         H = H_wm2, LE = LE_wm2, Tair = sonic_temp_celsius, rH = RH, Ustar = u_star_ms, u = wind_speed_ms, 
+         pressure = air_pressure, L = L_m, z_d_L = MO_stability, sigma_v = v_var_ms, 
          precip, Rn, SW_in, SW_out, LW_out, LW_in, albedo, par_tot, wind_dir, 
          airP = air_pressure) %>% 
   mutate(VPD = VPD/100,
          z_d = z_d_L*L,
-         ln_z_d = log(z_d)) %>% 
+         ln_z_d = log(z_d),
+         daytime = ifelse(SW_in >= 12, 1, 0)) %>% 
   rename(Rg = SW_in,
          PAR = par_tot)
 
@@ -519,7 +520,7 @@ windRose(mydata = eddy_fcr3, ws = "u", wd = "wind_dir",
          width = 3, key.position = 'bottom', 
          offset = 3, paddle = FALSE, key.header = 'Wind speed (m/s)', 
          key.footer = ' ', dig.lab = 2, annotate = FALSE,
-         angle.scale = 45, ws.int = 1, breaks = c(0, 2, 4, 6, 8))
+         angle.scale = 45, ws.int = 1, breaks = c(0, 1, 2, 3, 4, 5, 6, 7, 8))
 
 ###########################################################################
 # get ustar distribution and filter by ustar
