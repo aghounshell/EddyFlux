@@ -19,7 +19,7 @@ setwd(wd)
 
 # Read compiled file: From Eddy Pro using basic processing
 # Original file from Brenda on 11 May 2021
-ec <- read_csv("./Data/20211008_EddyPro_cleaned.csv")
+ec <- read_csv("./EDI/20211008_EddyPro_cleaned.csv")
 
 # Format time
 ec$datetime <- as.POSIXct(paste(ec$date, ec$time), format="%m/%d/%Y %H:%M:%S", tz="EST")
@@ -40,8 +40,8 @@ ec2 %>% group_by(year = year(datetime), month = factor(month.abb[month(datetime)
                                                                                                  "Jul", "Aug", "Sep", "Oct", 'Nov', 
                                                                                                  'Dec', 'Jan', 'Feb', 'Mar')), 
                     hour = hour(datetime)) %>% 
-  summarise(air_temperature = mean(air_temperature, na.rm = TRUE)) %>% 
-  ggplot(aes(hour, air_temperature, col = factor(year))) + geom_point() + 
+  summarise(air_temperature_k = mean(air_temperature_k, na.rm = TRUE)) %>% 
+  ggplot(aes(hour, air_temperature_k, col = factor(year))) + geom_point() + 
   facet_wrap(~month) + theme_bw() + ylab('Air Temp') + xlab("") +
   scale_color_brewer(palette = "Dark2")
 
@@ -49,15 +49,15 @@ ec2 %>% group_by(year = year(datetime), month = factor(month.abb[month(datetime)
 # Count how many initial NAs are in CO2 and CH4 data
 # Without any data processing!
 #################################################################
-ec2 %>% select(datetime, co2_flux, ch4_flux) %>% 
-  summarise(co2_available = 100-sum(is.na(co2_flux))/n()*100,
-            ch4_available = 100-sum(is.na(ch4_flux))/n()*100)
-# 79% data for CO2; 60% data for CH4
+ec2 %>% select(datetime, co2_flux_umolm2s, ch4_flux_umolm2s) %>% 
+  summarise(co2_available = 100-sum(is.na(co2_flux_umolm2s))/n()*100,
+            ch4_available = 100-sum(is.na(ch4_flux_umolm2s))/n()*100)
+# 79% data for CO2; 59% data for CH4
 
 # Check data availability by month
-ec2 %>% group_by(year(datetime), month(datetime)) %>% select(datetime, co2_flux, ch4_flux) %>% 
-  summarise(co2_available = 100-sum(is.na(co2_flux))/n()*100,
-            ch4_available = 100-sum(is.na(ch4_flux))/n()*100)
+ec2 %>% group_by(year(datetime), month(datetime)) %>% select(datetime, co2_flux_umolm2s, ch4_flux_umolm2s) %>% 
+  summarise(co2_available = 100-sum(is.na(co2_flux_umolm2s))/n()*100,
+            ch4_available = 100-sum(is.na(ch4_flux_umolm2s))/n()*100)
 #################################################################
 
 # Reading in data from the Met Station for gapfilling purposes

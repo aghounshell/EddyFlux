@@ -284,7 +284,9 @@ co2_interp_comp <- co2_data_sub %>%
 # Global power spectra
 co2_power <- ggplot()+
   geom_line(data = co2_powerplot_f, mapping=aes(x=period,y=mean_power,color="Gap-filled"))+
+  geom_point(data = co2_powerplot_f, mapping=aes(x=period,y=mean_power,color="Gap-filled"))+
   geom_line(data = co2_powerplot_orig, mapping=aes(x=period,y=mean_power,color="Measured"))+
+  geom_point(data = co2_powerplot_orig, mapping=aes(x=period,y=mean_power,color="Measured"))+
   labs(x = "Period (Days)",
        y = (expression(paste("Mean ",Power^2,))))+
   scale_color_manual(breaks=c("Gap-filled","Measured"),
@@ -311,7 +313,9 @@ ch4_interp_comp <- ch4_data_sub %>%
 # Global power spectra
 ch4_power <- ggplot()+
   geom_line(data = ch4_powerplot_f, mapping=aes(x=period,y=mean_power,color="Gap-filled"))+
+  geom_point(data = ch4_powerplot_f, mapping=aes(x=period,y=mean_power,color="Gap-filled"))+
   geom_line(data = ch4_powerplot_orig, mapping=aes(x=period,y=mean_power,color="Measured"))+
+  geom_point(data = ch4_powerplot_orig, mapping=aes(x=period,y=mean_power,color="Measured"))+
   labs(x = "Period (Days)",
        y = (expression(paste("Mean ",Power^2,))))+
   scale_color_manual(breaks=c("Gap-filled","Measured"),
