@@ -907,6 +907,17 @@ ggarrange(sum_co2,sum_ch4,nrow=1,ncol=2,common.legend = TRUE,labels=c("A.","B.")
 
 ggsave("./Fig_Output/Summed_Fluxes_v2.jpg",width = 9, height=4.5, units="in",dpi=320)
 
+# Calculate cumulative fluxes in summer (Jun, Jul, Aug, Sep) vs. winter (Dec, Jan, Feb, Mar)
+# Summer (Jun - Sept) = 384.1 g C-CO2 m2 d; 0.7275 g C-CH4 m2 d
+eddy_flux_sum %>% 
+  filter(DateTime == as.POSIXct("2020-05-31 20:00:00") | DateTime == as.POSIXct("2020-09-30 20:00:00")) %>% 
+  select(DateTime,ch4_sum_g_m2_d,co2_sum_g_m2_d)
+
+# Winter (Dec - Mar) = 59 g C-CO2 m2 d; 0.025 g C-CH4 m2 d
+eddy_flux_sum %>% 
+  filter(DateTime == as.POSIXct("2020-12-31 20:00:00") | DateTime == as.POSIXct("2021-03-31 20:00:00")) %>% 
+  select(DateTime,ch4_sum_g_m2_d,co2_sum_g_m2_d)
+
 # Check winter fluxes vs. summer fluxes
 eddy_flux_sum %>% 
   filter(DateTime <= as.POSIXct("2020-11-01")) %>% 

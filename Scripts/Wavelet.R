@@ -17,47 +17,6 @@ eddy_flux <- read_csv("./Data/20210615_EC_processed.csv") %>%
   mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d %H:%M:%S", tz = "EST")) %>% 
   filter(DateTime >= as.POSIXct("2020-04-05 20:00:00") & DateTime < as.POSIXct("2021-04-05 20:00:00"))
 
-# Aggregate to hourly (most common time step used for all analyses)
-#fcr_hourly <- eddy_flux %>% 
-#  mutate(DateTime = format(as.POSIXct(DateTime, "%Y-%m-%d %H"),"%Y-%m-%d %H")) %>% 
-#  mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d %H", tz = "EST")) %>% 
-#  group_by(DateTime) %>% 
-#  mutate(Year = year(DateTime), 
-#         Month = month(DateTime), 
-#         Day = day(DateTime), 
-#         Hour = hour(DateTime)) %>% 
-#  summarise(NEE = mean(NEE_uStar_f, na.rm = TRUE),
-#            NEE05 = mean(NEE_U05_f, na.rm = TRUE),
-#            NEE50 = mean(NEE_U50_f, na.rm = TRUE),
-#            NEE95 = mean(NEE_U95_f, na.rm = TRUE),
-#            NEE_sd = sd(NEE_uStar_f, na.rm = TRUE),
-#            CH4 = mean(ch4_flux_uStar_f, na.rm = TRUE),
-#            CH405 = mean(ch4_flux_U05_f, na.rm = TRUE),
-#            CH450 = mean(ch4_flux_U50_f, na.rm = TRUE),
-#            CH495 = mean(ch4_flux_U95_f, na.rm = TRUE),
-#            CH4_sd = sd(ch4_flux_uStar_f, na.rm = TRUE),
-#            Tmean = mean(Tair_f, na.rm = TRUE),
-#            Tmax = max(Tair_f, na.rm = TRUE),
-#            Tmin = min(Tair_f, na.rm = TRUE),
-#            H = mean(H_f, na.rm = TRUE),
-#            LE = mean(LE_f, na.rm = TRUE),
-#            VPD = mean(VPD, na.rm = TRUE),
-#            RH = mean(rH, na.rm = TRUE),
-#            umean = mean(u, na.rm = TRUE),
-#            umax = max(u),
-#            umin = min(u),
-#            pressure = mean(airP, na.rm = TRUE),
-#            minpress = min(airP, na.rm = TRUE),
-#            maxpress = max(airP, na.rm = TRUE),
-#            PAR_tot = mean(PAR_f, na.rm = TRUE),
-#            precip_sum = sum(precip, na.rm = TRUE),
-#            Rg = mean(Rg_f, na.rm = TRUE),
-#            SW_out = mean(SW_out, na.rm = TRUE),
-#            Rn = mean(Rn_f, na.rm = TRUE),
-#            LW_in = mean(LW_in, na.rm = TRUE),
-#            LW_out = mean(LW_out, na.rm = TRUE),
-#            albedo = mean(albedo, na.rm = TRUE))
-
 # Format for wavelet analysis: Following M. Johnson's comment, conduct wavelet on half-hourly data
 co2_data <- eddy_flux %>% 
   select(DateTime,NEE_uStar_f) %>% 
@@ -621,7 +580,7 @@ coutput_sum <- coutput %>%
   summarise(day_sum = sum(coutput_day),
             diel_sum = sum(coutput_diel))
 # Day = 105 days
-# Diel = 57 days
+# Diel = 57 days - from 5-23 to 11-08
 
 # Do same thing for CH4 data
 #taking calcs from wavelet.plot.new function
@@ -690,3 +649,62 @@ ggarrange(day_sig,diel_sig,nrow=2,ncol=1,common.legend=TRUE,
           labels=c("A.","B."),font.label = list(face="plain",size=15))
 
 ggsave("./Fig_Output/SI_Timescale_Sig_halfhourly.jpg",width=8,height=6,units="in",dpi=320)
+
+##### Plot diel comparisons for summer stratified period (June, July) ######
+# Separate into day (0900 to 1500) and night (2100 to 0300)
+daynight <- eddy_flux %>% 
+  select(DateTime,NEE_uStar_f,NEE_uStar_orig,ch4_flux_uStar_f,ch4_flux_uStar_orig) %>% 
+  filter(DateTime >= as.POSIXct("2020-05-31 20:00:00") & DateTime < as.POSIXct("2020-07-31 20:00:00")) %>% 
+  mutate(Hour = hour(DateTime)) %>% 
+  mutate(diel = ifelse(Hour >= 9 & Hour <= 14, "Day",
+                       ifelse(Hour >= 21 | Hour <= 2, "Night", NA))) %>% 
+  filter(diel == "Day" | diel == "Night")
+
+# Conduct statistical analysis
+kruskal.test(NEE_uStar_orig ~ diel, data=daynight)
+kruskal.test(NEE_uStar_f ~ diel, data=daynight)
+
+kruskal.test(ch4_flux_uStar_orig ~ diel, data=daynight)
+kruskal.test(ch4_flux_uStar_f ~ diel, data=daynight)
+
+# Aggregate data for plotting
+daynight_long <- daynight %>% 
+  pivot_longer(cols = -c(DateTime,Hour,diel), names_to = "flux", values_to = "concentration")
+
+# Plot?!
+co2_diel <- daynight_long %>% 
+  filter(flux == "NEE_uStar_f"|flux == "NEE_uStar_orig") %>% 
+  ggplot(daynight_long,mapping=aes(x=flux,y=concentration,color=diel))+
+  geom_hline(yintercept = 0, linetype = "dashed", color="darkgrey", size = 0.8)+
+  annotate("text",label = "*", x = "NEE_uStar_f", y = 45, size = 5)+
+  annotate("text",label = "*", x = "NEE_uStar_orig", y = 45, size = 5)+
+  geom_boxplot(outlier.shape = NA,size=1)+
+  geom_point(position=position_jitterdodge(),alpha=0.1)+
+  scale_color_manual(breaks=c('Day','Night'),values=c("#F4BB01","#183662"))+
+  scale_x_discrete(breaks=c("NEE_uStar_f","NEE_uStar_orig"),
+                   labels=c("Gap-filled", "Measured"))+
+  ylab(expression(paste("CO"[2]*" (",mu,"mol C m"^-2*" s"^-1*")")))+
+  xlab("")+
+  theme_classic(base_size = 15)+
+  theme(legend.title=element_blank())
+
+ch4_diel <- daynight_long %>% 
+  filter(flux == "ch4_flux_uStar_f"|flux == "ch4_flux_uStar_orig") %>% 
+  ggplot(daynight_long,mapping=aes(x=flux,y=concentration,color=diel))+
+  geom_hline(yintercept = 0, linetype = "dashed", color="darkgrey", size = 0.8)+
+  annotate("text",label = "*", x = "ch4_flux_uStar_f", y = 0.08, size = 5)+
+  geom_boxplot(outlier.shape = NA,size=1)+
+  geom_point(position=position_jitterdodge(),alpha=0.1)+
+  scale_color_manual(breaks=c('Day','Night'),values=c("#F4BB01","#183662"))+
+  scale_x_discrete(breaks=c("ch4_flux_uStar_f","ch4_flux_uStar_orig"),
+                   labels=c("Gap-filled", "Measured"))+
+  ylab(expression(paste("CH"[4]*" (",mu,"mol C m"^-2*" s"^-1*")")))+
+  xlab("")+
+  theme_classic(base_size = 15)+
+  theme(legend.title=element_blank())
+
+ggarrange(co2_diel,ch4_diel,nrow=1,ncol=2,common.legend = TRUE,
+          labels=c("A.","B."), font.label = list(face="plain",size=15))
+
+ggsave("./Fig_Output/summer_diel.jpg",width = 10, height=5, units="in",dpi=320)
+

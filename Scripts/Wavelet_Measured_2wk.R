@@ -5,6 +5,7 @@
 # To test influence of gap-filled data on results
 # Find a time period with minimal gap-filled data to see how gap-filling
 # influences results
+# Updated to longer time period and to include 24 hour comparisons
 
 ################################################
 
@@ -36,21 +37,20 @@ co2_data_summer <- co2_data %>%
   mutate(num_nas = NA)
 
 for (i in 1:length(co2_data_summer$DateTime)){
-  j = i+96
+  j = i+672
   co2_data_summer$num_nas[i] = sum(is.na(co2_data_summer$NEE_uStar_orig[i:j]))
 }
 
-# Highest amount of data in a 2-day period: 2020-06-28 23:30:00
+# Highest amount of data in a 2-week period in June (40% data coverage): 2020-06-24 11:00:00
 co2_data_sub <- co2_data %>% 
-  filter(DateTime >= as.POSIXct("2020-06-28 20:00:00") & DateTime < as.POSIXct("2020-07-01 03:00:00"))
+  filter(DateTime >= as.POSIXct("2020-06-24 07:00:00") & DateTime < as.POSIXct("2020-07-08 07:00:00"))
 
-(96-sum(is.na(co2_data_sub$NEE_uStar_orig)))/96*100 # Results in 61% data coverage
+(672-sum(is.na(co2_data_sub$NEE_uStar_orig)))/672*100 # Results in 40% data coverage
 
 # Linearly interpolate between missing time points
 co2_data_sub <- co2_data_sub %>% 
   mutate(NEE_uStar_orig = na.approx(NEE_uStar_orig)) %>% 
-  select(DateTime,NEE_uStar_f,NEE_uStar_orig) %>% 
-  filter(DateTime >= as.POSIXct("2020-06-28 20:00:00") & DateTime < as.POSIXct("2020-06-30 20:00:00"))
+  select(DateTime,NEE_uStar_f,NEE_uStar_orig)
 
 # Separate into NEE_f and NEE_orig
 co2_f <- co2_data_sub %>% 
@@ -158,19 +158,19 @@ ch4_data_summer <- ch4_data %>%
   mutate(num_nas = NA)
 
 for (i in 1:length(ch4_data_summer$DateTime)){
-  j = i+96
+  j = i+672
   ch4_data_summer$num_nas[i] = sum(is.na(ch4_data_summer$ch4_flux_uStar_orig[i:j]))
 }
 
-# Highest amount of data in a 2-day period: 2020-06-29 05:00:00
+# Highest amount of data in a 2-week period: 2020-06-24 11:00:00 (same as above!)
 ch4_data_sub <- ch4_data %>% 
-  filter(DateTime >= as.POSIXct("2020-06-29 01:00:00") & DateTime < as.POSIXct("2020-07-01 01:00:00"))
+  filter(DateTime >= as.POSIXct("2020-06-24 07:00:00") & DateTime < as.POSIXct("2020-07-08 07:00:00"))
 
-(96-sum(is.na(ch4_data_sub$ch4_flux_uStar_orig)))/96*100 # Results in 51% data coverage
+(672-sum(is.na(ch4_data_sub$ch4_flux_uStar_orig)))/672*100 # Results in 38% data coverage
 
 # Linearly interpolate between missing time points
 ch4_data_sub <- ch4_data_sub %>% 
-  mutate(ch4_flux_uStar_orig = na.approx(ch4_flux_uStar_orig)) %>% 
+  mutate(ch4_flux_uStar_orig = na.fill(na.approx(ch4_flux_uStar_orig,na.rm=FALSE),"extend")) %>% 
   select(DateTime,ch4_flux_uStar_f,ch4_flux_uStar_orig)
 
 # Separate into NEE_f and NEE_orig
@@ -283,6 +283,10 @@ co2_interp_comp <- co2_data_sub %>%
 
 # Global power spectra
 co2_power <- ggplot()+
+  geom_vline(xintercept = 1,linetype="dashed")+
+  annotate(geom="text",x = 1.3,y = 21,label = "1 d.")+
+  geom_vline(xintercept = 0.5,linetype="dashed")+
+  annotate(geom="text",x = 0.3,y = 21,label = "12 hr.")+
   geom_line(data = co2_powerplot_f, mapping=aes(x=period,y=mean_power,color="Gap-filled"))+
   geom_point(data = co2_powerplot_f, mapping=aes(x=period,y=mean_power,color="Gap-filled"))+
   geom_line(data = co2_powerplot_orig, mapping=aes(x=period,y=mean_power,color="Measured"))+
@@ -291,7 +295,7 @@ co2_power <- ggplot()+
        y = (expression(paste("Mean ",Power^2,))))+
   scale_color_manual(breaks=c("Gap-filled","Measured"),
                      values=c("darkgrey","black"))+
-  xlim(0,1)+
+  xlim(0,7)+
   theme_classic(base_size = 15)+
   theme(legend.title=element_blank())
 
@@ -312,6 +316,10 @@ ch4_interp_comp <- ch4_data_sub %>%
 
 # Global power spectra
 ch4_power <- ggplot()+
+  geom_vline(xintercept = 1,linetype="dashed")+
+  annotate(geom="text",x = 1.3,y = 14,label = "1 d.")+
+  geom_vline(xintercept = 0.5,linetype="dashed")+
+  annotate(geom="text",x = 0.3,y = 14,label = "12 hr.")+
   geom_line(data = ch4_powerplot_f, mapping=aes(x=period,y=mean_power,color="Gap-filled"))+
   geom_point(data = ch4_powerplot_f, mapping=aes(x=period,y=mean_power,color="Gap-filled"))+
   geom_line(data = ch4_powerplot_orig, mapping=aes(x=period,y=mean_power,color="Measured"))+
@@ -320,7 +328,7 @@ ch4_power <- ggplot()+
        y = (expression(paste("Mean ",Power^2,))))+
   scale_color_manual(breaks=c("Gap-filled","Measured"),
                      values=c("darkgrey","black"))+
-  xlim(0,1)+
+  xlim(0,7)+
   theme_classic(base_size = 15)+
   theme(legend.title=element_blank())
 
@@ -328,15 +336,14 @@ ggarrange(co2_interp_comp,co2_power,ch4_interp_comp,ch4_power,nrow=2,ncol=2,
           labels=c("A.","B.","C.","D."),font.label = list(face="plain",size=15),
           common.legend = TRUE)
 
-ggsave("./Fig_Output/Wavelet_comps.jpg",width = 10, height = 9, units="in",dpi=320)
-
+ggsave("./Fig_Output/Wavelet_comps_2wk.jpg",width = 10, height = 9, units="in",dpi=320)
 
 ##### Look at 24 hour diel patterns #####
 # Use the same two week time period as the wavelet analysis
 # Separate into day (0900 to 1500) and night (2100 to 0300)
 daynight <- eddy_flux %>% 
   select(DateTime,NEE_uStar_f,NEE_uStar_orig,ch4_flux_uStar_f,ch4_flux_uStar_orig) %>% 
-  filter(DateTime >= as.POSIXct("2020-06-28 20:00:00") & DateTime < as.POSIXct("2020-07-01 03:00:00")) %>% 
+  filter(DateTime >= as.POSIXct("2020-06-24 07:00:00") & DateTime < as.POSIXct("2020-07-08 07:00:00")) %>% 
   mutate(Hour = hour(DateTime)) %>% 
   mutate(diel = ifelse(Hour >= 9 & Hour <= 14, "Day",
                        ifelse(Hour >= 21 | Hour <= 2, "Night", NA))) %>% 
@@ -358,6 +365,7 @@ co2_diel <- daynight_long %>%
   filter(flux == "NEE_uStar_f"|flux == "NEE_uStar_orig") %>% 
   ggplot(daynight_long,mapping=aes(x=flux,y=concentration,color=diel))+
   geom_hline(yintercept = 0, linetype = "dashed", color="darkgrey", size = 0.8)+
+  annotate("text",label = "*", x = "NEE_uStar_f", y = 40, size = 5)+
   geom_boxplot(outlier.shape = NA,size=1)+
   geom_point(position=position_jitterdodge(),alpha=0.3)+
   scale_color_manual(breaks=c('Day','Night'),values=c("#F4BB01","#183662"))+
@@ -385,4 +393,4 @@ ch4_diel <- daynight_long %>%
 ggarrange(co2_diel,ch4_diel,nrow=1,ncol=2,common.legend = TRUE,
           labels=c("A.","B."), font.label = list(face="plain",size=15))
 
-ggsave("./Fig_Output/2day_diel.jpg",width = 10, height=5, units="in",dpi=320)
+ggsave("./Fig_Output/2wk_diel.jpg",width = 10, height=5, units="in",dpi=320)
