@@ -653,12 +653,18 @@ ggsave("./Fig_Output/SI_Timescale_Sig_halfhourly.jpg",width=8,height=6,units="in
 ##### Plot diel comparisons for summer stratified period (June, July) ######
 # Separate into day (0900 to 1500) and night (2100 to 0300)
 daynight <- eddy_flux %>% 
-  select(DateTime,NEE_uStar_f,NEE_uStar_orig,ch4_flux_uStar_f,ch4_flux_uStar_orig) %>% 
+  select(DateTime,NEE_uStar_f,NEE_uStar_orig,ch4_flux_uStar_f,ch4_flux_uStar_orig,u) %>% 
   filter(DateTime >= as.POSIXct("2020-05-31 20:00:00") & DateTime < as.POSIXct("2020-07-31 20:00:00")) %>% 
   mutate(Hour = hour(DateTime)) %>% 
   mutate(diel = ifelse(Hour >= 9 & Hour <= 14, "Day",
                        ifelse(Hour >= 21 | Hour <= 2, "Night", NA))) %>% 
   filter(diel == "Day" | diel == "Night")
+
+# Plot
+ggplot(daynight,mapping=aes(x=DateTime,y=NEE_uStar_f,color=diel))+
+  geom_line()+
+  geom_point()+
+  theme_classic(base_size = 15)
 
 # Conduct statistical analysis
 kruskal.test(NEE_uStar_orig ~ diel, data=daynight)
@@ -666,6 +672,8 @@ kruskal.test(NEE_uStar_f ~ diel, data=daynight)
 
 kruskal.test(ch4_flux_uStar_orig ~ diel, data=daynight)
 kruskal.test(ch4_flux_uStar_f ~ diel, data=daynight)
+
+kruskal.test(u ~ diel, data=daynight)
 
 # Aggregate data for plotting
 daynight_long <- daynight %>% 
@@ -703,8 +711,22 @@ ch4_diel <- daynight_long %>%
   theme_classic(base_size = 15)+
   theme(legend.title=element_blank())
 
-ggarrange(co2_diel,ch4_diel,nrow=1,ncol=2,common.legend = TRUE,
-          labels=c("A.","B."), font.label = list(face="plain",size=15))
+# Include wind speed?
+wind <- daynight_long %>% 
+  filter(flux == "u") %>% 
+  ggplot(daynight_long,mapping=aes(x=flux,y=concentration,color=diel))+
+  annotate("text",label = "*", x = "u", y = 5, size = 5)+
+  geom_boxplot(outlier.shape = NA,size=1)+
+  geom_point(position=position_jitterdodge(),alpha=0.1)+
+  scale_color_manual(breaks=c('Day','Night'),values=c("#F4BB01","#183662"))+
+  ylab(expression(paste("Wind speed (m"^-2*")")))+
+  xlab("")+
+  scale_x_discrete(breaks=c("u"),labels=c(""))+
+  theme_classic(base_size = 15)+
+  theme(legend.title=element_blank())
 
-ggsave("./Fig_Output/summer_diel.jpg",width = 10, height=5, units="in",dpi=320)
+ggarrange(co2_diel,ch4_diel,wind,nrow=2,ncol=2,common.legend = TRUE,
+          labels=c("A.","B.","C."), font.label = list(face="plain",size=15))
+
+ggsave("./Fig_Output/summer_diel_wid.jpg",width = 10, height=9, units="in",dpi=320)
 
