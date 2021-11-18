@@ -654,11 +654,22 @@ ggsave("./Fig_Output/SI_Timescale_Sig_halfhourly.jpg",width=8,height=6,units="in
 # Separate into day (0900 to 1500) and night (2100 to 0300)
 daynight <- eddy_flux %>% 
   select(DateTime,NEE_uStar_f,NEE_uStar_orig,ch4_flux_uStar_f,ch4_flux_uStar_orig,u) %>% 
-  filter(DateTime >= as.POSIXct("2020-05-31 20:00:00") & DateTime < as.POSIXct("2020-07-31 20:00:00")) %>% 
   mutate(Hour = hour(DateTime)) %>% 
   mutate(diel = ifelse(Hour >= 9 & Hour <= 14, "Day",
                        ifelse(Hour >= 21 | Hour <= 2, "Night", NA))) %>% 
-  filter(diel == "Day" | diel == "Night")
+  filter(diel == "Day" | diel == "Night") %>% 
+  mutate(DateTime = format(as.POSIXct(DateTime,format='%Y-%m-%d %H:%M:%S'),format='%Y-%m-%d'))
+
+# Calculate median for each day/night time period
+# Add seasonal designations
+daynight_med <- daynight %>% 
+  group_by(DateTime,diel) %>% 
+  summarise_all(median,na.rm=TRUE) %>% 
+  mutate(season = ifelse(DateTime < as.POSIXct("2020-06-01"), "Spring",
+                         ifelse(DateTime >= as.POSIXct("2020-06-01") & DateTime < as.POSIXct("2020-09-01"), "Summer",
+                                ifelse(DateTime >= as.POSIXct("2020-09-01") & DateTime < as.POSIXct("2020-11-01"), "Fall",
+                                       ifelse(DateTime >= as.POSIXct("2020-11-01") & DateTime < as.POSIXct("2021-03-01"), "Winter",
+                                              ifelse(DateTime >= as.POSIXct("2021-03-01"), "Spring", NA))))))
 
 # Plot
 ggplot(daynight,mapping=aes(x=DateTime,y=NEE_uStar_f,color=diel))+
@@ -666,67 +677,250 @@ ggplot(daynight,mapping=aes(x=DateTime,y=NEE_uStar_f,color=diel))+
   geom_point()+
   theme_classic(base_size = 15)
 
-# Conduct statistical analysis
-kruskal.test(NEE_uStar_orig ~ diel, data=daynight)
-kruskal.test(NEE_uStar_f ~ diel, data=daynight)
+# Conduct statistical analysis - Wilcoxon signed rank tests
+# Need to first pivot_wide for paired analyses
+daynight_wide_co2_f <- daynight_med %>% 
+  select(DateTime,diel,NEE_uStar_f) %>% 
+  pivot_wider(names_from = diel, values_from = NEE_uStar_f)
 
-kruskal.test(ch4_flux_uStar_orig ~ diel, data=daynight)
-kruskal.test(ch4_flux_uStar_f ~ diel, data=daynight)
+wilcox.test(daynight_wide_co2_f$Day,daynight_wide_co2_f$Night,paired=TRUE)
 
-kruskal.test(u ~ diel, data=daynight)
+daynight_wide_ch4_f <- daynight_med %>% 
+  select(DateTime,diel,ch4_flux_uStar_f) %>% 
+  pivot_wider(names_from = diel, values_from = ch4_flux_uStar_f)
 
-# Aggregate data for plotting
-daynight_long <- daynight %>% 
-  pivot_longer(cols = -c(DateTime,Hour,diel), names_to = "flux", values_to = "concentration")
+wilcox.test(daynight_wide_ch4_f$Day,daynight_wide_ch4_f$Night,paired=TRUE)
 
 # Plot?!
-co2_diel <- daynight_long %>% 
-  filter(flux == "NEE_uStar_f"|flux == "NEE_uStar_orig") %>% 
-  ggplot(daynight_long,mapping=aes(x=flux,y=concentration,color=diel))+
+# CO2 measured
+daynight_wide_co2_orig <- daynight_med %>% 
+  select(DateTime,diel,NEE_uStar_orig) %>% 
+  pivot_wider(names_from = diel, values_from = NEE_uStar_orig) %>% 
+  drop_na()
+
+wilcox.test(daynight_wide_co2_orig$Day,daynight_wide_co2_orig$Night,paired=TRUE)
+
+co2_diel <- daynight_med %>% 
+  ggplot(mapping=aes(x=diel,y=NEE_uStar_orig,color=diel))+
   geom_hline(yintercept = 0, linetype = "dashed", color="darkgrey", size = 0.8)+
-  annotate("text",label = "*", x = "NEE_uStar_f", y = 45, size = 5)+
-  annotate("text",label = "*", x = "NEE_uStar_orig", y = 45, size = 5)+
+  annotate("text",label ="p = 0.03*
+n = 225",
+            x = "Day", hjust = 0, y = 25, size = 5)+
   geom_boxplot(outlier.shape = NA,size=1)+
   geom_point(position=position_jitterdodge(),alpha=0.1)+
   scale_color_manual(breaks=c('Day','Night'),values=c("#F4BB01","#183662"))+
-  scale_x_discrete(breaks=c("NEE_uStar_f","NEE_uStar_orig"),
-                   labels=c("Gap-filled", "Measured"))+
   ylab(expression(paste("CO"[2]*" (",mu,"mol C m"^-2*" s"^-1*")")))+
   xlab("")+
   theme_classic(base_size = 15)+
-  theme(legend.title=element_blank())
+  theme(legend.position = "none") 
 
-ch4_diel <- daynight_long %>% 
-  filter(flux == "ch4_flux_uStar_f"|flux == "ch4_flux_uStar_orig") %>% 
-  ggplot(daynight_long,mapping=aes(x=flux,y=concentration,color=diel))+
+daynight_wide_ch4_orig <- daynight_med %>% 
+  select(DateTime,diel,ch4_flux_uStar_orig) %>% 
+  pivot_wider(names_from = diel, values_from = ch4_flux_uStar_orig) %>% 
+  drop_na
+
+wilcox.test(daynight_wide_ch4_orig$Day,daynight_wide_ch4_orig$Night,paired=TRUE)
+
+ch4_diel <- daynight_med %>% 
+  ggplot(mapping=aes(x=diel,y=ch4_flux_uStar_orig,color=diel))+
   geom_hline(yintercept = 0, linetype = "dashed", color="darkgrey", size = 0.8)+
-  annotate("text",label = "*", x = "ch4_flux_uStar_f", y = 0.08, size = 5)+
+  annotate("text",label = "p = 0.28
+n = 165",
+           x = "Day", hjust = 0, y = 0.07, size = 5)+
   geom_boxplot(outlier.shape = NA,size=1)+
   geom_point(position=position_jitterdodge(),alpha=0.1)+
   scale_color_manual(breaks=c('Day','Night'),values=c("#F4BB01","#183662"))+
-  scale_x_discrete(breaks=c("ch4_flux_uStar_f","ch4_flux_uStar_orig"),
-                   labels=c("Gap-filled", "Measured"))+
   ylab(expression(paste("CH"[4]*" (",mu,"mol C m"^-2*" s"^-1*")")))+
   xlab("")+
   theme_classic(base_size = 15)+
-  theme(legend.title=element_blank())
+  theme(legend.position = "none") 
 
 # Include wind speed?
-wind <- daynight_long %>% 
-  filter(flux == "u") %>% 
-  ggplot(daynight_long,mapping=aes(x=flux,y=concentration,color=diel))+
-  annotate("text",label = "*", x = "u", y = 5, size = 5)+
+daynight_wide_u <- daynight_med %>% 
+  select(DateTime,diel,u) %>% 
+  pivot_wider(names_from = diel, values_from = u) %>% 
+  drop_na()
+
+wilcox.test(daynight_wide_u$Day,daynight_wide_u$Night,paired=TRUE)
+
+wind <- daynight_med %>% 
+  ggplot(mapping=aes(x=diel,y=u,color=diel))+
+  annotate("text",label = "p < 0.005*
+n = 282",
+           x = "Day", hjust = 0, y = 4, size = 5)+
   geom_boxplot(outlier.shape = NA,size=1)+
   geom_point(position=position_jitterdodge(),alpha=0.1)+
   scale_color_manual(breaks=c('Day','Night'),values=c("#F4BB01","#183662"))+
-  ylab(expression(paste("Wind speed (m"^-2*")")))+
+  ylab(expression(paste("Wind speed (m s"^-1*")")))+
   xlab("")+
-  scale_x_discrete(breaks=c("u"),labels=c(""))+
   theme_classic(base_size = 15)+
-  theme(legend.title=element_blank())
+  theme(legend.position = "none") 
 
-ggarrange(co2_diel,ch4_diel,wind,nrow=2,ncol=2,common.legend = TRUE,
+ggarrange(co2_diel,ch4_diel,wind,nrow=1,ncol=3,
           labels=c("A.","B.","C."), font.label = list(face="plain",size=15))
 
-ggsave("./Fig_Output/summer_diel_wid.jpg",width = 10, height=9, units="in",dpi=320)
+ggsave("./Fig_Output/summer_diel_wind.jpg",width = 9, height=4, units="in",dpi=320)
+
+# Plot by season
+spring_med_co2 <- daynight_med %>% 
+  filter(season == "Spring") %>% 
+  select(DateTime,diel,NEE_uStar_orig) %>% 
+  pivot_wider(names_from = diel, values_from = NEE_uStar_orig) %>% 
+  drop_na()
+
+wilcox.test(spring_med_co2$Day,spring_med_co2$Night,paired=TRUE)
+
+spring_med_ch4 <- daynight_med %>% 
+  filter(season == "Spring") %>% 
+  select(DateTime,diel,ch4_flux_uStar_orig) %>% 
+  pivot_wider(names_from = diel, values_from = ch4_flux_uStar_orig) %>% 
+  drop_na()
+
+wilcox.test(spring_med_ch4$Day,spring_med_ch4$Night,paired=TRUE)
+
+spring_med_u <- daynight_med %>% 
+  filter(season == "Spring") %>% 
+  select(DateTime,diel,u) %>% 
+  pivot_wider(names_from = diel, values_from = u) %>% 
+  drop_na()
+
+wilcox.test(spring_med_u$Day,spring_med_u$Night,paired=TRUE)
+
+summer_med_co2 <- daynight_med %>% 
+  filter(season == "Summer") %>% 
+  select(DateTime,diel,NEE_uStar_orig) %>% 
+  pivot_wider(names_from = diel, values_from = NEE_uStar_orig) %>% 
+  drop_na()
+
+wilcox.test(summer_med_co2$Day,summer_med_co2$Night,paired=TRUE)
+
+summer_med_ch4 <- daynight_med %>% 
+  filter(season == "Summer") %>% 
+  select(DateTime,diel,ch4_flux_uStar_orig) %>% 
+  pivot_wider(names_from = diel, values_from = ch4_flux_uStar_orig) %>% 
+  drop_na()
+
+wilcox.test(summer_med_ch4$Day,summer_med_ch4$Night,paired=TRUE)
+
+summer_med_u <- daynight_med %>% 
+  filter(season == "Summer") %>% 
+  select(DateTime,diel,u) %>% 
+  pivot_wider(names_from = diel, values_from = u) %>% 
+  drop_na()
+
+wilcox.test(summer_med_u$Day,summer_med_u$Night,paired=TRUE)
+
+fall_med_co2 <- daynight_med %>% 
+  filter(season == "Fall") %>% 
+  select(DateTime,diel,NEE_uStar_orig) %>% 
+  pivot_wider(names_from = diel, values_from = NEE_uStar_orig) %>% 
+  drop_na()
+
+wilcox.test(fall_med_co2$Day,fall_med_co2$Night,paired=TRUE)
+
+fall_med_ch4 <- daynight_med %>% 
+  filter(season == "Fall") %>% 
+  select(DateTime,diel,ch4_flux_uStar_orig) %>% 
+  pivot_wider(names_from = diel, values_from = ch4_flux_uStar_orig) %>% 
+  drop_na()
+
+wilcox.test(fall_med_ch4$Day,fall_med_ch4$Night,paired=TRUE)
+
+fall_med_u <- daynight_med %>% 
+  filter(season == "Fall") %>% 
+  select(DateTime,diel,u) %>% 
+  pivot_wider(names_from = diel, values_from = u) %>% 
+  drop_na()
+
+wilcox.test(fall_med_u$Day,fall_med_u$Night,paired=TRUE)
+
+winter_med_co2 <- daynight_med %>% 
+  filter(season == "Winter") %>% 
+  select(DateTime,diel,NEE_uStar_orig) %>% 
+  pivot_wider(names_from = diel, values_from = NEE_uStar_orig) %>% 
+  drop_na()
+
+wilcox.test(winter_med_co2$Day,winter_med_co2$Night,paired=TRUE)
+
+winter_med_ch4 <- daynight_med %>% 
+  filter(season == "Winter") %>% 
+  select(DateTime,diel,ch4_flux_uStar_orig) %>% 
+  pivot_wider(names_from = diel, values_from = ch4_flux_uStar_orig) %>% 
+  drop_na()
+
+wilcox.test(winter_med_ch4$Day,winter_med_ch4$Night,paired=TRUE)
+
+winter_med_u <- daynight_med %>% 
+  filter(season == "Winter") %>% 
+  select(DateTime,diel,u) %>% 
+  pivot_wider(names_from = diel, values_from = u) %>% 
+  drop_na()
+
+wilcox.test(winter_med_u$Day,winter_med_u$Night,paired=TRUE)
+
+# Plot by season
+co2_season <- daynight_med %>% 
+  ggplot(mapping=aes(x=season,y=NEE_uStar_orig,color=diel))+
+  geom_hline(yintercept = 0, linetype = "dashed", color="darkgrey", size = 0.8)+
+  annotate("text",label = "*",x = "Spring", y = 30, size = 5)+
+  geom_boxplot(outlier.shape = NA,size=1)+
+  geom_point(position=position_jitterdodge(),alpha=0.1)+
+  scale_color_manual(breaks=c('Day','Night'),values=c("#F4BB01","#183662"))+
+  ylab(expression(paste("CO"[2]*" (",mu,"mol C m"^-2*" s"^-1*")")))+
+  xlab("")+
+  theme_classic(base_size = 15)+
+  theme(legend.title = element_blank()) 
+
+ch4_season <- daynight_med %>% 
+  ggplot(mapping=aes(x=season,y=ch4_flux_uStar_orig,color=diel))+
+  geom_hline(yintercept = 0, linetype = "dashed", color="darkgrey", size = 0.8)+
+  annotate("text",label = "*",x = "Fall", y = 0.07, size = 5)+
+  geom_boxplot(outlier.shape = NA,size=1)+
+  geom_point(position=position_jitterdodge(),alpha=0.1)+
+  scale_color_manual(breaks=c('Day','Night'),values=c("#F4BB01","#183662"))+
+  ylab(expression(paste("CH"[4]*" (",mu,"mol C m"^-2*" s"^-1*")")))+
+  xlab("")+
+  theme_classic(base_size = 15)+
+  theme(legend.title = element_blank()) 
+
+wind_season <- daynight_med %>% 
+  ggplot(mapping=aes(x=season,y=u,color=diel))+
+  annotate("text",label = "*",x = "Summer", y = 5, size = 5)+
+  annotate("text",label = "*",x = "Fall", y = 5, size = 5)+
+  geom_boxplot(outlier.shape = NA,size=1)+
+  geom_point(position=position_jitterdodge(),alpha=0.1)+
+  scale_color_manual(breaks=c('Day','Night'),values=c("#F4BB01","#183662"))+
+  ylab(expression(paste("Wind speed (m s"^-1*")")))+
+  xlab("")+
+  theme_classic(base_size = 15)+
+  theme(legend.title = element_blank()) 
+
+ggarrange(co2_season,ch4_season,wind_season,nrow=2,ncol=2,common.legend = TRUE,
+          labels=c("A.","B.","C."), font.label = list(face="plain",size=15))
+
+ggsave("./Fig_Output/season_diel.jpg",width = 9, height=8, units="in",dpi=320)
+
+wilcox.test(spring_med_co2$Day,spring_med_co2$Night,paired=TRUE)
+
+wilcox.test(spring_med_ch4$Day,spring_med_ch4$Night,paired=TRUE)
+
+wilcox.test(spring_med_u$Day,spring_med_u$Night,paired=TRUE)
+
+wilcox.test(summer_med_co2$Day,summer_med_co2$Night,paired=TRUE)
+
+wilcox.test(summer_med_ch4$Day,summer_med_ch4$Night,paired=TRUE)
+
+wilcox.test(summer_med_u$Day,summer_med_u$Night,paired=TRUE)
+
+wilcox.test(fall_med_co2$Day,fall_med_co2$Night,paired=TRUE)
+
+wilcox.test(fall_med_ch4$Day,fall_med_ch4$Night,paired=TRUE)
+
+wilcox.test(fall_med_u$Day,fall_med_u$Night,paired=TRUE)
+
+wilcox.test(winter_med_co2$Day,winter_med_co2$Night,paired=TRUE)
+
+wilcox.test(winter_med_ch4$Day,winter_med_ch4$Night,paired=TRUE)
+
+wilcox.test(winter_med_u$Day,winter_med_u$Night,paired=TRUE)
 

@@ -6,6 +6,7 @@
 # Find a time period with minimal gap-filled data to see how gap-filling
 # influences results
 # Updated to longer time period and to include 24 hour comparisons
+# Updated to 1 week (instead to 2 weeks - too long!)
 
 ################################################
 
@@ -37,15 +38,15 @@ co2_data_summer <- co2_data %>%
   mutate(num_nas = NA)
 
 for (i in 1:length(co2_data_summer$DateTime)){
-  j = i+672
+  j = i+336
   co2_data_summer$num_nas[i] = sum(is.na(co2_data_summer$NEE_uStar_orig[i:j]))
 }
 
-# Highest amount of data in a 2-week period in June (40% data coverage): 2020-06-24 11:00:00
+# Highest amount of data in a 1-week period in June (40% data coverage): 2020-06-29 00:00:00
 co2_data_sub <- co2_data %>% 
-  filter(DateTime >= as.POSIXct("2020-06-24 07:00:00") & DateTime < as.POSIXct("2020-07-08 07:00:00"))
+  filter(DateTime >= as.POSIXct("2020-06-28 20:00:00") & DateTime < as.POSIXct("2020-07-05 20:00:00"))
 
-(672-sum(is.na(co2_data_sub$NEE_uStar_orig)))/672*100 # Results in 40% data coverage
+(336-sum(is.na(co2_data_sub$NEE_uStar_orig)))/336*100 # Results in 47% data coverage
 
 # Linearly interpolate between missing time points
 co2_data_sub <- co2_data_sub %>% 
@@ -158,15 +159,15 @@ ch4_data_summer <- ch4_data %>%
   mutate(num_nas = NA)
 
 for (i in 1:length(ch4_data_summer$DateTime)){
-  j = i+672
+  j = i+336
   ch4_data_summer$num_nas[i] = sum(is.na(ch4_data_summer$ch4_flux_uStar_orig[i:j]))
 }
 
-# Highest amount of data in a 2-week period: 2020-06-24 11:00:00 (same as above!)
+# Highest amount of data in a 1-week period: 2020-06-29 00:00:00 (same as above!)
 ch4_data_sub <- ch4_data %>% 
-  filter(DateTime >= as.POSIXct("2020-06-24 07:00:00") & DateTime < as.POSIXct("2020-07-08 07:00:00"))
+  filter(DateTime >= as.POSIXct("2020-06-28 20:00:00") & DateTime < as.POSIXct("2020-07-05 20:00:00"))
 
-(672-sum(is.na(ch4_data_sub$ch4_flux_uStar_orig)))/672*100 # Results in 38% data coverage
+(336-sum(is.na(ch4_data_sub$ch4_flux_uStar_orig)))/336*100 # Results in 43% data coverage
 
 # Linearly interpolate between missing time points
 ch4_data_sub <- ch4_data_sub %>% 
@@ -284,9 +285,9 @@ co2_interp_comp <- co2_data_sub %>%
 # Global power spectra
 co2_power <- ggplot()+
   geom_vline(xintercept = 1,linetype="dashed")+
-  annotate(geom="text",x = 1.3,y = 21,label = "1 d.")+
+  annotate(geom="text",x = 1.3,y = 10,label = "1 d.")+
   geom_vline(xintercept = 0.5,linetype="dashed")+
-  annotate(geom="text",x = 0.3,y = 21,label = "12 hr.")+
+  annotate(geom="text",x = 0.3,y = 10,label = "12 hr.")+
   geom_line(data = co2_powerplot_f, mapping=aes(x=period,y=mean_power,color="Gap-filled"))+
   geom_point(data = co2_powerplot_f, mapping=aes(x=period,y=mean_power,color="Gap-filled"))+
   geom_line(data = co2_powerplot_orig, mapping=aes(x=period,y=mean_power,color="Measured"))+
@@ -295,7 +296,8 @@ co2_power <- ggplot()+
        y = (expression(paste("Mean ",Power^2,))))+
   scale_color_manual(breaks=c("Gap-filled","Measured"),
                      values=c("darkgrey","black"))+
-  xlim(0,7)+
+  xlim(0,3.5)+
+  ylim(0,10)+
   theme_classic(base_size = 15)+
   theme(legend.title=element_blank())
 
@@ -328,7 +330,7 @@ ch4_power <- ggplot()+
        y = (expression(paste("Mean ",Power^2,))))+
   scale_color_manual(breaks=c("Gap-filled","Measured"),
                      values=c("darkgrey","black"))+
-  xlim(0,7)+
+  xlim(0,3.5)+
   theme_classic(base_size = 15)+
   theme(legend.title=element_blank())
 
@@ -336,7 +338,7 @@ ggarrange(co2_interp_comp,co2_power,ch4_interp_comp,ch4_power,nrow=2,ncol=2,
           labels=c("A.","B.","C.","D."),font.label = list(face="plain",size=15),
           common.legend = TRUE)
 
-ggsave("./Fig_Output/Wavelet_comps_2wk.jpg",width = 10, height = 9, units="in",dpi=320)
+ggsave("./Fig_Output/Wavelet_comps_1wk.jpg",width = 10, height = 9, units="in",dpi=320)
 
 ##### Look at 24 hour diel patterns #####
 # Use the same two week time period as the wavelet analysis
