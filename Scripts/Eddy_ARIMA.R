@@ -235,6 +235,27 @@ catwalk_hourly <- catwalk %>%
             Temp_diff = mean(Temp_diff,na.rm=TRUE),
             Temp_diff_sd = sd(Temp_diff,na.rm=TRUE))
 
+# Calculate and plot diel temperature
+ggplot(catwalk_hourly,mapping=aes(x=DateTime,y=Temp_C_surface))+
+  geom_point()+
+  geom_line()+
+  xlim(as.POSIXct("2020-07-06"),as.POSIXct("2020-07-08"))+
+  ylim(26,29)
+
+catwalk_hourly %>% 
+  mutate(Hour = hour(DateTime),
+         Temp_C_surface_2 = Temp_C_surface) %>% 
+  group_by(Hour) %>% 
+  select(Temp_C_surface, Temp_C_surface_2, Hour) %>% 
+  summarise(Temp_C_surface = mean(Temp_C_surface,na.rm=TRUE),
+            Temp_C_surface_sd = sd(Temp_C_surface_2,na.rm=TRUE)) %>% 
+  ggplot(mapping=aes(x=Hour,y=Temp_C_surface))+
+  geom_vline(xintercept = 12, linetype = "dashed")+
+  geom_line(size=1)+
+  xlab("Hour") + 
+  ylab(expression(Temp~(C^o)))+
+  theme_classic(base_size=15)
+  
 q_hourly <- q %>% 
   mutate(DateTime = format(as.POSIXct(DateTime, "%Y-%m-%d %H"),"%Y-%m-%d %H")) %>% 
   mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d %H", tz = "EST")) %>% 
