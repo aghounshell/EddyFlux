@@ -1,6 +1,10 @@
 # Processing Eddy Flux data from FCR
-# Following initial data corrections in Eddy Pro (using standard processing)
-# Specifically for data collected from 4 April 2020 (beginning of EC record) to 6 April 2021
+# Following initial data corrections in Eddy Pro (using standard processing) 
+# and light data cleaning via EddyPro_CleanUp.R
+
+# Specifically for data collected from 4 April 2020 (beginning of EC record) to 
+# 6 April 2021 
+### (Update through 2021 for EDI data push!) ###
 
 # Original code from Brenda D'Achuna, 21 May 2021
 # Modified by Alex Hounshell on 21 May 2021
@@ -13,12 +17,13 @@ rm(list = ls())
 # Download/load libraries
 pacman::p_load(lubridate,readr,ggpubr,openair,REddyProc,ggplot2,dplyr)
 
-# Set working directory
+# Set working directory - up-date for your specific working directory
 wd <- getwd()
 setwd(wd)
 
 # Read compiled file: From Eddy Pro using basic processing
 # Original file from Brenda on 11 May 2021
+# Light data cleaning using EddyPro_CleanUp.R
 ec <- read_csv("./Data/20211008_EddyPro_cleaned.csv")
 
 # Format time
@@ -27,7 +32,8 @@ ec$datetime <- as_datetime(ec$datetime)
 
 # Set new dataframe with list of dates+times:
 # every 30 minutes
-# Constrain to study time period: 2020-04-05 and 2021-04-06
+# Constrain to study time period: 2020-04-05 and 2021-04-06 
+### (UPDATE WITH 2021 DATA!) ###
 ts <- seq.POSIXt(as.POSIXct("2020-04-05 00:00:00",'%Y-%m-%d %H:%M:%S', tz="EST"), 
                  as.POSIXct("2021-04-05 23:30:00",'%Y-%m-%d %H:%M:%S', tz="EST"), by = "30 min")
 ts2 <- data.frame(datetime = ts)
@@ -60,26 +66,19 @@ ec2 %>% group_by(year(datetime), month(datetime)) %>% select(datetime, co2_flux_
             ch4_available = 100-sum(is.na(ch4_flux_umolm2s))/n()*100)
 #################################################################
 
-# Reading in data from the Met Station for gapfilling purposes
-# Include data from: EDI (2020) and from GitHub (2021 - cleaned following MET_QAQC_2020.R)
-## THIS WILL NEED TO BE UPDATED!!!
+# Reading in data from the Met Station for gap-filling purposes
+# Load data Meterological data from EDI
 
-# Downloaded from EDI: 21 May 2021
-#inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/389/5/3d1866fecfb8e17dc902c76436239431" 
-#infile1 <- paste0(getwd(),"/Data/Met_final_2015_2020.csv")
+### CURRENTLY IN THE STAGING ENVIRONMENT: UPDATE WHEN PUBLISHED!! ###
+
+# Downloaded from EDI staging: 09 December 2021
+#inUrl1  <- "https://pasta-s.lternet.edu/package/data/eml/edi/143/8/a5524c686e2154ec0fd0459d46a7d1eb" 
+#infile1 <- paste0(getwd(),"/Data/Met_final_2015_2021.csv")
 #download.file(inUrl1,infile1,method="curl")
 
-met_edi <- read.csv("./Data/Met_final_2015_2020.csv", header=T) %>%
+met_all <- read.csv("./Data/Met_final_2015_2021.csv", header=T) %>%
   mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d %H:%M:%S", tz="EST"))) %>% 
   filter(DateTime > as.POSIXct("2019-12-31"))
-
-# Load met data from 2021 (from GitHub, cleaned w/ script: MET_QAQC_2020.R)
-met_21 <- read.csv("./Data/Met_GitHub_2021.csv", header=T) %>% 
-  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d %H:%M:%S", tz="EST")))
-## THIS WILL NEED TO BE UPDATED!!! WHEN MET DATA IS UPDATED ON EDI!
-
-# Combine into one data frame: EDI + GitHub data
-met_all <- rbind(met_edi,met_21)
 
 # Start timeseries on the 00:15:00 to facilitate 30-min averages
 met_all <- met_all %>% 
@@ -131,17 +130,19 @@ ec2 %>% select(datetime, wind_speed_ms) %>%
 # Use linear model to convert from Met to EC for missing time points
 linearMod <- lm(ec2$wind_speed_ms ~ met2$WS_ms_Avg)
 summary(linearMod)
-# For data period: EC = Met*0.533689 + 0.134411
+cor(ec2[[49]],met2[[10]],use = "complete.obs",method=c("pearson"))
+
+# For data period: EC = Met*0.533752 + 0.133948
 
 # Check conversion
 plot(ec2$wind_speed_ms)
-points(met2$WS_ms_Avg*0.533689+0.134411, col = 'red')
+points(met2$WS_ms_Avg*0.533752+0.133948, col = 'red')
 
 ###########################################
 # Use converted wind speed from the Met data to fill in time points with missing
 # data (EC)
 ec2$wind_speed_ms <- ifelse(is.na(ec2$wind_speed_ms),
-                         met2$WS_ms_Avg*0.533689+0.134411, ec2$wind_speed_ms)
+                         met2$WS_ms_Avg*0.533752+0.133948, ec2$wind_speed_ms)
 
 ec2$wind_dir <- ifelse(is.na(ec2$wind_dir),
                        met2$WindDir, ec2$wind_dir)
@@ -371,10 +372,11 @@ eddy_fcr %>% select(datetime, air_temp_celsius) %>%
 # Use linear model to estimate EC temp from Met temp
 linearMod <- lm(eddy_fcr$air_temp_celsius ~ met2$AirTC_Avg)
 summary(linearMod)
-# EC = Met*0.93201-0.58405
+cor(eddy_fcr[[88]],met2[[3]],use = "complete.obs",method=c("pearson"))
+# EC = Met*0.931991-0.582745
 
 eddy_fcr$air_temp_celsius <- ifelse(is.na(eddy_fcr$air_temp_celsius),
-                                    met2$AirTC_Avg*0.93201-0.58405, eddy_fcr$air_temp_celsius)
+                                    met2$AirTC_Avg*0.931991-0.582745, eddy_fcr$air_temp_celsius)
 
 # Check Air Temp
 ggplot(eddy_fcr,mapping=aes(x=datetime,y=air_temp_celsius))+
@@ -393,10 +395,11 @@ eddy_fcr %>% select(datetime, sonic_temp_celsius) %>%
 # Use linear model to estimate EC temp and Met temp
 linearMod <- lm(eddy_fcr$sonic_temp_celsius ~ met2$AirTC_Avg)
 summary(linearMod)
-# EC = Met*1.017914 - 0.260521
+cor(eddy_fcr[[89]],met2[[3]],use = "complete.obs",method=c("pearson"))
+# EC = Met*1.017878-0.258594
 
 eddy_fcr$sonic_temp_celsius <- ifelse(is.na(eddy_fcr$sonic_temp_celsius),
-                                      eddy_fcr$air_temp_celsius*1.017914-0.260521, eddy_fcr$sonic_temp_celsius)
+                                      eddy_fcr$air_temp_celsius*1.017878-0.258594, eddy_fcr$sonic_temp_celsius)
 
 # Check sonic temp
 ggplot(eddy_fcr,mapping=aes(x=datetime,y=sonic_temp_celsius))+
@@ -416,10 +419,11 @@ eddy_fcr %>% select(datetime, RH) %>%
 # Use linear model to estimate EC RH from Met RH
 linearMod <- lm(eddy_fcr$RH ~ met2$RH)
 summary(linearMod)
-# EC = Met*0.812051 + 6.626110
+cor(eddy_fcr[[46]],met2[[4]],use = "complete.obs",method=c("pearson"))
+# EC = Met*0.812457 + 6.620946
 
 eddy_fcr$RH <- ifelse(is.na(eddy_fcr$RH),
-                      met2$RH*0.812051+6.626110, eddy_fcr$RH)
+                      met2$RH*0.812457+6.620946, eddy_fcr$RH)
 
 # Add Met data to gapfill fluxes
 eddy_fcr$SW_in <- met2$SW_in
@@ -516,11 +520,13 @@ eddy_fcr3 %>% group_by(year(DateTime), month(DateTime)) %>%
             ch4_available = 100-sum(is.na(ch4_flux))/n()*100)
 
 # Visualizing data by wind direction/wind speed
+# Save as: 800 x 800
 windRose(mydata = eddy_fcr3, ws = "u", wd = "wind_dir", 
          width = 3, key.position = 'bottom', 
          offset = 3, paddle = FALSE, key.header = 'Wind speed (m/s)', 
          key.footer = ' ', dig.lab = 2, annotate = FALSE,
-         angle.scale = 45, ws.int = 1, breaks = c(0, 1, 2, 3, 4, 5, 6, 7, 8))
+         angle.scale = 45, ws.int = 1, breaks = c(0, 1, 2, 3, 4, 5, 6, 7, 8),
+         par.settings = list(fontsize=list(text=25)))
 
 ###########################################################################
 # get ustar distribution and filter by ustar
@@ -618,4 +624,4 @@ ggplot()+
   xlab("") + ylab(expression(~CH[4]~flux~(g~m^-2~d^-1)))
 
 # Save the exported data
-write_csv(fcr_gf, "./Data/20210813_EC_processed.csv")
+write_csv(fcr_gf, "./Data/20211210_EC_processed.csv")
