@@ -1,1 +1,7 @@
 id	unitType	parentSI	multiplierToSI	description
+kilogramPerMeterPerSecondSquared	forcePerUnitArea			momentum flux
+joulePerKelvinPerKilogram	heatCapacity			specifc heat at constant pressure of ambient air
+meterCubedPerMole	volumePerMole			molar volume of ambient air
+millimeterPerHour	speed	millimeterPerSecond	2.80E-04	millimeter per hour
+kilogramPerKilogram	specificHumidity			specifc humidity
+meterSquaredPerSecondSquared	turbulentKineticEnergy			turbulent kinetic energy

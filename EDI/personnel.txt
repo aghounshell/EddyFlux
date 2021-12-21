@@ -1,1 +1,11 @@
 givenName	middleInitial	surName	organizationName	electronicMailAddress	userId	role	projectTitle	fundingAgency	fundingNumber
+Cayelan	C.	Carey	Virginia Tech	Cayelan@vt.edu	0000-0001-8835-4476	creator			
+Cayelan	C.	Carey	Virginia Tech	Cayelan@vt.edu	0000-0001-8835-4476	contact			
+Cayelan	C.	Carey	Virginia Tech	Cayelan@vt.edu	0000-0001-8835-4476	PI		Western Virginia Water Authority	
+Cayelan	C.	Carey	Virginia Tech	Cayelan@vt.edu	0000-0001-8835-4476	PI	Collaborative Research: Consequences of changing oxygen availability for carbon cycling in freshwater ecosystems	National Science Foundation	1753639
+Alexandria	G.	Hounshell	Virginia Tech	alexgh@vt.edu	0000-0003-1616-9399	creator			
+Brenda	M.	D'Acunha	University of British Columbia	bdacunha@eoas.ubc.ca 	0000-0002-8767-7772	creator			
+Adrienne		Breef-Pilz	Virginia Tech	abreefpilz@vt.edu	0000-0002-6759-0063	creator			
+R.	Quinn	Thomas	Virginia Tech	rqthomas@vt.edu 	0000-0003-1282-7825	creator			
+Mark	S.	Johnson	University of British Columbia	mark.johnson@ubc.ca 	0000-0001-5070-7539	creator			
+Mark	S.	Johnson	University of British Columbia	mark.johnson@ubc.ca 	0000-0001-5070-7539	PI	Discovery Grant	Natural Sciences and Engineering Research Council of Canada 	RGPIN-2020-06252

@@ -1,5 +1,6 @@
 ### Make EML for Eddy Flux data
 ### From: 4 April 2020 to 5 April 2021
+### UPDATE WITH ALL 2021 DATA IN JANUARY!
 ### Following: MakeEMLInflow.R and MakeEMLChemistry.R
 ### 4 October 2021, A. Hounshell
 
@@ -22,6 +23,8 @@ library(EMLassemblyline)
 #in this case, our directory is EddyFlux/EDI
 
 #Step 2: Move your dataset to the directory
+# Current dataset: 20211008_EddyPro_Cleaned.csv
+# Update with all 2021 data in January!
 
 #Step 3: Identify an intellectual rights license
 #ours is CCBY
@@ -50,7 +53,7 @@ template_core_metadata(path = "C:/Users/ahoun/Desktop/EddyFlux/EDI",
 
 template_table_attributes(path = "C:/Users/ahoun/Desktop/EddyFlux/EDI",
                           data.path = "C:/Users/ahoun/Desktop/EddyFlux/EDI",
-                          data.table = c("FCR_2021-05-06_upto.csv"),
+                          data.table = c("20211008_EddyPro_Cleaned.csv"),
                           write.file = TRUE)
 
 
@@ -58,7 +61,7 @@ template_table_attributes(path = "C:/Users/ahoun/Desktop/EddyFlux/EDI",
 #as columns within our dataset but would like to provide them
 template_geographic_coverage(path = "C:/Users/ahoun/Desktop/EddyFlux/EDI",
                              data.path = "C:/Users/ahoun/Desktop/EddyFlux/EDI",
-                             data.table = c("FCR_2021-05-06_upto.csv"),
+                             data.table = c("20211008_EddyPro_Cleaned.csv"),
                              empty = TRUE,
                              write.file = TRUE)
 
@@ -78,7 +81,7 @@ template_geographic_coverage(path = "C:/Users/ahoun/Desktop/EddyFlux/EDI",
 #paste text and click remove diacritics
 
 #Step 9: Additional information
-# No additional information for inflow data
+# Include authorship statement in the additional information
 
 #Step 10: Keywords
 #DO NOT EDIT KEYWORDS FILE USING A TEXT EDITOR!! USE EXCEL!!
@@ -102,19 +105,15 @@ view_unit_dictionary()
 # Run this function for your dataset
 #THIS WILL ONLY WORK once you have filled out the attributes_chemistry.txt and
 #identified which variables are categorical
-template_categorical_variables(path = "C:/Users/Adam/Documents/Alex/Reservoirs/Data/DataAlreadyUploadedToEDI/EDIProductionFiles/MakeEMLInflow/Jan2021",
-                               data.path = "C:/Users/Adam/Documents/Alex/Reservoirs/Data/DataAlreadyUploadedToEDI/EDIProductionFiles/MakeEMLInflow/Jan2021",
+template_categorical_variables(path = "C:/Users/ahoun/Desktop/EddyFlux/EDI",
+                               data.path = "C:/Users/ahoun/Desktop/EddyFlux/EDI",
                                write.file = TRUE)
-# For 2021 - Ended up adding cavars manually for the two rating curves!
-
-#open the created value IN A SPREADSHEET EDITOR and add a definition for each category
-# Categorical variables for RatingCurves ONLY
 
 #Step 15: Geographic coverage
 #copy-paste the bounding_boxes.txt file (or geographic_coverage.txt file) that is Carey Lab specific into your working directory
 
 #Step 16: Custom units
-# Copy and pased custom units .txt file from prior year
+# Copy and paste custom units .txt file from prior year
 
 ## Step 17: Obtain a package.id FROM STAGING ENVIRONMENT. ####
 # Go to the EDI staging environment (https://portal-s.edirepository.org/nis/home.jsp),
@@ -133,19 +132,19 @@ template_categorical_variables(path = "C:/Users/Adam/Documents/Alex/Reservoirs/D
 ## Make EML for staging environment
 ## NOTE: Will need to check geographic coordinates!!!
 make_eml(
-  path = "C:/Users/ahoun/Desktop/Reservoirs/Data/DataAlreadyUploadedToEDI/EDIProductionFiles/MakeEMLInflow/Jan2021",
-  data.path = "C:/Users/ahoun/Desktop/Reservoirs/Data/DataAlreadyUploadedToEDI/EDIProductionFiles/MakeEMLInflow/Jan2021",
-  eml.path = "C:/Users/ahoun/Desktop/Reservoirs/Data/DataAlreadyUploadedToEDI/EDIProductionFiles/MakeEMLInflow/Jan2021",
-  dataset.title = "Discharge time series for the primary inflow tributary entering Falling Creek Reservoir, Vinton, Virginia, USA 2013-2021",
-  temporal.coverage = c("2013-05-15", "2021-01-10"),
+  path = "C:/Users/ahoun/Desktop/EddyFlux/EDI",
+  data.path = "C:/Users/ahoun/Desktop/EddyFlux/EDI",
+  eml.path = "C:/Users/ahoun/Desktop/EddyFlux/EDI",
+  dataset.title = "Time series of carbon dioxide and methane fluxes measured with eddy covariance for Falling Creek Reservoir in southwestern Virginia, USA during 2020-2021",
+  temporal.coverage = c("2020-04-04", "2021-05-06"),
   maintenance.description = 'ongoing',
-  data.table = c("inflow_for_EDI_2013_10Jan2021.csv","20210108_RatingCurve_WVWA.csv","20210108_RatingCurve_VT.csv"),
-  data.table.description = c("FCR inflow dataset","Rating curve WVWA","Rating curve VT"),
-  other.entity= 'Inflow_Aggregation_EDI_Jan2021.R',
-  other.entity.description = "QA/QC Code for Discharge aggregation",
+  data.table = c("20211008_EddyPro_Cleaned.csv"),
+  data.table.description = c("EC Data"),
+  other.entity= c("EddyPro_CleanUp.R","FCR_Process_BD.R","despike.R"),
+  other.entity.description = c("R script to clean-up Eddy Pro output","R script for post-processing of EC data","Depsike function needed for post-processing"),
   user.id = 'ccarey',
   user.domain = 'EDI',
-  package.id = 'edi.126.4')
+  package.id = 'edi.692.2')
 
 ## Step 8: Check your data product! ####
 # Return to the EDI staging environment (https://portal-s.edirepository.org/nis/home.jsp),

@@ -1,1 +1,16 @@
 keyword	keywordThesaurus
+greenhouse gas	carey lab controlled vocabulary
+reservoir	cuahsi controlled vocabulary
+methane	lter controlled vocabulary
+carbon dioxide	lter controlled vocabulary
+Virginia Tech	carey lab controlled vocabulary
+Stream Team	carey lab controlled vocabulary
+lake	cuahsi controlled vocabulary
+lakes	lter controlled vocabulary
+Western Virginia Water Authority	carey lab controlled vocabulary
+Falling Creek Reservoir	carey lab controlled vocabulary
+gas flux	lter controlled vocabulary
+heat flux	lter controlled vocabulary
+eddy covariance	lter controlled vocabulary
+fluxes	lter controlled vocabulary
+meteorology	lter controlled vocabulary
