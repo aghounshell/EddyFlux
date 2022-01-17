@@ -1,4 +1,4 @@
-### Calculating diffusive fluxes from dissolved GHGs using the Cole method,
+### Calculating diffusive fluxes from dissolved GHGs using the Vachon method,
 ### compare to eddy covariance fluxes, calculate diel differences, calculate 
 ### differences in intermittent ice-on and full ice-off and calculative
 ### annual emissions
@@ -80,30 +80,27 @@ ggplot(met_all,mapping=aes(x=DateTime,y=WindSpeed_Average_m_s))+
 ## From EDI (2015-2020) on 28 May 2021
 ## WILL NEED TO UPDATE WITH EDI PUBLICATION!
 
-##inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/551/5/38d72673295864956cccd6bbba99a1a3" 
-##infile1 <- paste0(getwd(),"/Data/Dissolved_CO2_CH4_Virginia_Reservoirs.csv")
-##download.file(inUrl1,infile1,method="curl")
+## USING STAGED DATA FOR NOW!
+#inUrl1  <- "https://pasta-s.lternet.edu/package/data/eml/edi/705/2/38d72673295864956cccd6bbba99a1a3" 
+#infile1 <- paste0(getwd(),"/Data/final_GHG_2015-2021.csv")
+#download.file(inUrl1,infile1,method="curl")
 
-ghg_edi <- read.csv("./Data/Dissolved_CO2_CH4_Virginia_Reservoirs.csv", header=T) %>%
-  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) %>% 
+ghg <- read.csv("./Data/final_GHG_2015-2021.csv") %>% 
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d %H:%M", tz="EST"))) %>% 
+  mutate(DateTime = round_date(DateTime, "30 mins")) %>% 
   filter(Reservoir == "FCR" & Site == 50 & Depth_m == 0.1) %>% 
-  filter(DateTime >= "2020-01-01") %>% 
-  select(-c("flag_ch4","flag_co2")) %>% 
-  mutate(DateTime = DateTime + hours(12) + minutes(00) + seconds(00))
+  filter(DateTime >= "2020-01-01")
 
-# Then will need to get preliminary GHG data from Reservoir Drive
-ghg_git <- read.csv("./Data/20210601_GHGs.csv", header=T) %>% 
-  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) %>% 
-  filter(Reservoir == "fcr" & Depth_m == 0.1) %>% 
-  mutate(ch4_umolL = ifelse(ch4_umolL <= 0.00103, NA, ch4_umolL)) %>% # Remove samples below MDL
-  mutate(co2_umolL = ifelse(co2_umolL <= 3.75, NA, co2_umolL)) %>% # Remove samples below MDL
-  mutate(Site = 50) %>% 
-  relocate(Reservoir, .before = DateTime) %>% 
-  relocate(Site, .after = Reservoir) %>% 
-  mutate(Reservoir = "FCR")
+## Remove samples with Flag = 2 (below detection; set to zero)
+ghg <- ghg %>% 
+  mutate(ch4_umolL = ifelse(flag_ch4 == 2, 0, ch4_umolL),
+         co2_umolL = ifelse(flag_co2 == 2, 0, co2_umolL)) %>% 
+  select(-flag_ch4,-flag_co2)
 
-# Merge edi and git data
-ghg <- rbind(ghg_edi,ghg_git)
+## Check for time range when samples were generally collected
+ghg_time <- ghg %>% 
+  filter(DateTime >= as.POSIXct("2020-04-05 20:00:00") & DateTime < as.POSIXct("2021-04-05 20:00:00")) %>% 
+  mutate(hour = hour(DateTime))
 
 ## Plot to check
 ## Methane
@@ -118,6 +115,11 @@ ggplot(ghg,mapping=aes(x=DateTime,y=co2_umolL))+
   geom_line()+
   theme_classic(base_size = 15)
 
+## Determine time range when samples were generally taken:
+ghg_time <- ghg %>%
+  filter(DateTime >= as.POSIXct("2020-04-05") & DateTime <= as.POSIXct("2021-04-06")) %>% 
+  mutate(hour = hour(DateTime))
+
 ## Separate by rep
 ghg_1 <- ghg %>% 
   filter(Rep == 1)
@@ -128,6 +130,7 @@ ghg_2 <- ghg %>%
 ### Calculate Fluxes ----
 # Following Lake Metabolizer (Winslow et al. 2016)
 # Load in catwalk data for surface water temperature
+## UPDATE FOR 2022 EDI PUBLICATION!!!
 catwalk <- read.csv("./Data/Catwalk_EDI_2018-2021.csv") %>% 
   mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d %H:%M:%S", tz = "EST")) %>% 
   filter(DateTime >= as.POSIXct("2020-04-05 20:00:00") & DateTime < as.POSIXct("2021-04-05 20:00:00"))
@@ -151,8 +154,7 @@ catwalk_30 <- catwalk_30 %>%
 # Combine w/ met data to ensure even timeseries
 all_data <- left_join(met_30_2,catwalk_30,by="DateTime")
 
-# Use PAR profiles to estimate Kd for each day of the year
-# UPDATE FOLLOWING EDI 2021 DATA!
+# Use PAR profiles to estimate Kd for the entire year
 #inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/200/11/d771f5e9956304424c3bc0a39298a5ce" 
 #infile1 <- paste0(getwd(),"/Data/CTD_final_2013_2020.csv")
 #download.file(inUrl1,infile1,method="curl")
@@ -468,6 +470,26 @@ fluxes_rep2 <- fluxes_2 %>%
 
 fluxes_all <- rbind(fluxes_rep1,fluxes_rep2)
 
+fluxes_long_co2 <- fluxes_all %>% 
+  select(DateTime,Rep,co2_flux_k600_Cole,co2_flux_k600_Crusius,co2_flux_k600_Heiskanen,co2_flux_k600_MacIntyre,
+         co2_flux_k600_Read,co2_flux_k600_Soloviev,co2_flux_k600_Vachon) %>% 
+  pivot_longer(!c(DateTime,Rep),names_to = "flux_type",values_to = "co2_flux_umolm2s")
+
+fluxes_long_ch4 <- fluxes_all %>% 
+  select(DateTime,Rep,ch4_flux_k600_Cole,ch4_flux_k600_Crusius,ch4_flux_k600_Heiskanen,ch4_flux_k600_MacIntyre,
+         ch4_flux_k600_Read,ch4_flux_k600_Soloviev,ch4_flux_k600_Vachon) %>% 
+  pivot_longer(!c(DateTime,Rep),names_to = "flux_type",values_to = "ch4_flux_umolm2s")
+
+flux_avg_co2 <- fluxes_long_co2 %>% 
+  select(DateTime,co2_flux_umolm2s) %>% 
+  group_by(DateTime) %>% 
+  summarise_all(funs(mean,sd),na.rm=TRUE)
+
+flux_avg_ch4 <- fluxes_long_ch4 %>% 
+  select(DateTime,ch4_flux_umolm2s) %>% 
+  group_by(DateTime) %>% 
+  summarise_all(funs(mean,sd),na.rm=TRUE)
+
 fluxes_all <- fluxes_all %>% 
   arrange(DateTime,Rep) %>% 
   group_by(DateTime) %>% 
@@ -476,7 +498,7 @@ fluxes_all <- fluxes_all %>%
 
 ## Plot different models for diffusive fluxes
 ch4_k600 <- ggplot()+
-  geom_line(fluxes_all,mapping=aes(DateTime,ch4_flux_k600_Cole_mean,color="Cole"))+
+  geom_line(fluxes_all,mapping=aes(DateTime,ch4_flux_k600_Vachon_mean,color="Vachon"))+
   #geom_line(fluxes_all,mapping=aes(DateTime,ch4_flux_k600_Crusius_mean,color="Crusius"))+
   geom_line(fluxes_all,mapping=aes(DateTime,ch4_flux_k600_Heiskanen_mean,color="Heiskanen"))+
   #geom_line(fluxes_all,mapping=aes(DateTime,ch4_flux_k600_MacIntyre_mean,color="MacIntyre"))+
@@ -486,7 +508,7 @@ ch4_k600 <- ggplot()+
   theme_classic(base_size =15)
 
 co2_k600 <- ggplot()+
-  geom_line(fluxes_all,mapping=aes(DateTime,co2_flux_k600_Cole_mean,color="Cole"))+
+  geom_line(fluxes_all,mapping=aes(DateTime,co2_flux_k600_Vachon_mean,color="Vachon"))+
   #geom_line(fluxes_all,mapping=aes(DateTime,co2_flux_k600_Crusius_mean,color="Crusius"))+
   geom_line(fluxes_all,mapping=aes(DateTime,co2_flux_k600_Heiskanen_mean,color="Heiskanen"))+
   #geom_line(fluxes_all,mapping=aes(DateTime,co2_flux_k600_MacIntyre_mean,color="MacIntyre"))+
@@ -500,22 +522,44 @@ ggarrange(co2_k600,ch4_k600,ncol=1,nrow=2,labels=c("A.","B."),font.label = list(
 ggsave("./Fig_Output/k600_Comps_Diff_fluxes_select.jpg",width = 8, height=6, units="in",dpi=320)
 
 ## Select dates where we actually have GHG concentrations
+# Make sure dates are on the half hour for all the ghg_fluxes
+fluxes_all <- fluxes_all %>% 
+  mutate(DateTime = round_date(DateTime, "30 mins"))
+
 ghg_fluxes <- left_join(ghg_1,fluxes_all,by="DateTime")
 
+ghg_fluxes_avg_co2 <- left_join(ghg_1,flux_avg_co2,by="DateTime")
+
+ghg_fluxes_avg_ch4 <- left_join(ghg_1,flux_avg_ch4,by="DateTime")
+
 ## Calculate stats for GHG diffusive fluxes (used in Table S5, aggregated below w/ EC data)
-ghg_stats_cole <- fluxes_all %>% 
-  summarise(min_co2_cole = min(co2_flux_k600_Cole_mean,na.rm = TRUE),
-            max_co2_cole = max(co2_flux_k600_Cole_mean,na.rm=TRUE),
-            med_co2_cole = median(co2_flux_k600_Cole_mean,na.rm=TRUE),
-            mean_co2_cole = mean(co2_flux_k600_Cole_mean,na.rm=TRUE),
-            sd_co2_cole = sd(co2_flux_k600_Cole_mean,na.rm=TRUE),
-            cv_co2_cole = sd(co2_flux_k600_Cole_mean,na.rm=TRUE)/mean(co2_flux_k600_Cole_mean,na.rm=TRUE)*100,
-            min_ch4_cole = min(ch4_flux_k600_Cole_mean,na.rm = TRUE),
-            max_ch4_cole = max(ch4_flux_k600_Cole_mean,na.rm=TRUE),
-            med_ch4_cole = median(ch4_flux_k600_Cole_mean,na.rm=TRUE),
-            mean_ch4_cole = mean(ch4_flux_k600_Cole_mean,na.rm=TRUE),
-            sd_ch4_cole = sd(ch4_flux_k600_Cole_mean,na.rm=TRUE),
-            cv_ch4_cole = sd(ch4_flux_k600_Cole_mean,na.rm=TRUE)/mean(ch4_flux_k600_Cole_mean,na.rm=TRUE)*100)
+ghg_stats_Cole <- fluxes_all %>% 
+  summarise(min_co2_Cole = min(co2_flux_k600_Cole_mean,na.rm = TRUE),
+            max_co2_Cole = max(co2_flux_k600_Cole_mean,na.rm=TRUE),
+            med_co2_Cole = median(co2_flux_k600_Cole_mean,na.rm=TRUE),
+            mean_co2_Cole = mean(co2_flux_k600_Cole_mean,na.rm=TRUE),
+            sd_co2_Cole = sd(co2_flux_k600_Cole_mean,na.rm=TRUE),
+            cv_co2_Cole = sd(co2_flux_k600_Cole_mean,na.rm=TRUE)/mean(co2_flux_k600_Cole_mean,na.rm=TRUE)*100,
+            min_ch4_Cole = min(ch4_flux_k600_Cole_mean,na.rm = TRUE),
+            max_ch4_Cole = max(ch4_flux_k600_Cole_mean,na.rm=TRUE),
+            med_ch4_Cole = median(ch4_flux_k600_Cole_mean,na.rm=TRUE),
+            mean_ch4_Cole = mean(ch4_flux_k600_Cole_mean,na.rm=TRUE),
+            sd_ch4_Cole = sd(ch4_flux_k600_Cole_mean,na.rm=TRUE),
+            cv_ch4_Cole = sd(ch4_flux_k600_Cole_mean,na.rm=TRUE)/mean(ch4_flux_k600_Cole_mean,na.rm=TRUE)*100)
+
+ghg_stats_Crusius <- fluxes_all %>% 
+  summarise(min_co2_Crusius = min(co2_flux_k600_Crusius_mean,na.rm = TRUE),
+            max_co2_Crusius = max(co2_flux_k600_Crusius_mean,na.rm=TRUE),
+            med_co2_Crusius = median(co2_flux_k600_Crusius_mean,na.rm=TRUE),
+            mean_co2_Crusius = mean(co2_flux_k600_Crusius_mean,na.rm=TRUE),
+            sd_co2_Crusius = sd(co2_flux_k600_Crusius_mean,na.rm=TRUE),
+            cv_co2_Crusius = sd(co2_flux_k600_Crusius_mean,na.rm=TRUE)/mean(co2_flux_k600_Crusius_mean,na.rm=TRUE)*100,
+            min_ch4_Crusius = min(ch4_flux_k600_Crusius_mean,na.rm = TRUE),
+            max_ch4_Crusius = max(ch4_flux_k600_Crusius_mean,na.rm=TRUE),
+            med_ch4_Crusius = median(ch4_flux_k600_Crusius_mean,na.rm=TRUE),
+            mean_ch4_Crusius = mean(ch4_flux_k600_Crusius_mean,na.rm=TRUE),
+            sd_ch4_Crusius = sd(ch4_flux_k600_Crusius_mean,na.rm=TRUE),
+            cv_ch4_Crusius = sd(ch4_flux_k600_Crusius_mean,na.rm=TRUE)/mean(ch4_flux_k600_Crusius_mean,na.rm=TRUE)*100)
 
 ghg_stats_heiskanen <- fluxes_all %>% 
   summarise(min_co2_Heiskanen = min(co2_flux_k600_Heiskanen_mean,na.rm = TRUE),
@@ -531,22 +575,109 @@ ghg_stats_heiskanen <- fluxes_all %>%
             sd_ch4_Heiskanen = sd(ch4_flux_k600_Heiskanen_mean,na.rm=TRUE),
             cv_ch4_Heiskanen = sd(ch4_flux_k600_Heiskanen_mean,na.rm=TRUE)/mean(ch4_flux_k600_Heiskanen_mean,na.rm=TRUE)*100)
 
+ghg_stats_MacIntyre <- fluxes_all %>% 
+  summarise(min_co2_MacIntyre = min(co2_flux_k600_MacIntyre_mean,na.rm = TRUE),
+            max_co2_MacIntyre = max(co2_flux_k600_MacIntyre_mean,na.rm=TRUE),
+            med_co2_MacIntyre = median(co2_flux_k600_MacIntyre_mean,na.rm=TRUE),
+            mean_co2_MacIntyre = mean(co2_flux_k600_MacIntyre_mean,na.rm=TRUE),
+            sd_co2_MacIntyre = sd(co2_flux_k600_MacIntyre_mean,na.rm=TRUE),
+            cv_co2_MacIntyre = sd(co2_flux_k600_MacIntyre_mean,na.rm=TRUE)/mean(co2_flux_k600_MacIntyre_mean,na.rm=TRUE)*100,
+            min_ch4_MacIntyre = min(ch4_flux_k600_MacIntyre_mean,na.rm = TRUE),
+            max_ch4_MacIntyre = max(ch4_flux_k600_MacIntyre_mean,na.rm=TRUE),
+            med_ch4_MacIntyre = median(ch4_flux_k600_MacIntyre_mean,na.rm=TRUE),
+            mean_ch4_MacIntyre = mean(ch4_flux_k600_MacIntyre_mean,na.rm=TRUE),
+            sd_ch4_MacIntyre = sd(ch4_flux_k600_MacIntyre_mean,na.rm=TRUE),
+            cv_ch4_MacIntyre = sd(ch4_flux_k600_MacIntyre_mean,na.rm=TRUE)/mean(ch4_flux_k600_MacIntyre_mean,na.rm=TRUE)*100)
+
+ghg_stats_Read <- fluxes_all %>% 
+  summarise(min_co2_Read = min(co2_flux_k600_Read_mean,na.rm = TRUE),
+            max_co2_Read = max(co2_flux_k600_Read_mean,na.rm=TRUE),
+            med_co2_Read = median(co2_flux_k600_Read_mean,na.rm=TRUE),
+            mean_co2_Read = mean(co2_flux_k600_Read_mean,na.rm=TRUE),
+            sd_co2_Read = sd(co2_flux_k600_Read_mean,na.rm=TRUE),
+            cv_co2_Read = sd(co2_flux_k600_Read_mean,na.rm=TRUE)/mean(co2_flux_k600_Read_mean,na.rm=TRUE)*100,
+            min_ch4_Read = min(ch4_flux_k600_Read_mean,na.rm = TRUE),
+            max_ch4_Read = max(ch4_flux_k600_Read_mean,na.rm=TRUE),
+            med_ch4_Read = median(ch4_flux_k600_Read_mean,na.rm=TRUE),
+            mean_ch4_Read = mean(ch4_flux_k600_Read_mean,na.rm=TRUE),
+            sd_ch4_Read = sd(ch4_flux_k600_Read_mean,na.rm=TRUE),
+            cv_ch4_Read = sd(ch4_flux_k600_Read_mean,na.rm=TRUE)/mean(ch4_flux_k600_Read_mean,na.rm=TRUE)*100)
+
+ghg_stats_Soloviev <- fluxes_all %>% 
+  summarise(min_co2_Soloviev = min(co2_flux_k600_Soloviev_mean,na.rm = TRUE),
+            max_co2_Soloviev = max(co2_flux_k600_Soloviev_mean,na.rm=TRUE),
+            med_co2_Soloviev = median(co2_flux_k600_Soloviev_mean,na.rm=TRUE),
+            mean_co2_Soloviev = mean(co2_flux_k600_Soloviev_mean,na.rm=TRUE),
+            sd_co2_Soloviev = sd(co2_flux_k600_Soloviev_mean,na.rm=TRUE),
+            cv_co2_Soloviev = sd(co2_flux_k600_Soloviev_mean,na.rm=TRUE)/mean(co2_flux_k600_Soloviev_mean,na.rm=TRUE)*100,
+            min_ch4_Soloviev = min(ch4_flux_k600_Soloviev_mean,na.rm = TRUE),
+            max_ch4_Soloviev = max(ch4_flux_k600_Soloviev_mean,na.rm=TRUE),
+            med_ch4_Soloviev = median(ch4_flux_k600_Soloviev_mean,na.rm=TRUE),
+            mean_ch4_Soloviev = mean(ch4_flux_k600_Soloviev_mean,na.rm=TRUE),
+            sd_ch4_Soloviev = sd(ch4_flux_k600_Soloviev_mean,na.rm=TRUE),
+            cv_ch4_Soloviev = sd(ch4_flux_k600_Soloviev_mean,na.rm=TRUE)/mean(ch4_flux_k600_Soloviev_mean,na.rm=TRUE)*100)
+
+ghg_stats_Vachon <- fluxes_all %>% 
+  summarise(min_co2_Vachon = min(co2_flux_k600_Vachon_mean,na.rm = TRUE),
+            max_co2_Vachon = max(co2_flux_k600_Vachon_mean,na.rm=TRUE),
+            med_co2_Vachon = median(co2_flux_k600_Vachon_mean,na.rm=TRUE),
+            mean_co2_Vachon = mean(co2_flux_k600_Vachon_mean,na.rm=TRUE),
+            sd_co2_Vachon = sd(co2_flux_k600_Vachon_mean,na.rm=TRUE),
+            cv_co2_Vachon = sd(co2_flux_k600_Vachon_mean,na.rm=TRUE)/mean(co2_flux_k600_Vachon_mean,na.rm=TRUE)*100,
+            min_ch4_Vachon = min(ch4_flux_k600_Vachon_mean,na.rm = TRUE),
+            max_ch4_Vachon = max(ch4_flux_k600_Vachon_mean,na.rm=TRUE),
+            med_ch4_Vachon = median(ch4_flux_k600_Vachon_mean,na.rm=TRUE),
+            mean_ch4_Vachon = mean(ch4_flux_k600_Vachon_mean,na.rm=TRUE),
+            sd_ch4_Vachon = sd(ch4_flux_k600_Vachon_mean,na.rm=TRUE),
+            cv_ch4_Vachon = sd(ch4_flux_k600_Vachon_mean,na.rm=TRUE)/mean(ch4_flux_k600_Vachon_mean,na.rm=TRUE)*100)
+
+ghg_stats_all_co2 <- fluxes_long_co2 %>% 
+  summarise(min_co2 = min(co2_flux_umolm2s,na.rm = TRUE),
+            max_co2 = max(co2_flux_umolm2s,na.rm=TRUE),
+            med_co2 = median(co2_flux_umolm2s,na.rm=TRUE),
+            mean_co2 = mean(co2_flux_umolm2s,na.rm=TRUE),
+            sd_co2 = sd(co2_flux_umolm2s,na.rm=TRUE),
+            cv_co2 = sd(co2_flux_umolm2s,na.rm=TRUE)/mean(co2_flux_umolm2s,na.rm=TRUE)*100)
+
+ghg_stats_all_ch4 <- fluxes_long_ch4 %>% 
+  summarise(min_ch4 = min(ch4_flux_umolm2s,na.rm = TRUE),
+            max_ch4 = max(ch4_flux_umolm2s,na.rm=TRUE),
+            med_ch4 = median(ch4_flux_umolm2s,na.rm=TRUE),
+            mean_ch4 = mean(ch4_flux_umolm2s,na.rm=TRUE),
+            sd_ch4 = sd(ch4_flux_umolm2s,na.rm=TRUE),
+            cv_ch4 = sd(ch4_flux_umolm2s,na.rm=TRUE)/mean(ch4_flux_umolm2s,na.rm=TRUE)*100)
 
 ## Plot Diffusive fluxes for Supplementary (Figure S5)
-ch4_diff_cole <- ggplot(ghg_fluxes)+
+ch4_diff_Cole <- ggplot(ghg_fluxes)+
+  annotate(geom="text",x=as.POSIXct("2020-05-15"),y=0.095,label="Cole",size=5)+
   geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
   geom_point(fluxes_all,mapping=aes(x=DateTime,y=ch4_flux_k600_Cole_mean),color="grey",alpha=0.1)+
-  geom_errorbar(mapping=aes(x=DateTime,ymin=ch4_flux_k600_Cole_mean-ch4_flux_k600_Cole_sd,ymax=ch4_flux_k600_Cole_mean+ch4_flux_k600_Cole_sd),size=1,color="#013220")+
-  geom_line(mapping=aes(DateTime,ch4_flux_k600_Cole_mean),size = 1,color="#013220") +
-  geom_point(mapping=aes(DateTime,ch4_flux_k600_Cole_mean),size=3,color="#013220") +
+  geom_errorbar(mapping=aes(x=DateTime,ymin=ch4_flux_k600_Cole_mean-ch4_flux_k600_Cole_sd,ymax=ch4_flux_k600_Cole_mean+ch4_flux_k600_Cole_sd),size=1,color="#4c8bfe")+
+  geom_line(mapping=aes(DateTime,ch4_flux_k600_Cole_mean),size = 1,color="#4c8bfe") +
+  geom_point(mapping=aes(DateTime,ch4_flux_k600_Cole_mean),size=3,color="#4c8bfe") +
   xlab("") +
   ylab(expression(~CH[4]~(mu~mol~m^-2~s^-1))) +
   geom_hline(yintercept = 0, lty = 2) +
   xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-04-06"))+
-  ylim(-0.005,0.04)+
+  ylim(-0.005,0.1)+
+  theme_classic(base_size = 15)
+
+ch4_diff_crusius <- ggplot(ghg_fluxes)+
+  annotate(geom="text",x=as.POSIXct("2020-05-15"),y=0.095,label="Crusius",size=5)+
+  geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
+  geom_point(fluxes_all,mapping=aes(x=DateTime,y=ch4_flux_k600_Crusius_mean),color="grey",alpha=0.1)+
+  geom_errorbar(mapping=aes(x=DateTime,ymin=ch4_flux_k600_Crusius_mean-ch4_flux_k600_Crusius_sd,ymax=ch4_flux_k600_Crusius_mean+ch4_flux_k600_Crusius_sd),size=1,color="#4c8bfe")+
+  geom_line(mapping=aes(DateTime,ch4_flux_k600_Crusius_mean),size = 1,color="#4c8bfe") +
+  geom_point(mapping=aes(DateTime,ch4_flux_k600_Crusius_mean),size=3,color="#4c8bfe") +
+  xlab("") +
+  ylab(expression(~CH[4]~(mu~mol~m^-2~s^-1))) +
+  geom_hline(yintercept = 0, lty = 2) +
+  xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-04-06"))+
+  ylim(-0.005,0.1)+
   theme_classic(base_size = 15)
 
 ch4_diff_Heiskanen <- ggplot(ghg_fluxes)+
+  annotate(geom="text",x=as.POSIXct("2020-05-15"),y=0.095,label="Heiskanen",size=5)+
   geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
   geom_point(fluxes_all,mapping=aes(x=DateTime,y=ch4_flux_k600_Heiskanen_mean),color="grey",alpha=0.1)+
   geom_errorbar(mapping=aes(x=DateTime,ymin=ch4_flux_k600_Heiskanen_mean-ch4_flux_k600_Heiskanen_sd,ymax=ch4_flux_k600_Heiskanen_mean+ch4_flux_k600_Heiskanen_sd),size=1,color="#4c8bfe")+
@@ -556,23 +687,95 @@ ch4_diff_Heiskanen <- ggplot(ghg_fluxes)+
   ylab(expression(~CH[4]~(mu~mol~m^-2~s^-1))) +
   geom_hline(yintercept = 0, lty = 2) +
   xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-04-06"))+
-  ylim(-0.005,0.04)+
+  ylim(-0.005,0.1)+
   theme_classic(base_size = 15)
 
-co2_diff_cole <- ggplot(ghg_fluxes)+
+ch4_diff_MacIntyre <- ggplot(ghg_fluxes)+
+  annotate(geom="text",x=as.POSIXct("2020-05-15"),y=0.095,label="MacIntyre",size=5)+
+  geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
+  geom_point(fluxes_all,mapping=aes(x=DateTime,y=ch4_flux_k600_MacIntyre_mean),color="grey",alpha=0.1)+
+  geom_errorbar(mapping=aes(x=DateTime,ymin=ch4_flux_k600_MacIntyre_mean-ch4_flux_k600_MacIntyre_sd,ymax=ch4_flux_k600_MacIntyre_mean+ch4_flux_k600_MacIntyre_sd),size=1,color="#4c8bfe")+
+  geom_line(mapping=aes(DateTime,ch4_flux_k600_MacIntyre_mean),size = 1,color="#4c8bfe") +
+  geom_point(mapping=aes(DateTime,ch4_flux_k600_MacIntyre_mean),size=3,color="#4c8bfe") +
+  xlab("") +
+  ylab(expression(~CH[4]~(mu~mol~m^-2~s^-1))) +
+  geom_hline(yintercept = 0, lty = 2) +
+  xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-04-06"))+
+  ylim(-0.005,0.1)+
+  theme_classic(base_size = 15)
+
+ch4_diff_Read <- ggplot(ghg_fluxes)+
+  annotate(geom="text",x=as.POSIXct("2020-05-15"),y=0.095,label="Read",size=5)+
+  geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
+  geom_point(fluxes_all,mapping=aes(x=DateTime,y=ch4_flux_k600_Read_mean),color="grey",alpha=0.1)+
+  geom_errorbar(mapping=aes(x=DateTime,ymin=ch4_flux_k600_Read_mean-ch4_flux_k600_Read_sd,ymax=ch4_flux_k600_Read_mean+ch4_flux_k600_Read_sd),size=1,color="#4c8bfe")+
+  geom_line(mapping=aes(DateTime,ch4_flux_k600_Read_mean),size = 1,color="#4c8bfe") +
+  geom_point(mapping=aes(DateTime,ch4_flux_k600_Read_mean),size=3,color="#4c8bfe") +
+  xlab("") +
+  ylab(expression(~CH[4]~(mu~mol~m^-2~s^-1))) +
+  geom_hline(yintercept = 0, lty = 2) +
+  xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-04-06"))+
+  ylim(-0.005,0.1)+
+  theme_classic(base_size = 15)
+
+ch4_diff_Soloviev <- ggplot(ghg_fluxes)+
+  annotate(geom="text",x=as.POSIXct("2020-05-15"),y=0.095,label="Soloviev",size=5)+
+  geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
+  geom_point(fluxes_all,mapping=aes(x=DateTime,y=ch4_flux_k600_Soloviev_mean),color="grey",alpha=0.1)+
+  geom_errorbar(mapping=aes(x=DateTime,ymin=ch4_flux_k600_Soloviev_mean-ch4_flux_k600_Soloviev_sd,ymax=ch4_flux_k600_Soloviev_mean+ch4_flux_k600_Soloviev_sd),size=1,color="#4c8bfe")+
+  geom_line(mapping=aes(DateTime,ch4_flux_k600_Soloviev_mean),size = 1,color="#4c8bfe") +
+  geom_point(mapping=aes(DateTime,ch4_flux_k600_Soloviev_mean),size=3,color="#4c8bfe") +
+  xlab("") +
+  ylab(expression(~CH[4]~(mu~mol~m^-2~s^-1))) +
+  geom_hline(yintercept = 0, lty = 2) +
+  xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-04-06"))+
+  ylim(-0.005,0.1)+
+  theme_classic(base_size = 15)
+
+ch4_diff_Vachon <- ggplot(ghg_fluxes)+
+  annotate(geom="text",x=as.POSIXct("2020-05-15"),y=0.095,label="Vachon",size=5)+
+  geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
+  geom_point(fluxes_all,mapping=aes(x=DateTime,y=ch4_flux_k600_Vachon_mean),color="grey",alpha=0.1)+
+  geom_errorbar(mapping=aes(x=DateTime,ymin=ch4_flux_k600_Vachon_mean-ch4_flux_k600_Vachon_sd,ymax=ch4_flux_k600_Vachon_mean+ch4_flux_k600_Vachon_sd),size=1,color="#4c8bfe")+
+  geom_line(mapping=aes(DateTime,ch4_flux_k600_Vachon_mean),size = 1,color="#4c8bfe") +
+  geom_point(mapping=aes(DateTime,ch4_flux_k600_Vachon_mean),size=3,color="#4c8bfe") +
+  xlab("") +
+  ylab(expression(~CH[4]~(mu~mol~m^-2~s^-1))) +
+  geom_hline(yintercept = 0, lty = 2) +
+  xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-04-06"))+
+  ylim(-0.005,0.1)+
+  theme_classic(base_size = 15)
+
+co2_diff_Cole <- ggplot(ghg_fluxes)+
+  annotate(geom="text",x=as.POSIXct("2020-05-15"),y=35,label="Cole",size=5)+
   geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
   geom_point(fluxes_all,mapping=aes(x=DateTime,y=co2_flux_k600_Cole_mean),color="grey",alpha=0.1)+
-  geom_errorbar(mapping=aes(x=DateTime,ymin=co2_flux_k600_Cole_mean-co2_flux_k600_Cole_sd,ymax=co2_flux_k600_Cole_mean+co2_flux_k600_Cole_sd),size=1,color="#013220")+
-  geom_line(mapping=aes(DateTime,co2_flux_k600_Cole_mean),size = 1,color="#013220") +
-  geom_point(mapping=aes(DateTime,co2_flux_k600_Cole_mean),size=3,color="#013220") +
+  geom_errorbar(mapping=aes(x=DateTime,ymin=co2_flux_k600_Cole_mean-co2_flux_k600_Cole_sd,ymax=co2_flux_k600_Cole_mean+co2_flux_k600_Cole_sd),size=1,color="#4c8bfe")+
+  geom_line(mapping=aes(DateTime,co2_flux_k600_Cole_mean),size = 1,color="#4c8bfe") +
+  geom_point(mapping=aes(DateTime,co2_flux_k600_Cole_mean),size=3,color="#4c8bfe") +
   xlab("") +
   ylab(expression(~CO[2]~(mu~mol~m^-2~s^-1))) +
   geom_hline(yintercept = 0, lty = 2) +
   xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-04-06"))+
-  ylim(-1,15)+
+  ylim(-2,36)+
+  theme_classic(base_size = 15)
+
+co2_diff_Crusius <- ggplot(ghg_fluxes)+
+  annotate(geom="text",x=as.POSIXct("2020-05-15"),y=35,label="Crusius",size=5)+
+  geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
+  geom_point(fluxes_all,mapping=aes(x=DateTime,y=co2_flux_k600_Crusius_mean),color="grey",alpha=0.1)+
+  geom_errorbar(mapping=aes(x=DateTime,ymin=co2_flux_k600_Crusius_mean-co2_flux_k600_Crusius_sd,ymax=co2_flux_k600_Crusius_mean+co2_flux_k600_Crusius_sd),size=1,color="#4c8bfe")+
+  geom_line(mapping=aes(DateTime,co2_flux_k600_Crusius_mean),size = 1,color="#4c8bfe") +
+  geom_point(mapping=aes(DateTime,co2_flux_k600_Crusius_mean),size=3,color="#4c8bfe") +
+  xlab("") +
+  ylab(expression(~CO[2]~(mu~mol~m^-2~s^-1))) +
+  geom_hline(yintercept = 0, lty = 2) +
+  xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-04-06"))+
+  ylim(-2,36)+
   theme_classic(base_size = 15)
 
 co2_diff_Heiskanen <- ggplot(ghg_fluxes)+
+  annotate(geom="text",x=as.POSIXct("2020-05-15"),y=35,label="Heiskanen",size=5)+
   geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
   geom_point(fluxes_all,mapping=aes(x=DateTime,y=co2_flux_k600_Heiskanen_mean),color="grey",alpha=0.1)+
   geom_errorbar(mapping=aes(x=DateTime,ymin=co2_flux_k600_Heiskanen_mean-co2_flux_k600_Heiskanen_sd,ymax=co2_flux_k600_Heiskanen_mean+co2_flux_k600_Heiskanen_sd),size=1,color="#4c8bfe")+
@@ -582,13 +785,76 @@ co2_diff_Heiskanen <- ggplot(ghg_fluxes)+
   ylab(expression(~CO[2]~(mu~mol~m^-2~s^-1))) +
   geom_hline(yintercept = 0, lty = 2) +
   xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-04-06"))+
-  ylim(-1,15)+
+  ylim(-2,36)+
   theme_classic(base_size = 15)
 
-ggarrange(co2_diff_cole,co2_diff_Heiskanen,ch4_diff_cole,ch4_diff_Heiskanen,
-          ncol=2,nrow=2,labels=c("A.","B.","C.","D."),font.label = list(face="plain",size=15))
+co2_diff_MacIntyre <- ggplot(ghg_fluxes)+
+  annotate(geom="text",x=as.POSIXct("2020-05-15"),y=35,label="MacIntyre",size=5)+
+  geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
+  geom_point(fluxes_all,mapping=aes(x=DateTime,y=co2_flux_k600_MacIntyre_mean),color="grey",alpha=0.1)+
+  geom_errorbar(mapping=aes(x=DateTime,ymin=co2_flux_k600_MacIntyre_mean-co2_flux_k600_MacIntyre_sd,ymax=co2_flux_k600_MacIntyre_mean+co2_flux_k600_MacIntyre_sd),size=1,color="#4c8bfe")+
+  geom_line(mapping=aes(DateTime,co2_flux_k600_MacIntyre_mean),size = 1,color="#4c8bfe") +
+  geom_point(mapping=aes(DateTime,co2_flux_k600_MacIntyre_mean),size=3,color="#4c8bfe") +
+  xlab("") +
+  ylab(expression(~CO[2]~(mu~mol~m^-2~s^-1))) +
+  geom_hline(yintercept = 0, lty = 2) +
+  xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-04-06"))+
+  ylim(-2,36)+
+  theme_classic(base_size = 15)
 
-ggsave("./Fig_Output/SI5_Diff_fluxes.jpg",width = 8, height=6, units="in",dpi=320)
+co2_diff_Read <- ggplot(ghg_fluxes)+
+  annotate(geom="text",x=as.POSIXct("2020-05-15"),y=35,label="Read",size=5)+
+  geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
+  geom_point(fluxes_all,mapping=aes(x=DateTime,y=co2_flux_k600_Read_mean),color="grey",alpha=0.1)+
+  geom_errorbar(mapping=aes(x=DateTime,ymin=co2_flux_k600_Read_mean-co2_flux_k600_Read_sd,ymax=co2_flux_k600_Read_mean+co2_flux_k600_Read_sd),size=1,color="#4c8bfe")+
+  geom_line(mapping=aes(DateTime,co2_flux_k600_Read_mean),size = 1,color="#4c8bfe") +
+  geom_point(mapping=aes(DateTime,co2_flux_k600_Read_mean),size=3,color="#4c8bfe") +
+  xlab("") +
+  ylab(expression(~CO[2]~(mu~mol~m^-2~s^-1))) +
+  geom_hline(yintercept = 0, lty = 2) +
+  xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-04-06"))+
+  ylim(-2,36)+
+  theme_classic(base_size = 15)
+
+co2_diff_Soloviev <- ggplot(ghg_fluxes)+
+  annotate(geom="text",x=as.POSIXct("2020-05-15"),y=35,label="Soloviev",size=5)+
+  geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
+  geom_point(fluxes_all,mapping=aes(x=DateTime,y=co2_flux_k600_Soloviev_mean),color="grey",alpha=0.1)+
+  geom_errorbar(mapping=aes(x=DateTime,ymin=co2_flux_k600_Soloviev_mean-co2_flux_k600_Soloviev_sd,ymax=co2_flux_k600_Soloviev_mean+co2_flux_k600_Soloviev_sd),size=1,color="#4c8bfe")+
+  geom_line(mapping=aes(DateTime,co2_flux_k600_Soloviev_mean),size = 1,color="#4c8bfe") +
+  geom_point(mapping=aes(DateTime,co2_flux_k600_Soloviev_mean),size=3,color="#4c8bfe") +
+  xlab("") +
+  ylab(expression(~CO[2]~(mu~mol~m^-2~s^-1))) +
+  geom_hline(yintercept = 0, lty = 2) +
+  xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-04-06"))+
+  ylim(-2,36)+
+  theme_classic(base_size = 15)
+
+co2_diff_Vachon <- ggplot(ghg_fluxes)+
+  annotate(geom="text",x=as.POSIXct("2020-05-15"),y=35,label="Vachon",size=5)+
+  geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
+  geom_point(fluxes_all,mapping=aes(x=DateTime,y=co2_flux_k600_Vachon_mean),color="grey",alpha=0.1)+
+  geom_errorbar(mapping=aes(x=DateTime,ymin=co2_flux_k600_Vachon_mean-co2_flux_k600_Vachon_sd,ymax=co2_flux_k600_Vachon_mean+co2_flux_k600_Vachon_sd),size=1,color="#4c8bfe")+
+  geom_line(mapping=aes(DateTime,co2_flux_k600_Vachon_mean),size = 1,color="#4c8bfe") +
+  geom_point(mapping=aes(DateTime,co2_flux_k600_Vachon_mean),size=3,color="#4c8bfe") +
+  xlab("") +
+  ylab(expression(~CO[2]~(mu~mol~m^-2~s^-1))) +
+  geom_hline(yintercept = 0, lty = 2) +
+  xlim(as.POSIXct("2020-04-05"),as.POSIXct("2021-04-06"))+
+  ylim(-2,36)+
+  theme_classic(base_size = 15)
+
+ggarrange(co2_diff_Cole,co2_diff_Crusius,co2_diff_Heiskanen,co2_diff_MacIntyre,
+          co2_diff_Read, co2_diff_Soloviev,co2_diff_Vachon,
+          ncol=2,nrow=4,labels=c("A.","B.","C.","D.","E.","F.","G."),font.label = list(face="plain",size=15))
+
+ggsave("./Fig_Output/SI5_Diff_fluxes_CO2.jpg",width = 9, height=12, units="in",dpi=320)
+
+ggarrange(ch4_diff_Soloviev,ch4_diff_crusius,ch4_diff_Heiskanen,
+          ch4_diff_MacIntyre, ch4_diff_Read,ch4_diff_Soloviev,ch4_diff_Vachon,
+          ncol=2,nrow=4,labels=c("A.","B.","C.","D.","E.","F.","G."),font.label = list(face="plain",size=15))
+
+ggsave("./Fig_Output/SI5_Diff_fluxes_CH4.jpg",width = 9, height=12, units="in",dpi=320)
 
 ### Load in Eddy Flux data ----
 ## Load in data from Brenda - 30 minute fluxes from 2020-04-04 to 2021-05-06
@@ -872,7 +1138,7 @@ fcr_monthly_stats <- fcr_monthly %>%
 ## Combine all stats into one (EC and Diffusive fluxes) - Table S5
 fcr_stats <- rbind(fcr_hourly_stats,fcr_daily_stats,fcr_weekly_stats,fcr_monthly_stats)
 write_csv(fcr_stats,"./Data/20211222_SI5_ECStats.csv")
-# Then also add diffusive information from: ghg_stats_cole, ghg_stats_heiskanen
+# Then also add diffusive information from: ghg_stats_Vachon, ghg_stats_heiskanen
 
 ## Plot Daily means (CO2, CH4; EC + Diffusive) and Monthly means
 ## Figure 2
@@ -881,11 +1147,13 @@ dailynee <- ggplot(fcr_daily) +
   geom_point(eddy_flux,mapping=aes(x=DateTime,y=NEE_uStar_orig),alpha = 0.1)+
   geom_ribbon(mapping=aes(x=Date,y=NEE,ymin=NEE-NEE_sd,ymax=NEE+NEE_sd),fill="#E63946",alpha=0.5)+
   geom_line(aes(Date, NEE,color="EC"),size = 1) +
-  #geom_errorbar(ghg_fluxes,mapping=aes(x=DateTime,y=co2_flux_k600_Cole_mean,ymin=co2_flux_k600_Cole_mean-co2_flux_k600_Cole_sd,ymax=co2_flux_k600_Cole_mean+co2_flux_k600_Cole_sd,color="Cole Diff"),size=1)+
-  #geom_point(ghg_fluxes,mapping=aes(DateTime,co2_flux_k600_Cole_mean,color="Cole Diff"),size=2) +
-  geom_errorbar(ghg_fluxes,mapping=aes(x=DateTime,y=co2_flux_k600_Heiskanen_mean,ymin=co2_flux_k600_Heiskanen_mean-co2_flux_k600_Heiskanen_sd,ymax=co2_flux_k600_Heiskanen_mean+co2_flux_k600_Heiskanen_sd,color="Heiskanen Diff"),size=1)+
-  geom_point(ghg_fluxes,mapping=aes(DateTime,co2_flux_k600_Heiskanen_mean,color="Heiskanen Diff"),size=2) +
-  scale_color_manual(breaks=c("EC","Heiskanen Diff"),
+  #geom_errorbar(ghg_fluxes,mapping=aes(x=DateTime,y=co2_flux_k600_Vachon_mean,ymin=co2_flux_k600_Vachon_mean-co2_flux_k600_Vachon_sd,ymax=co2_flux_k600_Vachon_mean+co2_flux_k600_Vachon_sd,color="Vachon Diff"),size=1)+
+  #geom_point(ghg_fluxes,mapping=aes(DateTime,co2_flux_k600_Vachon_mean,color="Vachon Diff"),size=2) +
+  #geom_errorbar(ghg_fluxes,mapping=aes(x=DateTime,y=co2_flux_k600_Heiskanen_mean,ymin=co2_flux_k600_Heiskanen_mean-co2_flux_k600_Heiskanen_sd,ymax=co2_flux_k600_Heiskanen_mean+co2_flux_k600_Heiskanen_sd,color="Heiskanen Diff"),size=1)+
+  #geom_point(ghg_fluxes,mapping=aes(DateTime,co2_flux_k600_Heiskanen_mean,color="Heiskanen Diff"),size=2) +
+  geom_errorbar(ghg_fluxes_avg_co2,mapping=aes(x=DateTime,y=mean,ymin=mean-sd,ymax=mean+sd,color="Diff"),size=1)+
+  geom_point(ghg_fluxes_avg_co2,mapping=aes(x=DateTime,y=mean,color="Diff"),size=2)+
+  scale_color_manual(breaks=c("EC","Diff"),
                       values=c("#E63946","#4c8bfe"))+
   xlab("") +
   ylab(expression(~CO[2]~(mu~mol~m^-2~s^-1))) +
@@ -902,9 +1170,11 @@ dailych4 <- fcr_daily %>%
   geom_line(aes(Date, CH4,color="EC"),size = 1) +
   #geom_errorbar(ghg_fluxes,mapping=aes(x=DateTime,y=ch4_flux_umolm2s_mean,ymin=ch4_flux_umolm2s_mean-ch4_flux_umolm2s_sd,ymax=ch4_flux_umolm2s_mean+ch4_flux_umolm2s_sd,color="Diff"),size=1)+
   #geom_point(ghg_fluxes,mapping=aes(DateTime,ch4_flux_umolm2s_mean,color="Diff"),size=2) +
-  geom_errorbar(ghg_fluxes,mapping=aes(x=DateTime,y=ch4_flux_k600_Heiskanen_mean,ymin=ch4_flux_k600_Heiskanen_mean-ch4_flux_k600_Heiskanen_sd,ymax=ch4_flux_k600_Heiskanen_mean+ch4_flux_k600_Heiskanen_sd,color="Heiskanen Diff"),size=1)+
-  geom_point(ghg_fluxes,mapping=aes(DateTime,ch4_flux_k600_Heiskanen_mean,color="Heiskanen Diff"),size=2) +
-  scale_color_manual(breaks=c("EC","Heiskanen Diff"),
+  #geom_errorbar(ghg_fluxes,mapping=aes(x=DateTime,y=ch4_flux_k600_Heiskanen_mean,ymin=ch4_flux_k600_Heiskanen_mean-ch4_flux_k600_Heiskanen_sd,ymax=ch4_flux_k600_Heiskanen_mean+ch4_flux_k600_Heiskanen_sd,color="Heiskanen Diff"),size=1)+
+  #geom_point(ghg_fluxes,mapping=aes(DateTime,ch4_flux_k600_Heiskanen_mean,color="Heiskanen Diff"),size=2) +
+  geom_errorbar(ghg_fluxes_avg_ch4,mapping=aes(x=DateTime,y=mean,ymin=mean-sd,ymax=mean+sd,color="Diff"),size=1)+
+  geom_point(ghg_fluxes_avg_ch4,mapping=aes(x=DateTime,y=mean,color="Diff"),size=2)+
+  scale_color_manual(breaks=c("EC","Diff"),
                      values=c("#E63946","#4c8bfe"))+
   xlab("") +
   ylab(expression(~CH[4]~(mu~mol~m^-2~s^-1))) +
@@ -1082,7 +1352,7 @@ dawn_flux <- eddy_flux %>%
          Month = month(DateTime), 
          Day = day(DateTime), 
          Hour = hour(DateTime)) %>% 
-  filter(Hour %in% c(5,6,7)|Hour %in% c(15,18,19)) %>% 
+  filter(Hour %in% c(5,6,7)|Hour %in% c(17,18,19)) %>% 
   mutate(diel = ifelse(Hour == 5 | Hour == 6 | Hour == 7, "Dawn","Dusk"))
 
 dawn_agg <- dawn_flux %>% 
@@ -1258,9 +1528,9 @@ n = 125",
 dawn_ch4 <- dawn_agg %>% 
   ggplot(mapping=aes(x=diel,y=CH4,color=diel))+
   geom_hline(yintercept = 0, linetype = "dashed", color="darkgrey", size = 0.8)+
-  annotate("text",label = "p = 0.50
+  annotate("text",label = "p = 0.20
 n = 88",
-           x = "Dawn", hjust = 0, y = 0.055, size = 5)+
+           x = "Dawn", hjust = 0, y = 0.045, size = 5)+
   geom_boxplot(outlier.shape = NA,size=1)+
   geom_point(position=position_jitterdodge(),alpha=0.1)+
   scale_color_manual(breaks=c('Dusk','Dawn'),values=c("#F4BB01","#183662"))+
@@ -1271,7 +1541,7 @@ n = 88",
 
 dawn_wind <- dawn_agg %>% 
   ggplot(mapping=aes(x=diel,y=u,color=diel))+
-  annotate("text",label = "p = 0.009*
+  annotate("text",label = "p < 0.001*
 n = 172",
            x = "Dawn", hjust = 0, y = 3.75, size = 5)+
   geom_boxplot(outlier.shape = NA,size=1)+
@@ -1584,13 +1854,16 @@ eddy_flux_sum <- eddy_flux %>%
   mutate(ch4_sum_sd = sqrt(cumsum(ch4_v)))
 
 ## Calculate cumulative fluxes and uncertainty for Diffusive GHG data
-cumulative_fluxes <- fluxes_all %>% 
+cumulative_fluxes_co2 <- flux_avg_co2 %>% 
   filter(DateTime >= as.POSIXct("2020-04-06 01:00:00") & DateTime < as.POSIXct("2021-04-06 01:00:00")) %>% 
-  mutate(co2_sum_g_m2_d = cumsum(co2_flux_k600_Heiskanen_mean*1800*12.01/1000000)) %>% 
-  mutate(ch4_sum_g_m2_d = cumsum(ch4_flux_k600_Heiskanen_mean*1800*12.01/1000000)) %>% 
-  mutate(co2_v = (co2_flux_k600_Heiskanen_sd*1800*12.01/1000000)^2) %>% 
-  mutate(ch4_v = (ch4_flux_k600_Heiskanen_sd*1800*12.01/1000000)^2) %>% 
-  mutate(co2_sum_sd = sqrt(cumsum(co2_v))) %>% 
+  mutate(co2_sum_g_m2_d = cumsum(mean*1800*12.01/1000000)) %>% 
+  mutate(co2_v = (sd*1800*12.01/1000000)^2) %>% 
+  mutate(co2_sum_sd = sqrt(cumsum(co2_v))) 
+
+cumulative_fluxes_ch4 <- flux_avg_ch4 %>% 
+  filter(DateTime >= as.POSIXct("2020-04-06 01:00:00") & DateTime < as.POSIXct("2021-04-06 01:00:00")) %>% 
+  mutate(ch4_sum_g_m2_d = cumsum(mean*1800*12.01/1000000)) %>% 
+  mutate(ch4_v = (sd*1800*12.01/1000000)^2) %>% 
   mutate(ch4_sum_sd = sqrt(cumsum(ch4_v)))
 
 ## Compare cumulative fluxes: Figure 7
@@ -1599,8 +1872,8 @@ sum_co2 <- ggplot()+
   geom_hline(yintercept = 0, linetype="dashed")+
   geom_line(eddy_flux_sum,mapping=aes(x=DateTime,y=co2_sum_g_m2_d,color="EC"),size=1)+
   geom_ribbon(eddy_flux_sum,mapping=aes(x=DateTime,y=co2_sum_g_m2_d,ymin=co2_sum_g_m2_d-co2_sum_sd,ymax=co2_sum_g_m2_d+co2_sum_sd),fill="#E63946",alpha=0.3)+
-  geom_line(cumulative_fluxes,mapping=aes(x=DateTime,y=co2_sum_g_m2_d,color="Diff"),size=1)+
-  geom_ribbon(cumulative_fluxes,mapping=aes(x=DateTime,y=co2_sum_g_m2_d,ymin=co2_sum_g_m2_d-co2_sum_sd,ymax=co2_sum_g_m2_d+co2_sum_sd),fill="#4c8bfe",alpha=0.3)+
+  geom_line(cumulative_fluxes_co2,mapping=aes(x=DateTime,y=co2_sum_g_m2_d,color="Diff"),size=1)+
+  geom_ribbon(cumulative_fluxes_co2,mapping=aes(x=DateTime,y=co2_sum_g_m2_d,ymin=co2_sum_g_m2_d-co2_sum_sd,ymax=co2_sum_g_m2_d+co2_sum_sd),fill="#4c8bfe",alpha=0.3)+
   ylab(expression(paste("CO"[2]*" (g C m"^-2*")")))+
   xlab("")+
   xlim(as.POSIXct("2020-04-04"),as.POSIXct("2021-04-05"))+
@@ -1614,8 +1887,8 @@ sum_ch4 <- ggplot()+
   geom_hline(yintercept = 0, linetype="dashed")+
   geom_line(eddy_flux_sum,mapping=aes(x=DateTime,y=ch4_sum_g_m2_d,color="EC"),size=1)+
   geom_ribbon(eddy_flux_sum,mapping=aes(x=DateTime,y=ch4_sum_g_m2_d,ymin=ch4_sum_g_m2_d-ch4_sum_sd,ymax=ch4_sum_g_m2_d+ch4_sum_sd),fill="#E63946",alpha=0.3)+
-  geom_line(cumulative_fluxes,mapping=aes(x=DateTime,y=ch4_sum_g_m2_d,color="Diff"),size=1)+
-  geom_ribbon(cumulative_fluxes,mapping=aes(x=DateTime,y=ch4_sum_g_m2_d,ymin=ch4_sum_g_m2_d-ch4_sum_sd,ymax=ch4_sum_g_m2_d+ch4_sum_sd),fill="#4c8bfe",alpha=0.3)+
+  geom_line(cumulative_fluxes_ch4,mapping=aes(x=DateTime,y=ch4_sum_g_m2_d,color="Diff"),size=1)+
+  geom_ribbon(cumulative_fluxes_ch4,mapping=aes(x=DateTime,y=ch4_sum_g_m2_d,ymin=ch4_sum_g_m2_d-ch4_sum_sd,ymax=ch4_sum_g_m2_d+ch4_sum_sd),fill="#4c8bfe",alpha=0.3)+
   ylab(expression(paste("CH"[4]*" (g C m"^-2*")")))+
   xlab("")+
   xlim(as.POSIXct("2020-04-04"),as.POSIXct("2021-04-05"))+
@@ -1640,4 +1913,105 @@ eddy_flux_sum %>%
   filter(DateTime == as.POSIXct("2020-12-31 20:00:00") | DateTime == as.POSIXct("2021-03-31 20:00:00")) %>% 
   select(DateTime,ch4_sum_g_m2_d,co2_sum_g_m2_d)
 
+## Plot summed diffusive fluxes for different methods
+cumulative_fluxes_all <- fluxes_all %>% 
+  filter(DateTime >= as.POSIXct("2020-04-06 01:00:00") & DateTime < as.POSIXct("2021-04-06 01:00:00")) %>% 
+  mutate(co2_sum_g_m2_d_Cole = cumsum(co2_flux_k600_Cole_mean*1800*12.01/1000000)) %>% 
+  mutate(co2_v_Cole = (co2_flux_k600_Cole_sd*1800*12.01/1000000)^2) %>%
+  mutate(co2_sum_sd_Cole = sqrt(cumsum(co2_v_Cole))) %>% 
+  mutate(co2_sum_g_m2_d_Crusius = cumsum(co2_flux_k600_Crusius_mean*1800*12.01/1000000)) %>% 
+  mutate(co2_v_Crusius = (co2_flux_k600_Crusius_sd*1800*12.01/1000000)^2) %>%
+  mutate(co2_sum_sd_Crusius = sqrt(cumsum(co2_v_Crusius))) %>%
+  mutate(co2_sum_g_m2_d_Heiskanen = cumsum(co2_flux_k600_Heiskanen_mean*1800*12.01/1000000)) %>% 
+  mutate(co2_v_Heiskanen = (co2_flux_k600_Heiskanen_sd*1800*12.01/1000000)^2) %>%
+  mutate(co2_sum_sd_Heiskanen = sqrt(cumsum(co2_v_Heiskanen))) %>%
+  mutate(co2_sum_g_m2_d_MacIntyre = cumsum(co2_flux_k600_MacIntyre_mean*1800*12.01/1000000)) %>% 
+  mutate(co2_v_MacIntyre = (co2_flux_k600_MacIntyre_sd*1800*12.01/1000000)^2) %>%
+  mutate(co2_sum_sd_MacIntyre = sqrt(cumsum(co2_v_MacIntyre))) %>%
+  mutate(co2_sum_g_m2_d_Read = cumsum(co2_flux_k600_Read_mean*1800*12.01/1000000)) %>% 
+  mutate(co2_v_Read = (co2_flux_k600_Read_sd*1800*12.01/1000000)^2) %>%
+  mutate(co2_sum_sd_Read = sqrt(cumsum(co2_v_Read))) %>%
+  mutate(co2_sum_g_m2_d_Soloviev = cumsum(co2_flux_k600_Soloviev_mean*1800*12.01/1000000)) %>% 
+  mutate(co2_v_Soloviev = (co2_flux_k600_Soloviev_sd*1800*12.01/1000000)^2) %>%
+  mutate(co2_sum_sd_Soloviev = sqrt(cumsum(co2_v_Soloviev))) %>%
+  mutate(co2_sum_g_m2_d_Vachon = cumsum(co2_flux_k600_Vachon_mean*1800*12.01/1000000)) %>% 
+  mutate(co2_v_Vachon = (co2_flux_k600_Vachon_sd*1800*12.01/1000000)^2) %>%
+  mutate(co2_sum_sd_Vachon = sqrt(cumsum(co2_v_Vachon))) %>%
+  mutate(ch4_sum_g_m2_d_Cole = cumsum(ch4_flux_k600_Cole_mean*1800*12.01/1000000)) %>% 
+  mutate(ch4_v_Cole = (ch4_flux_k600_Cole_sd*1800*12.01/1000000)^2) %>%
+  mutate(ch4_sum_sd_Cole = sqrt(cumsum(ch4_v_Cole))) %>% 
+  mutate(ch4_sum_g_m2_d_Crusius = cumsum(ch4_flux_k600_Crusius_mean*1800*12.01/1000000)) %>% 
+  mutate(ch4_v_Crusius = (ch4_flux_k600_Crusius_sd*1800*12.01/1000000)^2) %>%
+  mutate(ch4_sum_sd_Crusius = sqrt(cumsum(ch4_v_Crusius))) %>%
+  mutate(ch4_sum_g_m2_d_Heiskanen = cumsum(ch4_flux_k600_Heiskanen_mean*1800*12.01/1000000)) %>% 
+  mutate(ch4_v_Heiskanen = (ch4_flux_k600_Heiskanen_sd*1800*12.01/1000000)^2) %>%
+  mutate(ch4_sum_sd_Heiskanen = sqrt(cumsum(ch4_v_Heiskanen))) %>%
+  mutate(ch4_sum_g_m2_d_MacIntyre = cumsum(ch4_flux_k600_MacIntyre_mean*1800*12.01/1000000)) %>% 
+  mutate(ch4_v_MacIntyre = (ch4_flux_k600_MacIntyre_sd*1800*12.01/1000000)^2) %>%
+  mutate(ch4_sum_sd_MacIntyre = sqrt(cumsum(ch4_v_MacIntyre))) %>%
+  mutate(ch4_sum_g_m2_d_Read = cumsum(ch4_flux_k600_Read_mean*1800*12.01/1000000)) %>% 
+  mutate(ch4_v_Read = (ch4_flux_k600_Read_sd*1800*12.01/1000000)^2) %>%
+  mutate(ch4_sum_sd_Read = sqrt(cumsum(ch4_v_Read))) %>%
+  mutate(ch4_sum_g_m2_d_Soloviev = cumsum(ch4_flux_k600_Soloviev_mean*1800*12.01/1000000)) %>% 
+  mutate(ch4_v_Soloviev = (ch4_flux_k600_Soloviev_sd*1800*12.01/1000000)^2) %>%
+  mutate(ch4_sum_sd_Soloviev = sqrt(cumsum(ch4_v_Soloviev))) %>%
+  mutate(ch4_sum_g_m2_d_Vachon = cumsum(ch4_flux_k600_Vachon_mean*1800*12.01/1000000)) %>% 
+  mutate(ch4_v_Vachon = (ch4_flux_k600_Vachon_sd*1800*12.01/1000000)^2) %>%
+  mutate(ch4_sum_sd_Vachon = sqrt(cumsum(ch4_v_Vachon)))
 
+# Plot all for CO2
+sum_fluxes_all_co2 <- ggplot()+
+  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_line(cumulative_fluxes_all,mapping=aes(x=DateTime,y=co2_sum_g_m2_d_Cole,color="Cole"),size=1)+
+  geom_ribbon(cumulative_fluxes_all,mapping=aes(x=DateTime,y=co2_sum_g_m2_d_Cole,ymin=co2_sum_g_m2_d_Cole-co2_sum_sd_Cole,ymax=co2_sum_g_m2_d_Cole+co2_sum_sd_Cole),fill="#E63946",alpha=0.3)+
+  geom_line(cumulative_fluxes_all,mapping=aes(x=DateTime,y=co2_sum_g_m2_d_Crusius,color="Crusius"),size=1)+
+  geom_ribbon(cumulative_fluxes_all,mapping=aes(x=DateTime,y=co2_sum_g_m2_d_Crusius,ymin=co2_sum_g_m2_d_Crusius-co2_sum_sd_Crusius,ymax=co2_sum_g_m2_d_Crusius+co2_sum_sd_Crusius),fill="#4C8BFE",alpha=0.3)+
+  geom_line(cumulative_fluxes_all,mapping=aes(x=DateTime,y=co2_sum_g_m2_d_Heiskanen,color="Heiskanen"),size=1)+
+  geom_ribbon(cumulative_fluxes_all,mapping=aes(x=DateTime,y=co2_sum_g_m2_d_Heiskanen,ymin=co2_sum_g_m2_d_Heiskanen-co2_sum_sd_Heiskanen,ymax=co2_sum_g_m2_d_Heiskanen+co2_sum_sd_Heiskanen),fill="#FCC201",alpha=0.3)+
+  geom_line(cumulative_fluxes_all,mapping=aes(x=DateTime,y=co2_sum_g_m2_d_MacIntyre,color="MacIntyre"),size=1)+
+  geom_ribbon(cumulative_fluxes_all,mapping=aes(x=DateTime,y=co2_sum_g_m2_d_MacIntyre,ymin=co2_sum_g_m2_d_MacIntyre-co2_sum_sd_MacIntyre,ymax=co2_sum_g_m2_d_MacIntyre+co2_sum_sd_MacIntyre),fill="#183662",alpha=0.3)+
+  geom_line(cumulative_fluxes_all,mapping=aes(x=DateTime,y=co2_sum_g_m2_d_Read,color="Read"),size=1)+
+  geom_ribbon(cumulative_fluxes_all,mapping=aes(x=DateTime,y=co2_sum_g_m2_d_Read,ymin=co2_sum_g_m2_d_Read-co2_sum_sd_Read,ymax=co2_sum_g_m2_d_Read+co2_sum_sd_Read),fill="#477CC2",alpha=0.3)+
+  geom_line(cumulative_fluxes_all,mapping=aes(x=DateTime,y=co2_sum_g_m2_d_Soloviev,color="Soloviev"),size=1)+
+  geom_ribbon(cumulative_fluxes_all,mapping=aes(x=DateTime,y=co2_sum_g_m2_d_Soloviev,ymin=co2_sum_g_m2_d_Soloviev-co2_sum_sd_Soloviev,ymax=co2_sum_g_m2_d_Soloviev+co2_sum_sd_Soloviev),fill="#008080",alpha=0.3)+
+  geom_line(cumulative_fluxes_all,mapping=aes(x=DateTime,y=co2_sum_g_m2_d_Vachon,color="Vachon"),size=1)+
+  geom_ribbon(cumulative_fluxes_all,mapping=aes(x=DateTime,y=co2_sum_g_m2_d_Vachon,ymin=co2_sum_g_m2_d_Vachon-co2_sum_sd_Vachon,ymax=co2_sum_g_m2_d_Vachon+co2_sum_sd_Vachon),fill="#605B56",alpha=0.3)+
+  ylab(expression(paste("CO"[2]*" (g C m"^-2*")")))+
+  xlab("")+
+  xlim(as.POSIXct("2020-04-04"),as.POSIXct("2021-04-05"))+
+  scale_color_manual(breaks=c("Cole","Crusius","Heiskanen","MacIntyre","Read","Soloviev","Vachon"), 
+                     values=c("#E63946","#4C8BFE","#FCC201","#183662","#477CC2","#008080","#605B56"))+
+  theme_classic(base_size = 15)+
+  labs(color="")
+
+# Plot all for CH4
+sum_fluxes_all_ch4 <- ggplot()+
+  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_line(cumulative_fluxes_all,mapping=aes(x=DateTime,y=ch4_sum_g_m2_d_Cole,color="Cole"),size=1)+
+  geom_ribbon(cumulative_fluxes_all,mapping=aes(x=DateTime,y=ch4_sum_g_m2_d_Cole,ymin=ch4_sum_g_m2_d_Cole-ch4_sum_sd_Cole,ymax=ch4_sum_g_m2_d_Cole+ch4_sum_sd_Cole),fill="#E63946",alpha=0.3)+
+  geom_line(cumulative_fluxes_all,mapping=aes(x=DateTime,y=ch4_sum_g_m2_d_Crusius,color="Crusius"),size=1)+
+  geom_ribbon(cumulative_fluxes_all,mapping=aes(x=DateTime,y=ch4_sum_g_m2_d_Crusius,ymin=ch4_sum_g_m2_d_Crusius-ch4_sum_sd_Crusius,ymax=ch4_sum_g_m2_d_Crusius+ch4_sum_sd_Crusius),fill="#4C8BFE",alpha=0.3)+
+  geom_line(cumulative_fluxes_all,mapping=aes(x=DateTime,y=ch4_sum_g_m2_d_Heiskanen,color="Heiskanen"),size=1)+
+  geom_ribbon(cumulative_fluxes_all,mapping=aes(x=DateTime,y=ch4_sum_g_m2_d_Heiskanen,ymin=ch4_sum_g_m2_d_Heiskanen-ch4_sum_sd_Heiskanen,ymax=ch4_sum_g_m2_d_Heiskanen+ch4_sum_sd_Heiskanen),fill="#FCC201",alpha=0.3)+
+  geom_line(cumulative_fluxes_all,mapping=aes(x=DateTime,y=ch4_sum_g_m2_d_MacIntyre,color="MacIntyre"),size=1)+
+  geom_ribbon(cumulative_fluxes_all,mapping=aes(x=DateTime,y=ch4_sum_g_m2_d_MacIntyre,ymin=ch4_sum_g_m2_d_MacIntyre-ch4_sum_sd_MacIntyre,ymax=ch4_sum_g_m2_d_MacIntyre+ch4_sum_sd_MacIntyre),fill="#183662",alpha=0.3)+
+  geom_line(cumulative_fluxes_all,mapping=aes(x=DateTime,y=ch4_sum_g_m2_d_Read,color="Read"),size=1)+
+  geom_ribbon(cumulative_fluxes_all,mapping=aes(x=DateTime,y=ch4_sum_g_m2_d_Read,ymin=ch4_sum_g_m2_d_Read-ch4_sum_sd_Read,ymax=ch4_sum_g_m2_d_Read+ch4_sum_sd_Read),fill="#477CC2",alpha=0.3)+
+  geom_line(cumulative_fluxes_all,mapping=aes(x=DateTime,y=ch4_sum_g_m2_d_Soloviev,color="Soloviev"),size=1)+
+  geom_ribbon(cumulative_fluxes_all,mapping=aes(x=DateTime,y=ch4_sum_g_m2_d_Soloviev,ymin=ch4_sum_g_m2_d_Soloviev-ch4_sum_sd_Soloviev,ymax=ch4_sum_g_m2_d_Soloviev+ch4_sum_sd_Soloviev),fill="#008080",alpha=0.3)+
+  geom_line(cumulative_fluxes_all,mapping=aes(x=DateTime,y=ch4_sum_g_m2_d_Vachon,color="Vachon"),size=1)+
+  geom_ribbon(cumulative_fluxes_all,mapping=aes(x=DateTime,y=ch4_sum_g_m2_d_Vachon,ymin=ch4_sum_g_m2_d_Vachon-ch4_sum_sd_Vachon,ymax=ch4_sum_g_m2_d_Vachon+ch4_sum_sd_Vachon),fill="#605B56",alpha=0.3)+
+  ylab(expression(paste("CH"[4]*" (g C m"^-2*")")))+
+  xlab("")+
+  xlim(as.POSIXct("2020-04-04"),as.POSIXct("2021-04-05"))+
+  scale_color_manual(breaks=c("Cole","Crusius","Heiskanen","MacIntyre","Read","Soloviev","Vachon"), 
+                     values=c("#E63946","#4C8BFE","#FCC201","#183662","#477CC2","#008080","#605B56"))+
+  theme_classic(base_size = 15)+
+  labs(color="")
+
+ggarrange(sum_fluxes_all_co2,sum_fluxes_all_ch4,nrow=1,ncol=2,common.legend = TRUE,labels=c("A.","B."),
+          font.label=list(face="plain",size=15))
+
+ggsave("./Fig_Output/SI_Summed_Diff_fluxes.jpeg",width = 9, height=4.5, units="in",dpi=320)
