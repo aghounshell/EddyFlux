@@ -1,13 +1,9 @@
-# Processing Eddy Flux data from FCR
-# Following initial data corrections in Eddy Pro (using standard processing) 
-# and light data cleaning via EddyPro_CleanUp.R
+### Processing Eddy Flux data from FCR
+### Following initial data corrections in Eddy Pro (using standard processing) 
+### and light data cleaning via EddyPro_CleanUp.R
 
-# Specifically for data collected from 4 April 2020 (beginning of EC record) to 
-# 6 April 2021 
-### (Update through 2021 for EDI data push!) ###
-
-# Original code from Brenda D'Achuna, 21 May 2021
-# Modified by Alex Hounshell on 21 May 2021
+### Original code from Brenda D'Achuna, 21 May 2021
+### Modified by Alex Hounshell on 21 May 2021
 
 ####################################################################
 
@@ -24,18 +20,18 @@ setwd(wd)
 # Read compiled file: From Eddy Pro using basic processing
 # Original file from Brenda on 11 May 2021
 # Light data cleaning using EddyPro_CleanUp.R
-ec <- read_csv("./Data/20211008_EddyPro_cleaned.csv")
+ec <- read_csv("./Data/20220121_EddyPro_cleaned.csv")
 
 # Format time
-ec$datetime <- as.POSIXct(paste(ec$date, ec$time), format="%m/%d/%Y %H:%M:%S", tz="EST")
+ec$datetime <- as.POSIXct(paste(ec$date, ec$time), format="%Y-%m-%d %H:%M", tz="EST")
 ec$datetime <- as_datetime(ec$datetime)
 
 # Set new dataframe with list of dates+times:
 # every 30 minutes
-# Constrain to study time period: 2020-04-05 and 2021-04-06 
-### (UPDATE WITH 2021 DATA!) ###
+# Constrain to study time period: 2020-04-05 (time series start date) to
+# last 30 minute period - UPDATE WITH EACH NEW SET OF DATA!
 ts <- seq.POSIXt(as.POSIXct("2020-04-05 00:00:00",'%Y-%m-%d %H:%M:%S', tz="EST"), 
-                 as.POSIXct("2021-04-05 23:30:00",'%Y-%m-%d %H:%M:%S', tz="EST"), by = "30 min")
+                 as.POSIXct("2022-01-11 09:30:00",'%Y-%m-%d %H:%M:%S', tz="EST"), by = "30 min")
 ts2 <- data.frame(datetime = ts)
 
 # Join Eddy Flux data with list of dates+time
@@ -58,7 +54,7 @@ ec2 %>% group_by(year = year(datetime), month = factor(month.abb[month(datetime)
 ec2 %>% select(datetime, co2_flux_umolm2s, ch4_flux_umolm2s) %>% 
   summarise(co2_available = 100-sum(is.na(co2_flux_umolm2s))/n()*100,
             ch4_available = 100-sum(is.na(ch4_flux_umolm2s))/n()*100)
-# 79% data for CO2; 60% data for CH4
+# 83% data for CO2; 70% data for CH4
 
 # Check data availability by month
 ec2 %>% group_by(year(datetime), month(datetime)) %>% select(datetime, co2_flux_umolm2s, ch4_flux_umolm2s) %>% 
@@ -67,7 +63,7 @@ ec2 %>% group_by(year(datetime), month(datetime)) %>% select(datetime, co2_flux_
 #################################################################
 
 # Reading in data from the Met Station for gap-filling purposes
-# Load data Meterological data from EDI
+# Load data Meteorological data from EDI
 
 ### CURRENTLY IN THE STAGING ENVIRONMENT: UPDATE WHEN PUBLISHED!! ###
 
@@ -124,25 +120,28 @@ ggplot()+
   theme_classic(base_size = 15)
 
 # Calculate percent of missing wind data
+# 14% missing
 ec2 %>% select(datetime, wind_speed_ms) %>% 
   summarise(wnd_na = sum(is.na(wind_speed_ms))/n()*100)
 
-# Use linear model to convert from Met to EC for missing time points
+# Use linear model to convert from Met to EC for missing time point
 linearMod <- lm(ec2$wind_speed_ms ~ met2$WS_ms_Avg)
 summary(linearMod)
 cor(ec2[[49]],met2[[10]],use = "complete.obs",method=c("pearson"))
 
-# For data period: EC = Met*0.533752 + 0.133948
+# UPDATE EVERY YEAR WITH NEW RELATIONSHIP
+# For data period: EC = Met*0.500243+0.214460
 
-# Check conversion
+# Check conversion - UPDATE EVERY YEAR WITH NEW RELATIONSHIP
 plot(ec2$wind_speed_ms)
-points(met2$WS_ms_Avg*0.533752+0.133948, col = 'red')
+points(met2$WS_ms_Avg*0.500243+0.214460, col = 'red')
 
 ###########################################
 # Use converted wind speed from the Met data to fill in time points with missing
 # data (EC)
+# UPDATE EVERY YEAR WITH NEW RELATIONSHIP
 ec2$wind_speed_ms <- ifelse(is.na(ec2$wind_speed_ms),
-                         met2$WS_ms_Avg*0.533752+0.133948, ec2$wind_speed_ms)
+                         met2$WS_ms_Avg*0.500243+0.214460, ec2$wind_speed_ms)
 
 ec2$wind_dir <- ifelse(is.na(ec2$wind_dir),
                        met2$WindDir, ec2$wind_dir)
@@ -168,7 +167,7 @@ met4 <- left_join(ts2, met3)
 ec_filt %>% select(datetime, co2_flux_umolm2s, ch4_flux_umolm2s) %>% 
   summarise(co2_available = 100- sum(is.na(co2_flux_umolm2s))/n()*100,
             ch4_available = 100-sum(is.na(ch4_flux_umolm2s))/n()*100)
-# Now have 56% CO2 data and 42% CH4 data
+# Now have 59% CO2 data and 51% CH4 data
 
 # Count number of timepoints that have data
 ec_filt %>% select(datetime, co2_flux_umolm2s, ch4_flux_umolm2s) %>% 
@@ -231,7 +230,7 @@ abline(h=-200)
 
 ec_filt$H_wm2 <- ifelse(ec_filt$H_wm2 >= 200 | ec_filt$H_wm2 <= -200, NA, ec_filt$H_wm2)
 
-# Remove high LE values: greter than abs(300)
+# Remove high LE values: greater than abs(500)
 # NOTE: Updated to have same upper and lower magnitude bounds
 # Waldo et al. 2021 used abs of 1000 for LE
 plot(ec_filt$LE_wm2)
@@ -249,7 +248,7 @@ plot(ec_filt$ch4_flux_umolm2s, type = 'o')
 ec_filt %>% select(datetime, co2_flux_umolm2s, ch4_flux_umolm2s) %>% 
   summarise(co2_available = 100- sum(is.na(co2_flux_umolm2s))/n()*100,
             ch4_available = 100-sum(is.na(ch4_flux_umolm2s))/n()*100)
-# Now have 37% CO2 data and 28% CH4 data
+# Now have 39% CO2 data and 33% CH4 data
 
 # Count number of timepoints that have data
 ec_filt %>% select(datetime, co2_flux_umolm2s, ch4_flux_umolm2s) %>% 
@@ -274,7 +273,7 @@ eddy_fcr <- left_join(ts2, ec_filt, by = 'datetime')
 eddy_fcr %>% select(datetime, co2_flux_umolm2s, ch4_flux_umolm2s) %>% 
   summarise(co2_available = 100-sum(is.na(co2_flux_umolm2s))/n()*100,
             ch4_available = 100-sum(is.na(ch4_flux_umolm2s))/n()*100)
-# 37% CO2 data; 27% CH4 data
+# 39% CO2 data; 30% CH4 data
 
 # Number of timepoints available
 eddy_fcr %>% select(datetime, co2_flux_umolm2s, ch4_flux_umolm2s) %>% 
@@ -366,6 +365,7 @@ ggplot()+
   theme_classic(base_size = 15)
 
 # Calculate percent of missing air temp data
+# 39% missing
 eddy_fcr %>% select(datetime, air_temp_celsius) %>% 
   summarise(temp_na = sum(is.na(air_temp_celsius))/n()*100)
 
@@ -373,10 +373,11 @@ eddy_fcr %>% select(datetime, air_temp_celsius) %>%
 linearMod <- lm(eddy_fcr$air_temp_celsius ~ met2$AirTC_Avg)
 summary(linearMod)
 cor(eddy_fcr[[88]],met2[[3]],use = "complete.obs",method=c("pearson"))
-# EC = Met*0.931991-0.582745
+# EC = Met*0.946533-0.871847
+# UPDATE RELATIONSHIP EACH YEAR!!
 
 eddy_fcr$air_temp_celsius <- ifelse(is.na(eddy_fcr$air_temp_celsius),
-                                    met2$AirTC_Avg*0.931991-0.582745, eddy_fcr$air_temp_celsius)
+                                    met2$AirTC_Avg*0.946533-0.871847, eddy_fcr$air_temp_celsius)
 
 # Check Air Temp
 ggplot(eddy_fcr,mapping=aes(x=datetime,y=air_temp_celsius))+
@@ -389,6 +390,7 @@ ggplot()+
   theme_classic(base_size = 15)
 
 # Calculate percent of missing sonic temp data
+# 39% missing
 eddy_fcr %>% select(datetime, sonic_temp_celsius) %>% 
   summarise(temp_na = sum(is.na(sonic_temp_celsius))/n()*100)
 
@@ -396,10 +398,11 @@ eddy_fcr %>% select(datetime, sonic_temp_celsius) %>%
 linearMod <- lm(eddy_fcr$sonic_temp_celsius ~ met2$AirTC_Avg)
 summary(linearMod)
 cor(eddy_fcr[[89]],met2[[3]],use = "complete.obs",method=c("pearson"))
-# EC = Met*1.017878-0.258594
+# EC = Met*1.027966-0.502685
+# UPDATE RELATIONSHIP EACH YEAR!!
 
 eddy_fcr$sonic_temp_celsius <- ifelse(is.na(eddy_fcr$sonic_temp_celsius),
-                                      eddy_fcr$air_temp_celsius*1.017878-0.258594, eddy_fcr$sonic_temp_celsius)
+                                      eddy_fcr$air_temp_celsius*1.027966-0.502685, eddy_fcr$sonic_temp_celsius)
 
 # Check sonic temp
 ggplot(eddy_fcr,mapping=aes(x=datetime,y=sonic_temp_celsius))+
@@ -413,6 +416,7 @@ ggplot()+
   theme_classic(base_size = 15)
 
 # Calculate percent of missing sonic temp data
+# 41% missing
 eddy_fcr %>% select(datetime, RH) %>% 
   summarise(RH_na = sum(is.na(RH))/n()*100)
 
@@ -420,10 +424,11 @@ eddy_fcr %>% select(datetime, RH) %>%
 linearMod <- lm(eddy_fcr$RH ~ met2$RH)
 summary(linearMod)
 cor(eddy_fcr[[46]],met2[[4]],use = "complete.obs",method=c("pearson"))
-# EC = Met*0.812457 + 6.620946
+# EC = Met*0.845661 + 7.712944
+# UPDATE EACH YEAR!!
 
 eddy_fcr$RH <- ifelse(is.na(eddy_fcr$RH),
-                      met2$RH*0.812457+6.620946, eddy_fcr$RH)
+                      met2$RH*0.845661+7.712944, eddy_fcr$RH)
 
 # Add Met data to gapfill fluxes
 eddy_fcr$SW_in <- met2$SW_in
@@ -506,7 +511,7 @@ eddy_fcr3 <- eddy_fcr_footprint_full %>%
 eddy_fcr3 %>% select(DateTime, NEE, ch4_flux) %>% 
   summarise(co2_available = 100-sum(is.na(NEE))/n()*100,
             ch4_available = 100-sum(is.na(ch4_flux))/n()*100)
-# 28% CO2 data; 21% CH4 data
+# 29% CO2 data; 23% CH4 data
 
 # Total number of available time points
 eddy_fcr3 %>% select(DateTime, NEE, ch4_flux) %>% 
