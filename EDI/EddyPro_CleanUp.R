@@ -93,7 +93,18 @@ ec <- ec %>%
 # Remove -9999 and replace with NAs
 ec[ec ==-9999] <- NA
 
-# Output data
-write_csv(ec, "./Data/20220121_EddyPro_Cleaned.csv")
+## Add flag for missing data: 3 = missing data
+# For: qc_tau, qc_H, qc_LE, qc_co2_flux, qc_h2o_flux, qc_ch4_flux
+ec <- ec %>% 
+  mutate(qc_Tau = ifelse(is.na(Tau_kgms2), 3, qc_Tau),
+         qc_H = ifelse(is.na(H_wm2), 3, qc_H),
+         qc_LE = ifelse(is.na(LE_wm2), 3, qc_LE),
+         qc_co2_flux = ifelse(is.na(co2_flux_umolm2s), 3, qc_co2_flux),
+         qc_h2o_flux = ifelse(is.na(h2o_flux_umolm2s), 3, qc_h2o_flux),
+         qc_ch4_flux = ifelse(is.na(ch4_flux_umolm2s), 3, qc_ch4_flux))
 
-write_csv(ec, "./EDI/20220121_EddyPro_Cleaned.csv")
+
+# Output data
+write_csv(ec, "./Data/20220130_EddyPro_Cleaned.csv")
+
+write_csv(ec, "./EDI/20220130_EddyPro_Cleaned.csv")

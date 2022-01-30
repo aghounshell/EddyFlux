@@ -135,10 +135,10 @@ make_eml(
   path = "C:/Users/ahoun/Desktop/EddyFlux/EDI",
   data.path = "C:/Users/ahoun/Desktop/EddyFlux/EDI",
   eml.path = "C:/Users/ahoun/Desktop/EddyFlux/EDI",
-  dataset.title = "Time series of carbon dioxide and methane fluxes measured with eddy covariance for Falling Creek Reservoir in southwestern Virginia, USA during 2020-2021",
+  dataset.title = "Time series of carbon dioxide and methane fluxes measured with eddy covariance for Falling Creek Reservoir in southwestern Virginia, USA during 2020-2022",
   temporal.coverage = c("2020-04-04", "2022-01-11"),
   maintenance.description = 'ongoing',
-  data.table = c("20220121_EddyPro_Cleaned.csv"),
+  data.table = c("20220130_EddyPro_Cleaned.csv"),
   data.table.description = c("EC Data"),
   data.table.name = "EC Data",
   other.entity= c("EddyPro_CleanUp.R","FCR_Process_BD.R","despike.R"),
@@ -146,7 +146,7 @@ make_eml(
   other.entity.name = c("EddyPro CleanUp","EC Post-processing","Despike function"),
   user.id = 'ccarey',
   user.domain = 'EDI',
-  package.id = 'edi.692.3')
+  package.id = 'edi.692.4')
 
 ## Step 8: Check your data product! ####
 # Return to the EDI staging environment (https://portal-s.edirepository.org/nis/home.jsp),
