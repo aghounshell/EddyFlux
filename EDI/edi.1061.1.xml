@@ -1,0 +1,2072 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<eml:eml xmlns:eml="https://eml.ecoinformatics.org/eml-2.2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:stmml="http://www.xml-cml.org/schema/stmml-1.2" packageId="edi.1061.1" xsi:schemaLocation="https://eml.ecoinformatics.org/eml-2.2.0  https://nis.lternet.edu/schemas/EML/eml-2.2.0/xsd/eml.xsd" system="edi">
+  <access authSystem="https://pasta.edirepository.org/authentication" order="allowFirst" scope="document">
+    <allow>
+      <principal>uid=ccarey,o=EDI,dc=edirepository,dc=org</principal>
+      <permission>all</permission>
+    </allow>
+    <allow>
+      <principal>public</principal>
+      <permission>read</permission>
+    </allow>
+  </access>
+  <dataset>
+    <title>Time series of carbon dioxide and methane fluxes measured with eddy covariance for Falling Creek Reservoir in southwestern Virginia, USA during 2020-2022</title>
+    <creator>
+      <individualName>
+        <givenName>Cayelan</givenName>
+        <givenName>C.</givenName>
+        <surName>Carey</surName>
+      </individualName>
+      <organizationName>Virginia Tech</organizationName>
+      <electronicMailAddress>Cayelan@vt.edu</electronicMailAddress>
+      <userId directory="https://orcid.org">https://orcid.org/0000-0001-8835-4476</userId>
+    </creator>
+    <creator>
+      <individualName>
+        <givenName>Alexandria</givenName>
+        <givenName>G.</givenName>
+        <surName>Hounshell</surName>
+      </individualName>
+      <organizationName>Virginia Tech</organizationName>
+      <electronicMailAddress>alexgh@vt.edu</electronicMailAddress>
+      <userId directory="https://orcid.org">https://orcid.org/0000-0003-1616-9399</userId>
+    </creator>
+    <creator>
+      <individualName>
+        <givenName>Brenda</givenName>
+        <givenName>M.</givenName>
+        <surName>D'Acunha</surName>
+      </individualName>
+      <organizationName>University of British Columbia</organizationName>
+      <electronicMailAddress>bdacunha@eoas.ubc.ca</electronicMailAddress>
+      <userId directory="https://orcid.org">https://orcid.org/0000-0002-8767-7772</userId>
+    </creator>
+    <creator>
+      <individualName>
+        <givenName>Adrienne</givenName>
+        <surName>Breef-Pilz</surName>
+      </individualName>
+      <organizationName>Virginia Tech</organizationName>
+      <electronicMailAddress>abreefpilz@vt.edu</electronicMailAddress>
+      <userId directory="https://orcid.org">https://orcid.org/0000-0002-6759-0063</userId>
+    </creator>
+    <creator>
+      <individualName>
+        <givenName>R.</givenName>
+        <givenName>Quinn</givenName>
+        <surName>Thomas</surName>
+      </individualName>
+      <organizationName>Virginia Tech</organizationName>
+      <electronicMailAddress>rqthomas@vt.edu</electronicMailAddress>
+      <userId directory="https://orcid.org">https://orcid.org/0000-0003-1282-7825</userId>
+    </creator>
+    <creator>
+      <individualName>
+        <givenName>Mark</givenName>
+        <givenName>S.</givenName>
+        <surName>Johnson</surName>
+      </individualName>
+      <organizationName>University of British Columbia</organizationName>
+      <electronicMailAddress>mark.johnson@ubc.ca</electronicMailAddress>
+      <userId directory="https://orcid.org">https://orcid.org/0000-0001-5070-7539</userId>
+    </creator>
+    <pubDate>2022-02-03</pubDate>
+    <abstract>
+      <para>Measured eddy covariance data and fluxes (carbon dioxide, methane) collected at the deepest site of Falling Creek Reservoir (Vinton, Virginia, USA) every 30-minutes from April 2020 to January 2022. Falling Creek Reservoir is a drinking water supply reservoir owned and managed by the Western Virginia Water Authority (WVWA) as a primary drinking water source. The data set consists of micrometeorological and flux data collected using an eddy covariance system (LiCor Biosciences, Lincoln, Nebraska, USA) and analyzed with associated Eddy Pro software (Eddy Pro Version 7.0.6), including carbon dioxide and methane fluxes. All analysis scripts are included for data processing and quality assurance/quality control following best practices.</para>
+    </abstract>
+    <keywordSet>
+      <keyword>Carey Lab</keyword>
+      <keyword>greenhouse gas</keyword>
+      <keyword>Virginia Tech</keyword>
+      <keyword>Stream Team</keyword>
+      <keyword>Western Virginia Water Authority</keyword>
+      <keyword>Falling Creek Reservoir</keyword>
+      <keywordThesaurus>carey lab controlled vocabulary</keywordThesaurus>
+    </keywordSet>
+    <keywordSet>
+      <keyword>reservoir</keyword>
+      <keyword>lake</keyword>
+      <keywordThesaurus>cuahsi controlled vocabulary</keywordThesaurus>
+    </keywordSet>
+    <keywordSet>
+      <keyword>methane</keyword>
+      <keyword>carbon dioxide</keyword>
+      <keyword>lakes</keyword>
+      <keyword>gas flux</keyword>
+      <keyword>heat flux</keyword>
+      <keyword>eddy covariance</keyword>
+      <keyword>fluxes</keyword>
+      <keyword>meteorology</keyword>
+      <keywordThesaurus>lter controlled vocabulary</keywordThesaurus>
+    </keywordSet>
+    <additionalInfo>
+      <para>CCC developed and led the reservoir monitoring program from 2020-present and tested/deployed the EC system in 2020. AGH is the point person for EC data collation (following processing in EddyPro), QA/QC, and publishing. BMD assisted with EC data collation and correction in EddyPro and provided QA/QC scripts. ABP led the field team, conducted routine maintenance, data downloads and troubleshooting. RQT tested/deployed the EC system and provided QA/QC and troubleshooting assistance. MSJ provided the EC system, helped with maintenance, and assisted with QA/QC.</para>
+    </additionalInfo>
+    <intellectualRights>
+      <para>This information is released under the Creative Commons license - Attribution - CC BY (https://creativecommons.org/licenses/by/4.0/). The consumer of these data ("Data User" herein) is required to cite it appropriately in any publication that results from its use. The Data User should realize that these data may be actively used by others for ongoing research and that coordination may be necessary to prevent duplicate publication. The Data User is urged to contact the authors of these data if any questions about methodology or results occur. Where appropriate, the Data User is encouraged to consider collaboration or co-authorship with the authors. The Data User should realize that misinterpretation of data may occur if used out of context of the original study. While substantial efforts are made to ensure the accuracy of data and associated documentation, complete accuracy of data sets cannot be guaranteed. All data are made available "as is." The Data User should be aware, however, that data are updated periodically and it is the responsibility of the Data User to check for new versions of the data. The data authors and the repository where these data were obtained shall not be liable for damages resulting from any use or misinterpretation of the data. Thank you.
+</para>
+    </intellectualRights>
+    <coverage>
+      <geographicCoverage>
+        <geographicDescription>Falling Creek Reservoir is located in Vinton, Virginia, USA</geographicDescription>
+        <boundingCoordinates>
+          <westBoundingCoordinate>37.30266</westBoundingCoordinate>
+          <eastBoundingCoordinate>37.309589</eastBoundingCoordinate>
+          <northBoundingCoordinate>-79.839249</northBoundingCoordinate>
+          <southBoundingCoordinate>-79.836009</southBoundingCoordinate>
+        </boundingCoordinates>
+      </geographicCoverage>
+      <temporalCoverage>
+        <rangeOfDates>
+          <beginDate>
+            <calendarDate>2020-04-04</calendarDate>
+          </beginDate>
+          <endDate>
+            <calendarDate>2022-01-11</calendarDate>
+          </endDate>
+        </rangeOfDates>
+      </temporalCoverage>
+    </coverage>
+    <maintenance>
+      <description>ongoing</description>
+    </maintenance>
+    <contact>
+      <individualName>
+        <givenName>Cayelan</givenName>
+        <givenName>C.</givenName>
+        <surName>Carey</surName>
+      </individualName>
+      <organizationName>Virginia Tech</organizationName>
+      <electronicMailAddress>Cayelan@vt.edu</electronicMailAddress>
+      <userId directory="https://orcid.org">https://orcid.org/0000-0001-8835-4476</userId>
+    </contact>
+    <methods>
+      <methodStep>
+        <description>
+          <para>An eddy covariance (EC) system (LiCor Biosciences, Lincoln, Nebraska) was used to collect greenhouse gas fluxes (carbon dioxide, methane) from Falling Creek Reservoir from April 2020 to January 2022. The EC instrumentation was deployed at the deepest site of Falling Creek Reservoir on a permanent metal platform that extends about 45 m from the dam and approximately 2.9 m over the reservoir's surface. The reservoir was maintained at full pond during the monitoring period, resulting in negligible change in distance between the EC system and the water's surface. </para>
+          <para>The EC instrumentation included an ultrasonic anemometer to measure 3D wind speed and direction (CSAT3, Campbell Scientific Inc., Logan, Utah, USA), an open-path infrared gas analyzer for measuring methane concentration (LI-7700, LiCor Biosciences, Lincoln, Nebraska, USA), and an enclosed path infrared gas analyzer for measuring carbon dioxide and water vapor concentrations (LI-7200, LiCor Biosciences, Lincoln, Nebraska, USA). The data streams (anemometer, methane, carbon dioxide, water vapor) were recorded at 10-Hz using a data logger that included a temperature sensor and pressure transducer (LI-7550, LiCor Biosciences, Lincoln, Nebraska, USA). The open path methane sensor was manually cleaned approximately weekly from April through October and approximately monthly from November to April. The carbon dioxide sensor was cleaned approximately every three months or when the sensor strength dropped below ~95%.</para>
+          <para>The collected, raw 10-Hz data were processed into 30-minute fluxes using the EddyPro v. 7.0.6 software (LiCor Biosciences, Lincoln, Nebraska, USA; LiCor Biosciences 2019) using the 'Express' settings. Following processing in EddyPro software, we excluded some redundant measurements and calculations in R using EddyPro_CleanUp.R. The EddyPro processed data is the data published as part of this data product (20220121_EddyPro_Cleaned.csv).</para>
+          <para>Additional data processing following standard best practices can be applied using the FCR_Process_BD.R script. Additional data processing included: 1) removing wind directions which originated behind the dam (i.e., outside of the reservoir; wind direction between 80-250 degrees removed); 2) removing extreme flux values (carbon dioxide fluxes &gt; abs(100) umol C m-2 s-1; methane fluxes &gt; abs(0.25) umol C m-2 s-1); 3) removing methane fluxes when the signal strength &lt;20%; 4) removing carbon dioxide and methane fluxes when they did not pass the test for stationarity or developed turbulent conditions (quality control, QC level 2, per Foken et al. 2004) in addition to when the latent heat flux (LE) or sensible heat (H) had QC level &lt;2; 4) removing open path methane fluxes during periods of rainfall, which was determined based on the rain gauge deployed at the FCR dam; 5) correction for high-pass and low-pass filtering effects (Moncrieff et al. 2004; using the function defined in despike.R), and 6) removing data that corresponded to flux footprints that extended significantly beyond the reservoir. Flux footprints were modeled every half-hour using a simple, two-dimensional parameterization developed by Kljun et al. (2015). This model builds on the lagrangian stochastic particle dispersion model (Kljun et al., 2002), and provides information on the upwind and crosswind spread of the footprint. All the variables needed for the model were obtained directly from the dataset, or calculated following Kljun et al. (2015). Data were excluded when the along-wind distance providing the highest contribution (peak) to turbulent fluxes was outside the reservoir. Finally, 7) we filtered out additional periods of low turbulence friction velocity (ustar) using REddyProc as described below (Wutzler et al. 2018). </para>
+          <para>We include the quality control flags for each calculated flux as assigned by EddyPro software such that: 0 = best quality fluxes; 1 = fluxes suitable for general analysis; and 2 = remove fluxes following Mauder and Foken (2006). These quality control flags were used for further data QA/QC as described above.</para>
+          <para>Following 30-minute flux conversions in Eddy Pro and additional post-processing as described above, the script can also be used for additional data processing using the R package REddyProc (Wutzler et al. 2018) to conduct gap-filling of missing data. First, we used the meteorological data (Carey et al. 2021) measured at the dam (located ~45 m from the EC sensors) to gap-fill any missing wind speed, direction, temperature, and relative humidity from the EC data. Second, we calculated the vapor pressure deficit from measured air temperature and relative humidity and calculated net radiation balance from upwelling and downwelling shortwave and longwave radiation. Using REddyProc, we then gap-filled any remaining gaps in the air temperature, shortwave radiation, total PAR, net radiation, sensible heat flux, and latent heat flux using the marginal distribution sampling (MDS) following Wutzler et al. (2018). We then used REddyProc to estimate the ustar threshold distribution and removed any fluxes where ustar was too low (Wutzler et al. 2018). Finally, we gap-filled any missing fluxes using the estimated ustar distributions using the MDS method (Wutzler et al. 2018).</para>
+          <para>On 10 August 2020, the data logger was removed for maintenance and was re-deployed on 2 September 2020. Additionally, a thermocouple on the CO2 sensor (LI-7500) was inoperable starting on 5 April 2021 and was reparied on 26 April 2021. We note that power interruptions or instrument malfunction resulted in 83% and 70% raw data coverage for carbon dioxide and methane, respectively. Ultimately, all data processing as described above, resulted in a total of 29% data coverage for carbon dioxide and 23% for methane fluxes prior to gap-filling. </para>
+          <para>References</para>
+          <para>Carey C.C., Breef-Pilz A,  Bookout BJ, Lofton ME, McClure RP. 2021. Time series of high-frequency meteorological data at Falling Creek Reservoir, Virginia, USA 2015-2020 ver 5. Environmental Data Initiative. https://doi.org/10.6073/pasta/890e4c11f4348b3ceda802732ffa48b4 (Accessed 2021-10-05).</para>
+          <para>Foken T., Goockede M., Mauder M., Mahrt L., Amiro B., Munger W. 2004. Post-Field Data Quality Control. In: Lee X., Massman W., Law B. (eds) Handbook of Micrometeorology. Atmospheric and Oceanographic Sciences Library, vol 29. Springer, Dordrecht. https://doi.org/10.1007/1-4020-2265-4_9</para>
+          <para>Kljun N., Rotach M.W., Schmid H.P. 2002. A 3D Backward Lagrangian Footprint Model for a Wide Range of Boundary Layer Stratifications. Boundary Layer Meteorology, 103, 205-226.</para>
+          <para>Kljun N., Calanca P., Rotach M.W., Schmid H.P. 2015. A simple two-dimensional parameterisation for Flux Footprint Prediction (FFP), Geoscience Model Development, 8, 3695-3713. https://doi.org/10.5194/gmd-8-3695-2015</para>
+          <para>LiCor Biosciences. 2019. Eddy Pro v. 7.0.6 [Computer software]. Available: https://www.licor.com/env/support/EddyPro/software.html. Accessed: 22 December 2021.</para>
+          <para>Mauder M,  Foken T. 2006. Impact of post-field data processing on eddy covariance flux estimates and energy balance closure. Meteorologische Zeitschrift, 15: 597-609.</para>
+          <para>Moncrieff J., Clement R., Finnigan J., Meyers T. 2004. Averaging, Detrending, and Filtering of Eddy Covariance Time Series. In: Lee X., Massman W., Law B. (eds) Handbook of Micrometeorology. Atmospheric and Oceanographic Sciences Library, vol 29. Springer, Dordrecht. https://doi.org/10.1007/1-4020-2265-4_2</para>
+          <para>Wutzler T, Lucas-Moffat A, Migliavacca M, Knauer J, Sickel K, Sigut L, Menzer O, Reichstien M. 2018. Basic and extensible post-processing of eddy covariance flux data with REddyProc. Biogeosciences, 15, 5015-5030. https://doi.org/10.5194/bg-15-5015-2018</para>
+        </description>
+      </methodStep>
+    </methods>
+    <project>
+      <title>No project title to report</title>
+      <personnel>
+        <individualName>
+          <givenName>Cayelan</givenName>
+          <givenName>C.</givenName>
+          <surName>Carey</surName>
+        </individualName>
+        <organizationName>Virginia Tech</organizationName>
+        <electronicMailAddress>Cayelan@vt.edu</electronicMailAddress>
+        <userId directory="https://orcid.org">https://orcid.org/0000-0001-8835-4476</userId>
+        <role>Principal Investigator</role>
+      </personnel>
+      <funding>Western Virginia Water Authority</funding>
+      <relatedProject>
+        <title>Collaborative Research: Consequences of changing oxygen availability for carbon cycling in freshwater ecosystems</title>
+        <personnel>
+          <individualName>
+            <givenName>Cayelan</givenName>
+            <givenName>C.</givenName>
+            <surName>Carey</surName>
+          </individualName>
+          <organizationName>Virginia Tech</organizationName>
+          <electronicMailAddress>Cayelan@vt.edu</electronicMailAddress>
+          <userId directory="https://orcid.org">https://orcid.org/0000-0001-8835-4476</userId>
+          <role>Principal Investigator</role>
+        </personnel>
+        <funding>National Science Foundation 1753639</funding>
+      </relatedProject>
+      <relatedProject>
+        <title>Discovery Grant</title>
+        <personnel>
+          <individualName>
+            <givenName>Mark</givenName>
+            <givenName>S.</givenName>
+            <surName>Johnson</surName>
+          </individualName>
+          <organizationName>University of British Columbia</organizationName>
+          <electronicMailAddress>mark.johnson@ubc.ca</electronicMailAddress>
+          <userId directory="https://orcid.org">https://orcid.org/0000-0001-5070-7539</userId>
+          <role>Principal Investigator</role>
+        </personnel>
+        <funding>Natural Sciences and Engineering Research Council of Canada RGPIN-2020-06252</funding>
+      </relatedProject>
+    </project>
+    <dataTable>
+      <entityName>EC Data</entityName>
+      <entityDescription>EC Data</entityDescription>
+      <physical>
+        <objectName>2020to2021_EddyPro_Cleaned.csv</objectName>
+        <size unit="bytes">15135149</size>
+        <authentication method="MD5">987baebeea96ad61530662c2b59e3ed9</authentication>
+        <dataFormat>
+          <textFormat>
+            <numHeaderLines>1</numHeaderLines>
+            <recordDelimiter>\n</recordDelimiter>
+            <attributeOrientation>column</attributeOrientation>
+            <simpleDelimited>
+              <fieldDelimiter>,</fieldDelimiter>
+            </simpleDelimited>
+          </textFormat>
+        </dataFormat>
+      </physical>
+      <attributeList>
+        <attribute>
+          <attributeName>date</attributeName>
+          <attributeDefinition>Date sample was collected in GMT</attributeDefinition>
+          <storageType>date</storageType>
+          <measurementScale>
+            <dateTime>
+              <formatString>YYYY-MM-DD</formatString>
+              <dateTimeDomain/>
+            </dateTime>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>time</attributeName>
+          <attributeDefinition>Time sample was collected in GMT</attributeDefinition>
+          <storageType>date</storageType>
+          <measurementScale>
+            <dateTime>
+              <formatString>HH:MM:SS</formatString>
+              <dateTimeDomain/>
+            </dateTime>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>DOY</attributeName>
+          <attributeDefinition>Day of Julian year</attributeDefinition>
+          <storageType>date</storageType>
+          <measurementScale>
+            <dateTime>
+              <formatString>D</formatString>
+              <dateTimeDomain/>
+            </dateTime>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>Tau_kgms2</attributeName>
+          <attributeDefinition>Corrected momentum flux</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <customUnit>kilogramPerMeterPerSecondSquared</customUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">-24.2745</minimum>
+                  <maximum exclusive="false">9.1344</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>qc_Tau</attributeName>
+          <attributeDefinition>Quality Flag for momentum flux; 0 = Best quality fluxes; 1 = fluxes suitable for general analysis; 2 = remove fluxes; 3 = no data collected</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>whole</numberType>
+                <bounds>
+                  <minimum exclusive="false">0</minimum>
+                  <maximum exclusive="false">3</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>H_wm2</attributeName>
+          <attributeDefinition>Corrected sensible heat flux</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>wattPerMeterSquared</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">-4396.13</minimum>
+                  <maximum exclusive="false">2837.53</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>qc_H</attributeName>
+          <attributeDefinition>Quality flag for sensible heat flux; 0 = Best quality fluxes; 1 = fluxes suitable for general analysis; 2 = remove fluxes; 3 = no data collected</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>whole</numberType>
+                <bounds>
+                  <minimum exclusive="false">0</minimum>
+                  <maximum exclusive="false">3</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>LE_wm2</attributeName>
+          <attributeDefinition>Corrected latent heat flux</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>wattPerMeterSquared</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">-2678.05</minimum>
+                  <maximum exclusive="false">1513.68</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>qc_LE</attributeName>
+          <attributeDefinition>Quality flag for latent heat flux; 0 = Best quality fluxes; 1 = fluxes suitable for general analysis; 2 = remove fluxes; 3 = no data collected</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>whole</numberType>
+                <bounds>
+                  <minimum exclusive="false">0</minimum>
+                  <maximum exclusive="false">3</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>co2_flux_umolm2s</attributeName>
+          <attributeDefinition>Corrected carbon dioxide flux</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>micromolePerMeterSquaredPerSecond</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">-483.74</minimum>
+                  <maximum exclusive="false">747.701</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>qc_co2_flux</attributeName>
+          <attributeDefinition>Quality flag for carbon dioxide flux; 0 = Best quality fluxes; 1 = fluxes suitable for general analysis; 2 = remove fluxes; 3 = no data collected</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>whole</numberType>
+                <bounds>
+                  <minimum exclusive="false">0</minimum>
+                  <maximum exclusive="false">3</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>h2o_flux_umolm2s</attributeName>
+          <attributeDefinition>Corrected water vapor flux</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>micromolePerMeterSquaredPerSecond</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">-61.0912</minimum>
+                  <maximum exclusive="false">34.1234</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>qc_h2o_flux</attributeName>
+          <attributeDefinition>Quality flag for water vapor flux; 00 = Best quality fluxes; 1 = fluxes suitable for general analysis; 2 = remove fluxes; 3 = no data collected</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>whole</numberType>
+                <bounds>
+                  <minimum exclusive="false">0</minimum>
+                  <maximum exclusive="false">3</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>ch4_flux_umolm2s</attributeName>
+          <attributeDefinition>Corrected methane flux</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>micromolePerMeterSquaredPerSecond</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">-0.476039</minimum>
+                  <maximum exclusive="false">0.945889</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>qc_ch4_flux</attributeName>
+          <attributeDefinition>Quality flag for methane flux; 0 = Best quality fluxes; 1 = fluxes suitable for general analysis; 2 = remove fluxes; 3 = no data collected</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>whole</numberType>
+                <bounds>
+                  <minimum exclusive="false">0</minimum>
+                  <maximum exclusive="false">3</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>co2_v_adv_umolm2s</attributeName>
+          <attributeDefinition>Estimate of vertical advection flux for carbon dioxide</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>micromolePerMeterSquaredPerSecond</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>integer</numberType>
+                <bounds>
+                  <minimum exclusive="false">-4.62e-09</minimum>
+                  <maximum exclusive="false">3.34e-09</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>h2o_v_adv_umolm2s</attributeName>
+          <attributeDefinition>Estimate of vertical advection flux for water vapor</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>micromolePerMeterSquaredPerSecond</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>integer</numberType>
+                <bounds>
+                  <minimum exclusive="false">-1.83e-10</minimum>
+                  <maximum exclusive="false">1.58e-10</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>ch4_v_adv_umolm2s</attributeName>
+          <attributeDefinition>Estimate of vertical advection flux for methane</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>micromolePerMeterSquaredPerSecond</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>integer</numberType>
+                <bounds>
+                  <minimum exclusive="false">-1.69e-11</minimum>
+                  <maximum exclusive="false">2.99e-11</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>co2_molar_density_mmolm3</attributeName>
+          <attributeDefinition>Measured or estimated molar density of carbon dioxide</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>millimolePerMeterCubed</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">8.15824</minimum>
+                  <maximum exclusive="false">32.24</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>co2_mole_fraction_umolmol</attributeName>
+          <attributeDefinition>Measured or estimated mole fraction of carbon dioxide</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>micromolePerMole</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">206.717</minimum>
+                  <maximum exclusive="false">803.038</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>co2_mixing_ratio_umolmol</attributeName>
+          <attributeDefinition>Measured or estimated mixing ratio of carbon dioxide</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>micromolePerMole</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">210.037</minimum>
+                  <maximum exclusive="false">827.925</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>co2_time_lag_s</attributeName>
+          <attributeDefinition>Time lag used to synchronize carbon dioxide time series</attributeDefinition>
+          <storageType>date</storageType>
+          <measurementScale>
+            <dateTime>
+              <formatString>SS</formatString>
+              <dateTimeDomain/>
+            </dateTime>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>co2_def_timelag</attributeName>
+          <attributeDefinition>Quality Flag for carbon dioxide time lag: 1 = Default; 0 = Calculated</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>whole</numberType>
+                <bounds>
+                  <minimum exclusive="false">0</minimum>
+                  <maximum exclusive="false">1</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>h2o_molar_density_mmolm3</attributeName>
+          <attributeDefinition>Measured or estimated molar density of water vapor</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>millimolePerMeterCubed</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">25.0043</minimum>
+                  <maximum exclusive="false">1299.39</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>h2o_mole_fraction_umolmol</attributeName>
+          <attributeDefinition>Measured or estimated mole fraction of water vapor</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>micromolePerMole</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.622098</minimum>
+                  <maximum exclusive="false">33.2305</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>h2o_mixing_ratio_umolmol</attributeName>
+          <attributeDefinition>Measured or estimated mixing ratio of water vapor</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>micromolePerMole</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.622485</minimum>
+                  <maximum exclusive="false">34.3727</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>h2o_time_lag_s</attributeName>
+          <attributeDefinition>Time lag used to synchronize water vapor time series</attributeDefinition>
+          <storageType>date</storageType>
+          <measurementScale>
+            <dateTime>
+              <formatString>SS</formatString>
+              <dateTimeDomain/>
+            </dateTime>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>h2o_def_timelag</attributeName>
+          <attributeDefinition>Quality Flag for water vapor time lag: 1 = Default; 0 = Calculated</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>whole</numberType>
+                <bounds>
+                  <minimum exclusive="false">0</minimum>
+                  <maximum exclusive="false">1</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>ch4_molar_density_mmolm3</attributeName>
+          <attributeDefinition>Measured or estimated molar density of methane</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>millimolePerMeterCubed</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.0734</minimum>
+                  <maximum exclusive="false">0.104073</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>ch4_mole_fraction_umolmol</attributeName>
+          <attributeDefinition>Measured or estimated mole fraction of methane</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>micromolePerMole</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">1.84895</minimum>
+                  <maximum exclusive="false">2.39698</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>ch4_mixing_ratio_umolmol</attributeName>
+          <attributeDefinition>Measured or estimated mixing ratio of methane</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>micromolePerMole</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">1.8876</minimum>
+                  <maximum exclusive="false">2.39698</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>ch4_time_lag_s</attributeName>
+          <attributeDefinition>Time lag used to synchronize methane time series</attributeDefinition>
+          <storageType>date</storageType>
+          <measurementScale>
+            <dateTime>
+              <formatString>SS</formatString>
+              <dateTimeDomain/>
+            </dateTime>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>ch4_def_timelag</attributeName>
+          <attributeDefinition>Quality Flag for methane time lag: 1 = Default; 0 = Calculated</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>whole</numberType>
+                <bounds>
+                  <minimum exclusive="false">0</minimum>
+                  <maximum exclusive="false">1</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>sonic_temperature_k</attributeName>
+          <attributeDefinition>Mean air temperature measured by the anemometer</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>kelvin</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">262.899</minimum>
+                  <maximum exclusive="false">312.221</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>air_temperature_k</attributeName>
+          <attributeDefinition>Mean air temperature measured by the LiCor sensor or estimated by the sonic anemometer</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>kelvin</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">262.516</minimum>
+                  <maximum exclusive="false">310.183</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>air_pressure_pa</attributeName>
+          <attributeDefinition>Mean air pressure calculated from high frequency air pressure readings or estimated based on site altitude</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>pascal</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">76525.6</minimum>
+                  <maximum exclusive="false">97236.7</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>air_density_kgm3</attributeName>
+          <attributeDefinition>Air density</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>kilogramPerMeterCubed</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.954121</minimum>
+                  <maximum exclusive="false">1.28073</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>air_heat_capacity_jkkg</attributeName>
+          <attributeDefinition>Specific heat at constant pressure of ambient air</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <customUnit>joulePerKelvinPerKilogram</customUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">969.067</minimum>
+                  <maximum exclusive="false">1024.17</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>air_molar_volume_m3mol</attributeName>
+          <attributeDefinition>Molar volume of air</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <customUnit>meterCubedPerMole</customUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.0226</minimum>
+                  <maximum exclusive="false">0.0302</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>ET_mmhr</attributeName>
+          <attributeDefinition>Evapotranspiration flux</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <customUnit>millimeterPerHour</customUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">-3.95871</minimum>
+                  <maximum exclusive="false">2.21119</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>water_vapor_density_kgm3</attributeName>
+          <attributeDefinition>Mass density of water vapor</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>kilogramPerMeterCubed</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.00045</minimum>
+                  <maximum exclusive="false">0.0232</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>e_pa</attributeName>
+          <attributeDefinition>Water vapor partial pressure</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>pascal</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">60.0558</minimum>
+                  <maximum exclusive="false">3157.38</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>es_pa</attributeName>
+          <attributeDefinition>Water vapor partial pressure at saturation</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>pascal</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">271.658</minimum>
+                  <maximum exclusive="false">6269.11</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>specific_humidity_kgkg</attributeName>
+          <attributeDefinition>Specific humidity on a mass basis</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <customUnit>kilogramPerKilogram</customUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.000387</minimum>
+                  <maximum exclusive="false">0.0209</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>RH</attributeName>
+          <attributeDefinition>Relative humidity</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>percent</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">3.2908</minimum>
+                  <maximum exclusive="false">100</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>VPD_pa</attributeName>
+          <attributeDefinition>Water vapor pressure deficit</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>pascal</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0</minimum>
+                  <maximum exclusive="false">3444.31</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>Tdew_k</attributeName>
+          <attributeDefinition>Dew point temperature</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>kelvin</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">244.948</minimum>
+                  <maximum exclusive="false">298.105</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>wind_speed_ms</attributeName>
+          <attributeDefinition>Mean wind speed</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>meterPerSecond</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.0424</minimum>
+                  <maximum exclusive="false">7.39203</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>max_wind_speed_ms</attributeName>
+          <attributeDefinition>Maximum instantaneous wind speed</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>meterPerSecond</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.711887</minimum>
+                  <maximum exclusive="false">29.9479</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>wind_dir</attributeName>
+          <attributeDefinition>Wind direction with respect to magnetic north</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>degree</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.00378</minimum>
+                  <maximum exclusive="false">359.995</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>u_star_ms</attributeName>
+          <attributeDefinition>Friction velocity</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>meterPerSecond</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.00912</minimum>
+                  <maximum exclusive="false">4.46053</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>TKE_m2s2</attributeName>
+          <attributeDefinition>Turbulent kinetic energy</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <customUnit>meterSquaredPerSecondSquared</customUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.0102</minimum>
+                  <maximum exclusive="false">22.7067</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>L_m</attributeName>
+          <attributeDefinition>Monin-Obukhov length</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>meter</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">-7090000</minimum>
+                  <maximum exclusive="false">772471</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>MO_stability</attributeName>
+          <attributeDefinition>Monin-Obukhov stability parameter</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">-760.094</minimum>
+                  <maximum exclusive="false">35.8063</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>bowen_ratio</attributeName>
+          <attributeDefinition>Sensible heat flux to latent heat flux ratio</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">-6490.54</minimum>
+                  <maximum exclusive="false">8931.41</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>scale_T_k</attributeName>
+          <attributeDefinition>Scaling temperature</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>kelvin</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">-1.78036</minimum>
+                  <maximum exclusive="false">1.67921</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>x_peak_m</attributeName>
+          <attributeDefinition>Along-wind distance providing the highest (peak) contribution to turbulent fluxes</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>meter</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.488911</minimum>
+                  <maximum exclusive="false">186.22</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>x_offset_m</attributeName>
+          <attributeDefinition>Along-wind distance providing &lt;1% contribution of turbulent fluxes</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>meter</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">-28.2597</minimum>
+                  <maximum exclusive="false">23</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>x_10_m</attributeName>
+          <attributeDefinition>Along-wind distance providing 10% (cumulative) contribution to turbulent fluxes</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>meter</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">1</minimum>
+                  <maximum exclusive="false">63.9234</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>x_30_m</attributeName>
+          <attributeDefinition>Along-wind distance providing 30% (cumulative) contribution to turbulent fluxes</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>meter</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">1</minimum>
+                  <maximum exclusive="false">159.178</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>x_50_m</attributeName>
+          <attributeDefinition>Along-wind distance providing 50% (cumulative) contribution to turbulent fluxes</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>meter</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">2</minimum>
+                  <maximum exclusive="false">242.757</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>x_70_m</attributeName>
+          <attributeDefinition>Along-wind distance providing 70% (cumulative) contribution to turbulent fluxes</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>meter</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">5</minimum>
+                  <maximum exclusive="false">340.47</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>x_90_m</attributeName>
+          <attributeDefinition>Along-wind distance providing 90% (cumulative) contribution to turbulent fluxes</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>meter</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">12</minimum>
+                  <maximum exclusive="false">1236</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>un_Tau_kgms2</attributeName>
+          <attributeDefinition>Uncorrected momentum flux</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <customUnit>kilogramPerMeterPerSecondSquared</customUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">-23.9136</minimum>
+                  <maximum exclusive="false">9.07091</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>Tau_scf</attributeName>
+          <attributeDefinition>Spectral correction factor for momentum flux</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">1.00663</minimum>
+                  <maximum exclusive="false">1.30406</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>un_H_wm2</attributeName>
+          <attributeDefinition>Uncorrected sensible heat flux</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>wattPerMeterSquared</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">-4292.94</minimum>
+                  <maximum exclusive="false">2781.15</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>H_scf</attributeName>
+          <attributeDefinition>Spectral correction factor for sensible heat flux</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">1.01206</minimum>
+                  <maximum exclusive="false">1.49634</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>un_LE_wm2</attributeName>
+          <attributeDefinition>Uncorrected latent heat flux</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>wattPerMeterSquared</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">-2435.18</minimum>
+                  <maximum exclusive="false">1411.18</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>LE_scf</attributeName>
+          <attributeDefinition>Spectral correction factor for latent heat flux</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">1.06366</minimum>
+                  <maximum exclusive="false">5.27324</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>un_co2_flux_umolm2s</attributeName>
+          <attributeDefinition>Uncorrected carbon dioxide flux</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>micromolePerMeterSquaredPerSecond</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">-444.652</minimum>
+                  <maximum exclusive="false">697.068</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>co2_scf</attributeName>
+          <attributeDefinition>Spectral correction factor for carbon dioxide flux</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">1.06366</minimum>
+                  <maximum exclusive="false">5.27324</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>un_h2o_flux_umolm2s</attributeName>
+          <attributeDefinition>Uncorrected water vapor flux</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>micromolePerMeterSquaredPerSecond</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">-55.5509</minimum>
+                  <maximum exclusive="false">31.8126</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>h2o_scf</attributeName>
+          <attributeDefinition>Spectral correction factor for water vapor flux</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">1.06366</minimum>
+                  <maximum exclusive="false">5.27324</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>un_ch4_flux_umolm2s</attributeName>
+          <attributeDefinition>Uncorrected methane flux</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>micromolePerMeterSquaredPerSecond</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">-0.494284</minimum>
+                  <maximum exclusive="false">0.8525</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>ch4_scf</attributeName>
+          <attributeDefinition>Spectral correction factor for methane flux</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">1</minimum>
+                  <maximum exclusive="false">8.81312</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>u_var_ms</attributeName>
+          <attributeDefinition>Variance of wind speed in the u direction</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>metersPerSecond</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.00639</minimum>
+                  <maximum exclusive="false">28.145</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>v_var_ms</attributeName>
+          <attributeDefinition>Variance of wind speed in the v direction</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>metersPerSecond</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.0102</minimum>
+                  <maximum exclusive="false">24.7917</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>w_var_ms</attributeName>
+          <attributeDefinition>Variance of wind speed in the w direction</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>metersPerSecond</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.0021</minimum>
+                  <maximum exclusive="false">21.6596</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>rssi_77_mean</attributeName>
+          <attributeDefinition>Signal strength of methane sensor</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>percent</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">-512.291</minimum>
+                  <maximum exclusive="false">94.0022</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+      </attributeList>
+      <numberOfRecords>28249</numberOfRecords>
+    </dataTable>
+    <otherEntity>
+      <entityName>EddyPro CleanUp</entityName>
+      <entityDescription>R script to clean-up Eddy Pro output</entityDescription>
+      <physical>
+        <objectName>EddyPro_CleanUp.R</objectName>
+        <size unit="bytes">4348</size>
+        <authentication method="MD5">116a6afdf0d6b6c3751abdc3b6ffc24c</authentication>
+        <dataFormat>
+          <externallyDefinedFormat>
+            <formatName>text/plain</formatName>
+          </externallyDefinedFormat>
+        </dataFormat>
+      </physical>
+      <entityType>unknown</entityType>
+    </otherEntity>
+    <otherEntity>
+      <entityName>EC Post-processing</entityName>
+      <entityDescription>R script for post-processing of EC data</entityDescription>
+      <physical>
+        <objectName>FCR_Process_BD.R</objectName>
+        <size unit="bytes">28001</size>
+        <authentication method="MD5">e6c68133d4f993ac90a9be3908082f20</authentication>
+        <dataFormat>
+          <externallyDefinedFormat>
+            <formatName>text/plain</formatName>
+          </externallyDefinedFormat>
+        </dataFormat>
+      </physical>
+      <entityType>unknown</entityType>
+    </otherEntity>
+    <otherEntity>
+      <entityName>Despike function</entityName>
+      <entityDescription>Depsike function for post-processing</entityDescription>
+      <physical>
+        <objectName>despike.R</objectName>
+        <size unit="bytes">798</size>
+        <authentication method="MD5">40edcc784d70705f2ad03f37b77859cb</authentication>
+        <dataFormat>
+          <externallyDefinedFormat>
+            <formatName>text/plain</formatName>
+          </externallyDefinedFormat>
+        </dataFormat>
+      </physical>
+      <entityType>unknown</entityType>
+    </otherEntity>
+  </dataset>
+  <additionalMetadata>
+    <metadata>
+      <unitList>
+        <unit id="kilogramPerMeterPerSecondSquared" multiplierToSI="" name="kilogramPerMeterPerSecondSquared" parentSI="" unitType="forcePerUnitArea">
+          <description>momentum flux</description>
+        </unit>
+        <unit id="joulePerKelvinPerKilogram" multiplierToSI="" name="joulePerKelvinPerKilogram" parentSI="" unitType="heatCapacity">
+          <description>specifc heat at constant pressure of ambient air</description>
+        </unit>
+        <unit id="meterCubedPerMole" multiplierToSI="" name="meterCubedPerMole" parentSI="" unitType="volumePerMole">
+          <description>molar volume of ambient air</description>
+        </unit>
+        <unit id="millimeterPerHour" multiplierToSI="2.80E-04" name="millimeterPerHour" parentSI="millimeterPerSecond" unitType="speed">
+          <description>millimeter per hour</description>
+        </unit>
+        <unit id="kilogramPerKilogram" multiplierToSI="" name="kilogramPerKilogram" parentSI="" unitType="specificHumidity">
+          <description>specifc humidity</description>
+        </unit>
+        <unit id="meterSquaredPerSecondSquared" multiplierToSI="" name="meterSquaredPerSecondSquared" parentSI="" unitType="turbulentKineticEnergy">
+          <description>turbulent kinetic energy</description>
+        </unit>
+      </unitList>
+    </metadata>
+  </additionalMetadata>
+</eml:eml>

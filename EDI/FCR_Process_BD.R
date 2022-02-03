@@ -65,8 +65,6 @@ ec2 %>% group_by(year(datetime), month(datetime)) %>% select(datetime, co2_flux_
 # Reading in data from the Met Station for gap-filling purposes
 # Load data Meteorological data from EDI
 
-### CURRENTLY IN THE STAGING ENVIRONMENT: UPDATE WHEN PUBLISHED!! ###
-
 # Downloaded from EDI staging: 09 December 2021
 #inUrl1  <- "https://pasta-s.lternet.edu/package/data/eml/edi/143/8/a5524c686e2154ec0fd0459d46a7d1eb" 
 #infile1 <- paste0(getwd(),"/Data/Met_final_2015_2021.csv")
