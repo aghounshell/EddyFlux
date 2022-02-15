@@ -1,6 +1,6 @@
 ### Script to conduct ARIMA models on Eddy flux (CO2 and CH4 data) from 2020-2021
 
-### Corresponds to Table 1 and Figure 6
+### Corresponds to Table 1
 
 ### Following MEL script: https://github.com/melofton/FCR-phytos/blob/master/2_Data_analysis/2B_FP_ARIMA_analyses.R
 ### A. Hounshell, 03 January 2022
@@ -19,6 +19,8 @@ pacman::p_load(tidyverse,ncdf4,ggplot2,ggpubr,LakeMetabolizer,zoo,scales,
                lubridate,lognorm,forecast,utils,igraph,RColorBrewer,PerformanceAnalytics)
 
 ### Load in Eddy Flux data ----
+# Data downloaded from EDI: https://doi.org/10.6073/pasta/a1324bcf3e1415268996ba867c636489
+# Processed following scripts associated with EDI data publication
 eddy_flux <- read_csv("./Data/20211210_EC_processed.csv") %>% 
   mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d %H:%M:%S", tz = "EST")) %>% 
   filter(DateTime >= as.POSIXct("2020-04-05 20:00:00") & DateTime < as.POSIXct("2021-04-05 20:00:00"))
@@ -208,8 +210,9 @@ la <- read_csv("./Data/FCR_results_LA.csv") %>%
   filter(datetime >= as.POSIXct("2020-04-05") & datetime < as.POSIXct("2021-04-05")) %>% 
   rename(DateTime = datetime)
 
-# Load in VT discharge: Using staged discharge data!
-# UPDATE WHEN PUSHED TO EDI!!!
+# Load in VT discharge:
+# From EDI: https://doi.org/10.6073/pasta/c65755d4c0102dde6e3140c1c91b77d6
+
 #inUrl1  <- "https://pasta-s.lternet.edu/package/data/eml/edi/522/1/537b4cab40700d5fd990a019684212c0" 
 #infile1 <- paste0(getwd(),"/Data/inflow_for_EDI_2013_22Oct2021.csv")
 #download.file(inUrl1,infile1,method="curl")
@@ -404,7 +407,7 @@ env_monthly <- left_join(catwalk_monthly_2,la_monthly,by=c("Year","Month"))
 env_monthly <- env_monthly[-13,]
 
 ### Plot Environmental Parameters for Manuscript and SI -----
-# Figure 6!
+# Figure S2
 temp_time <- ggplot(env_daily,mapping=aes(x=DateTime,y=Temp_C_surface))+
   geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
   geom_vline(xintercept = as.POSIXct("2020-12-27"), linetype = "dotted", color="blue")+

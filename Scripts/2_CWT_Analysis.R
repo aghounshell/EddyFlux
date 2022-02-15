@@ -19,7 +19,9 @@ setwd(wd)
 pacman::p_load(zoo,dplR,dplyr,tidyverse,ggplot2,ggpubr,lubridate)
 
 ## Load in Eddy Flux data (cleaned using FCR_Process_BD)
-eddy_flux <- read_csv("./Data/20211210_EC_processed.csv") %>% 
+# Downloaded from: https://doi.org/10.6073/pasta/a1324bcf3e1415268996ba867c636489
+# EC data corrected following scripts published on EDI
+eddy_flux <- read_csv("./Data/20211210_EC_processed") %>% 
   mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d %H:%M:%S", tz = "EST")) %>% 
   filter(DateTime >= as.POSIXct("2020-04-05 20:00:00") & DateTime < as.POSIXct("2021-04-05 20:00:00"))
 
@@ -246,7 +248,6 @@ co2_powerplot <- co2_powerplot %>%
 
 ###################
 # Methane!
-# Format for wavelet analysis: start with gap-filled averaged to hourly
 ch4_data <- eddy_flux %>% 
   select(DateTime,ch4_flux_uStar_f) %>% 
   mutate(Time = 1:length(eddy_flux$DateTime)) %>% 
@@ -468,7 +469,7 @@ coutput_ch4_sum <- coutput_ch4_daily %>%
 # Day = 82 days
 # Diel = 34 days
 
-# Plot significant timescales by date: Figure S8
+# Plot significant timescales by date: Figure S9
 day_sig <- ggplot()+
   annotate("text",x=as.POSIXct("2021-04-05"),y=1.05,label="Sig.",size=5)+
   annotate("text",x=as.POSIXct("2021-04-01"),y=0.2,label="Not Sig.",size=5)+
@@ -501,72 +502,3 @@ ggarrange(day_sig,diel_sig,nrow=2,ncol=1,common.legend=TRUE,
           labels=c("A.","B."),font.label = list(face="plain",size=15))
 
 ggsave("./Fig_Output/FigSI8_Timescale_Sig_halfhourly.jpg",width=8,height=6,units="in",dpi=320)
-
-### Logistic regression w/ Chla - ended up not using! No real relationship w/ Chla and diel/daily importance
-# Load in Chla data from EDI Catwalk
-# UPDATE WHEN PUBLISHED! PULLING FROM THE STAGED ENVIRONMENT!
-#inUrl1  <-  "https://pasta-s.lternet.edu/package/data/eml/edi/518/3/295d91f59699995b80bf551d431d75c5"
-#infile1 <- paste0(getwd(),"/Data/Catwalk_EDI_2018-2021.csv")
-#download.file(inUrl1,infile1,method="curl")
-
-catwalk <- read.csv("./Data/Catwalk_EDI_2018-2021.csv") %>% 
-  mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d %H:%M:%S", tz = "EST")) %>% 
-  filter(DateTime >= as.POSIXct("2020-04-05 20:00:00") & DateTime < as.POSIXct("2021-04-05 20:00:00"))
-
-# Calculate daily means
-catwalk_daily <- catwalk %>% 
-  mutate(Year = year(DateTime), 
-         Month = month(DateTime), 
-         Day = day(DateTime), 
-         Hour = hour(DateTime)) %>% 
-  dplyr::group_by(Year, Month, Day) %>% 
-  dplyr::summarise(Temp_C_surface = mean(ThermistorTemp_C_surface, na.rm = TRUE),
-                   EXODO_mgL_1 = mean(EXODO_mgL_1,na.rm = TRUE),
-                   EXODOsat_percent_1 = mean(EXODOsat_percent_1,na.rm = TRUE),
-                   EXOChla_ugL_1 = mean(EXOChla_ugL_1,na.rm = TRUE),
-                   EXOfDOM_RFU_1 = mean(EXOfDOM_RFU_1,na.rm=TRUE))
-
-catwalk_daily$Date <- as.POSIXct(paste(catwalk_daily$Year, catwalk_daily$Month, catwalk_daily$Day, sep = '-'), "%Y-%m-%d", tz = 'EST')
-
-# Logistic regression
-log_reg <- full_join(catwalk_daily,coutput_daily,by=c("Date","Year","Month","Day"))
-
-log_reg <- log_reg %>% 
-  select(Date, EXOChla_ugL_1,day_sum,diel_sum,NEE) %>% 
-  rename(day_sum_co2 = day_sum,
-         diel_sum_co2 = diel_sum)
-
-log_reg <- full_join(log_reg,coutput_ch4_daily,by=c("Year","Month","Date"))
-
-log_reg <- log_reg %>% 
-  select(Date, EXOChla_ugL_1,day_sum,diel_sum,NEE,ch4,day_sum_co2,diel_sum_co2) %>%
-  rename(day_sum_ch4 = day_sum,
-         diel_sum_ch4 = diel_sum)
-
-# Daily CO2
-ggplot(data = log_reg, mapping = aes(x = EXOChla_ugL_1, y = day_sum_co2))+
-  geom_point(alpha = .15)+
-  geom_smooth(method = "glm", method.args = list(family = "binomial"))
-
-model_chlaLR_co2 <- glm(day_sum_co2 ~ EXOChla_ugL_1, family = "binomial" , data = log_reg)
-summary(model_chlaLR_co2)
-coef(summary(model_chlaLR_co2))
-
-# Diel CO2
-ggplot(data = log_reg, mapping = aes(x = EXOChla_ugL_1, y = diel_sum_co2))+
-  geom_point(alpha = .15)+
-  geom_smooth(method = "glm", method.args = list(family = "binomial"))
-
-# Daily CH4
-ggplot(data = log_reg, mapping = aes(x = EXOChla_ugL_1, y = day_sum_ch4))+
-  geom_point(alpha = .15)+
-  geom_smooth(method = "glm", method.args = list(family = "binomial"))
-
-model_chlaLR_ch4 <- glm(day_sum_ch4 ~ EXOChla_ugL_1, family = "binomial" , data = log_reg)
-summary(model_chlaLR_ch4)
-coef(summary(model_chlaLR_ch4))
-
-# Diel CH4
-ggplot(data = log_reg, mapping = aes(x = EXOChla_ugL_1, y = diel_sum_ch4))+
-  geom_point(alpha = .15)+
-  geom_smooth(method = "glm", method.args = list(family = "binomial"))
