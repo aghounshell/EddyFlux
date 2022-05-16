@@ -1,7 +1,7 @@
 ### Script to clean up files produced by LiCor Eddy Pro
 ### 8 October 2021, A. Hounshell
 
-### Updated with new data on 21 Jan 2022
+### Updated with new data on 06 May 2022
 
 #####################################################
 
@@ -16,8 +16,7 @@ wd <- getwd()
 setwd(wd)
 
 # Read compiled file: From Eddy Pro using basic processing
-# Original file from Brenda on 11 May 2021
-ec <- read_csv("./Data/FCR_Eddy_up_to_2022-02-11.csv")
+ec <- read_csv("./EDI/FCR_Eddy_up_to_2022-05-02.csv")
 
 ec <- ec %>% 
   select(date,time,DOY,Tau,qc_Tau,H,qc_H,LE,qc_LE,co2_flux,qc_co2_flux,h2o_flux,
@@ -105,6 +104,6 @@ ec <- ec %>%
 
 
 # Output data
-write_csv(ec, "./Data/20220130_EddyPro_Cleaned.csv")
+write_csv(ec, "./Data/20220506_EddyPro_Cleaned.csv")
 
-write_csv(ec, "./EDI/20220130_EddyPro_Cleaned.csv")
+write_csv(ec, "./EDI/20220506_EddyPro_Cleaned.csv")

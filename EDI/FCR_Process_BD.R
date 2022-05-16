@@ -5,6 +5,8 @@
 ### Original code from Brenda D'Achuna, 21 May 2021
 ### Modified by Alex Hounshell on 21 May 2021
 
+### Updated with new data on 06 May 2022, Alex Hounshell
+
 ####################################################################
 
 # Clear workspace
@@ -20,7 +22,7 @@ setwd(wd)
 # Read compiled file: From Eddy Pro using basic processing
 # Original file from Brenda on 11 May 2021
 # Light data cleaning using EddyPro_CleanUp.R
-ec <- read_csv("./Data/20220121_EddyPro_cleaned.csv")
+ec <- read_csv("./Data/20220506_EddyPro_cleaned.csv")
 
 # Format time
 ec$datetime <- as.POSIXct(paste(ec$date, ec$time), format="%Y-%m-%d %H:%M", tz="EST")
@@ -31,7 +33,7 @@ ec$datetime <- as_datetime(ec$datetime)
 # Constrain to study time period: 2020-04-05 (time series start date) to
 # last 30 minute period - UPDATE WITH EACH NEW SET OF DATA!
 ts <- seq.POSIXt(as.POSIXct("2020-04-05 00:00:00",'%Y-%m-%d %H:%M:%S', tz="EST"), 
-                 as.POSIXct("2022-01-11 09:30:00",'%Y-%m-%d %H:%M:%S', tz="EST"), by = "30 min")
+                 as.POSIXct("2022-05-02 13:00:00",'%Y-%m-%d %H:%M:%S', tz="EST"), by = "30 min")
 ts2 <- data.frame(datetime = ts)
 
 # Join Eddy Flux data with list of dates+time
@@ -54,7 +56,7 @@ ec2 %>% group_by(year = year(datetime), month = factor(month.abb[month(datetime)
 ec2 %>% select(datetime, co2_flux_umolm2s, ch4_flux_umolm2s) %>% 
   summarise(co2_available = 100-sum(is.na(co2_flux_umolm2s))/n()*100,
             ch4_available = 100-sum(is.na(ch4_flux_umolm2s))/n()*100)
-# 83% data for CO2; 70% data for CH4
+# 84% data for CO2; 73% data for CH4
 
 # Check data availability by month
 ec2 %>% group_by(year(datetime), month(datetime)) %>% select(datetime, co2_flux_umolm2s, ch4_flux_umolm2s) %>% 
@@ -65,14 +67,19 @@ ec2 %>% group_by(year(datetime), month(datetime)) %>% select(datetime, co2_flux_
 # Reading in data from the Met Station for gap-filling purposes
 # Load data Meteorological data from EDI
 
-# Downloaded from EDI staging: 09 December 2021
-#inUrl1  <- "https://pasta-s.lternet.edu/package/data/eml/edi/143/8/a5524c686e2154ec0fd0459d46a7d1eb" 
+# Downloaded from EDI: 06 May 2022
+#inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/389/6/a5524c686e2154ec0fd0459d46a7d1eb" 
 #infile1 <- paste0(getwd(),"/Data/Met_final_2015_2021.csv")
 #download.file(inUrl1,infile1,method="curl")
 
-met_all <- read.csv("./Data/Met_final_2015_2021.csv", header=T) %>%
+met_edi <- read.csv("./Data/Met_final_2015_2021.csv", header=T) %>%
   mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d %H:%M:%S", tz="EST"))) %>% 
   filter(DateTime > as.POSIXct("2019-12-31"))
+
+met_2022 <- read.csv("./Data/FCR_Met_final_2022.csv",header=T) %>% 
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d %H:%M:%S", tz="EST")))
+
+met_all <- rbind(met_edi,met_2022)
 
 # Start timeseries on the 00:15:00 to facilitate 30-min averages
 met_all <- met_all %>% 
@@ -85,7 +92,7 @@ met_all$Breaks <- ymd_hms(as.character(met_all$Breaks))
 # Average met data to the 30 min mark (excluding Total Rain and Total PAR)
 met_30 <- met_all %>% 
   select(DateTime,BP_Average_kPa,AirTemp_Average_C,RH_percent,ShortwaveRadiationUp_Average_W_m2,ShortwaveRadiationDown_Average_W_m2,
-         InfaredRadiationUp_Average_W_m2,InfaredRadiationDown_Average_W_m2,Albedo_Average_W_m2,WindSpeed_Average_m_s,WindDir_degrees,Breaks) %>% 
+         InfraredRadiationUp_Average_W_m2,InfraredRadiationDown_Average_W_m2,Albedo_Average_W_m2,WindSpeed_Average_m_s,WindDir_degrees,Breaks) %>% 
   group_by(Breaks) %>% 
   summarise_all(mean,na.rm=TRUE)
 
@@ -106,7 +113,7 @@ met_30_2 <- met_30_2 %>%
   select(-DateTime) %>% 
   rename(datetime = DateTime_Adj, AirTC_Avg = AirTemp_Average_C, RH = RH_percent, Pressure = BP_Average_kPa, 
          Rain_sum = Rain_Total_mm, WS_ms_Avg = WindSpeed_Average_m_s, WindDir = WindDir_degrees,SW_in = ShortwaveRadiationUp_Average_W_m2,
-         SW_out = ShortwaveRadiationDown_Average_W_m2,LW_in = InfaredRadiationUp_Average_W_m2,LW_out = InfaredRadiationDown_Average_W_m2,
+         SW_out = ShortwaveRadiationDown_Average_W_m2,LW_in = InfraredRadiationUp_Average_W_m2,LW_out = InfraredRadiationDown_Average_W_m2,
          PAR_Tot_Tot = PAR_Total_mmol_m2,albedo = Albedo_Average_W_m2)
 
 # Join with 30 minute time series
@@ -118,7 +125,7 @@ ggplot()+
   theme_classic(base_size = 15)
 
 # Calculate percent of missing wind data
-# 14% missing
+# 12% missing
 ec2 %>% select(datetime, wind_speed_ms) %>% 
   summarise(wnd_na = sum(is.na(wind_speed_ms))/n()*100)
 
@@ -128,18 +135,19 @@ summary(linearMod)
 cor(ec2[[49]],met2[[10]],use = "complete.obs",method=c("pearson"))
 
 # UPDATE EVERY YEAR WITH NEW RELATIONSHIP
-# For data period: EC = Met*0.500243+0.214460
+# For data period: EC = Met*0.502196+0.193392
+# pearsons r = 0.78
 
 # Check conversion - UPDATE EVERY YEAR WITH NEW RELATIONSHIP
 plot(ec2$wind_speed_ms)
-points(met2$WS_ms_Avg*0.500243+0.214460, col = 'red')
+points(met2$WS_ms_Avg*0.502196+0.193392, col = 'red')
 
 ###########################################
 # Use converted wind speed from the Met data to fill in time points with missing
 # data (EC)
 # UPDATE EVERY YEAR WITH NEW RELATIONSHIP
 ec2$wind_speed_ms <- ifelse(is.na(ec2$wind_speed_ms),
-                         met2$WS_ms_Avg*0.500243+0.214460, ec2$wind_speed_ms)
+                         met2$WS_ms_Avg*0.502196+0.193392, ec2$wind_speed_ms)
 
 ec2$wind_dir <- ifelse(is.na(ec2$wind_dir),
                        met2$WindDir, ec2$wind_dir)
@@ -151,6 +159,21 @@ ec2 %>% filter(wind_dir >= 250 | wind_dir <= 80) %>%
   scale_x_continuous(limits = c(0, 360),
                      breaks = seq(0, 360, 45)) +
   coord_polar() + theme_bw() + xlab('Wind direction') + ylab('Wind speed')
+
+# Plot wind direction/speed in front of and behind the catwalk
+# All wind
+windRose(mydata = ec2, ws = "wind_speed_ms", wd = "wind_dir", 
+         width = 3, key.position = 'bottom', 
+         offset = 3, paddle = FALSE, key.header = 'Wind speed (m/s)', 
+         key.footer = ' ', dig.lab = 2, annotate = FALSE,
+         angle.scale = 45, ws.int = 1, breaks = c(0, 1, 2, 3, 4, 5, 6, 7, 8),
+         par.settings = list(fontsize=list(text=25)))
+
+# Separate daytime and nighttime wind
+ec2_met <- cbind(met2,ec2)
+
+ec2_day <- ec2_met %>% 
+  filter(SW_in > 0)
 
 # Filter out wind directions that are BEHIND the catwalk
 # I.e., only keep data that is IN FRONT of the catwalk for both EC and Met data
@@ -165,7 +188,7 @@ met4 <- left_join(ts2, met3)
 ec_filt %>% select(datetime, co2_flux_umolm2s, ch4_flux_umolm2s) %>% 
   summarise(co2_available = 100- sum(is.na(co2_flux_umolm2s))/n()*100,
             ch4_available = 100-sum(is.na(ch4_flux_umolm2s))/n()*100)
-# Now have 59% CO2 data and 51% CH4 data
+# Now have 59% CO2 data and 52% CH4 data
 
 # Count number of timepoints that have data
 ec_filt %>% select(datetime, co2_flux_umolm2s, ch4_flux_umolm2s) %>% 
@@ -228,14 +251,14 @@ abline(h=-200)
 
 ec_filt$H_wm2 <- ifelse(ec_filt$H_wm2 >= 200 | ec_filt$H_wm2 <= -200, NA, ec_filt$H_wm2)
 
-# Remove high LE values: greater than abs(500)
+# Remove high LE values: greater than abs(1000)
 # NOTE: Updated to have same upper and lower magnitude bounds
 # Waldo et al. 2021 used abs of 1000 for LE
 plot(ec_filt$LE_wm2)
-abline(h=500)
-abline(h=-500)
+abline(h=1000)
+abline(h=-1000)
 
-ec_filt$LE_wm2 <- ifelse(ec_filt$LE_wm2 >= 500 | ec_filt$LE_wm2 <= -500, NA, ec_filt$LE_wm2)
+ec_filt$LE_wm2 <- ifelse(ec_filt$LE_wm2 >= 1000 | ec_filt$LE_wm2 <= -1000, NA, ec_filt$LE_wm2)
 
 # Plotting co2 and ch4 to see if we can filter implausible values
 plot(ec_filt$co2_flux_umolm2s, type = 'o')
@@ -271,7 +294,7 @@ eddy_fcr <- left_join(ts2, ec_filt, by = 'datetime')
 eddy_fcr %>% select(datetime, co2_flux_umolm2s, ch4_flux_umolm2s) %>% 
   summarise(co2_available = 100-sum(is.na(co2_flux_umolm2s))/n()*100,
             ch4_available = 100-sum(is.na(ch4_flux_umolm2s))/n()*100)
-# 39% CO2 data; 30% CH4 data
+# 39% CO2 data; 33% CH4 data
 
 # Number of timepoints available
 eddy_fcr %>% select(datetime, co2_flux_umolm2s, ch4_flux_umolm2s) %>% 
@@ -287,7 +310,7 @@ eddy_fcr %>% group_by(year(datetime), month(datetime)) %>% select(datetime, co2_
 # Despike data using dspike.R function
 
 # Despike NEE (CO2 flux)
-source("./Scripts/despike.R")
+source("./EDI/despike.R")
 
 # Calculate low, medium, and high data flags
 flag <- spike_flag(eddy_fcr$co2_flux_umolm2s,z = 7)
@@ -371,11 +394,12 @@ eddy_fcr %>% select(datetime, air_temp_celsius) %>%
 linearMod <- lm(eddy_fcr$air_temp_celsius ~ met2$AirTC_Avg)
 summary(linearMod)
 cor(eddy_fcr[[88]],met2[[3]],use = "complete.obs",method=c("pearson"))
-# EC = Met*0.946533-0.871847
+# EC = Met*0.951715-1.008755
+# pearsons r = 0.98
 # UPDATE RELATIONSHIP EACH YEAR!!
 
 eddy_fcr$air_temp_celsius <- ifelse(is.na(eddy_fcr$air_temp_celsius),
-                                    met2$AirTC_Avg*0.946533-0.871847, eddy_fcr$air_temp_celsius)
+                                    met2$AirTC_Avg*0.951715-1.008755, eddy_fcr$air_temp_celsius)
 
 # Check Air Temp
 ggplot(eddy_fcr,mapping=aes(x=datetime,y=air_temp_celsius))+
@@ -396,11 +420,12 @@ eddy_fcr %>% select(datetime, sonic_temp_celsius) %>%
 linearMod <- lm(eddy_fcr$sonic_temp_celsius ~ met2$AirTC_Avg)
 summary(linearMod)
 cor(eddy_fcr[[89]],met2[[3]],use = "complete.obs",method=c("pearson"))
-# EC = Met*1.027966-0.502685
+# EC = Met*1.027997-0.562819
+# pearson's r = 0.98
 # UPDATE RELATIONSHIP EACH YEAR!!
 
 eddy_fcr$sonic_temp_celsius <- ifelse(is.na(eddy_fcr$sonic_temp_celsius),
-                                      eddy_fcr$air_temp_celsius*1.027966-0.502685, eddy_fcr$sonic_temp_celsius)
+                                      eddy_fcr$air_temp_celsius*1.027997-0.562819, eddy_fcr$sonic_temp_celsius)
 
 # Check sonic temp
 ggplot(eddy_fcr,mapping=aes(x=datetime,y=sonic_temp_celsius))+
@@ -422,11 +447,12 @@ eddy_fcr %>% select(datetime, RH) %>%
 linearMod <- lm(eddy_fcr$RH ~ met2$RH)
 summary(linearMod)
 cor(eddy_fcr[[46]],met2[[4]],use = "complete.obs",method=c("pearson"))
-# EC = Met*0.845661 + 7.712944
+# EC = Met*0.795573 + 13.757056
+# Pearson's r = 0.87
 # UPDATE EACH YEAR!!
 
 eddy_fcr$RH <- ifelse(is.na(eddy_fcr$RH),
-                      met2$RH*0.845661+7.712944, eddy_fcr$RH)
+                      met2$RH*0.795573 + 13.757056, eddy_fcr$RH)
 
 # Add Met data to gapfill fluxes
 eddy_fcr$SW_in <- met2$SW_in
@@ -462,16 +488,28 @@ plot(eddy_fcr$SW_in)
 plot(eddy_fcr$VPD/1000)  # in kpa
 
 ###############################################################################
-# Filter out all the values (x_peak) that are out of the reservoir
-eddy_fcr$footprint_flag <- ifelse(eddy_fcr$wind_dir >= 15 & eddy_fcr$wind_dir <= 90 & eddy_fcr$x_peak_m >= 40, 1, 
-                                  ifelse(eddy_fcr$wind_dir < 15 & eddy_fcr$wind_dir > 327 & eddy_fcr$x_peak_m > 120, 1,
-                                         ifelse(eddy_fcr$wind_dir < 302 & eddy_fcr$wind_dir >= 250 & eddy_fcr$x_peak_m > 50, 1, 0)))
+
+# Try adding in a footprint analysis from Klujin et al. 2015
+source("./Scripts/Old_Scripts/calc_footprint_FFP_climatology.R")
+
+calc_footprint_FFP_climatology(zm = 2.9, z0 = NaN, umean = eddy_fcr$wind_speed_ms, h = 100, ol = eddy_fcr$L_m,
+                               ustar = eddy_fcr$u_star_ms, wind_dir = eddy_fcr$wind_dir, r = seq(10,90,10))
+
+
+###############################################################################
+# Filter out all the values (x_90_m) that are out of the reservoir
+# This would remove fluxes that occur where the along-wind distance providing
+# 90% of cumulative contribution to turbulent fluxes is out of the reservoir
+# (as based on distances from the footprint analysis)
+eddy_fcr$footprint_flag <- ifelse(eddy_fcr$wind_dir >= 15 & eddy_fcr$wind_dir <= 90 & eddy_fcr$x_90_m >= 40, 1, 
+                                  ifelse(eddy_fcr$wind_dir < 15 & eddy_fcr$wind_dir > 327 & eddy_fcr$x_90_m > 120, 1,
+                                         ifelse(eddy_fcr$wind_dir < 302 & eddy_fcr$wind_dir >= 250 & eddy_fcr$x_90_m > 50, 1, 0)))
 
 # Remove flagged data
 eddy_fcr_footprint <- eddy_fcr %>% filter(footprint_flag == 0)
 
 # Visualize wind directions that were kept
-eddy_fcr_footprint %>% ggplot(aes(wind_dir, x_peak_m)) + 
+eddy_fcr_footprint %>% ggplot(aes(wind_dir, x_90_m)) + 
   geom_hline(yintercept = 40, col = 'goldenrod2', lwd = 2) +
   geom_hline(yintercept = 50, col = 'green', lwd = 1.4) +
   geom_hline(yintercept = 100, col = 'blue', lwd = 1.4) +
@@ -489,7 +527,6 @@ eddy_fcr_footprint_full <- left_join(ts2, eddy_fcr_footprint)
 ######################################################################
 # FILTERING BY USTAR AND GAPFILLING
 ######################################################################
-
 # Setting up a new process on REddyProc
 eddy_fcr3 <- eddy_fcr_footprint_full %>% 
   select(DateTime = datetime, NEE = NEE.med, ch4_flux = ch4.med, VPD, 
@@ -505,11 +542,11 @@ eddy_fcr3 <- eddy_fcr_footprint_full %>%
          PAR = par_tot)
 
 ########################################################################
-# Count available data before gapfilling
+# Count available data before filtering for Ustar and gapfilling
 eddy_fcr3 %>% select(DateTime, NEE, ch4_flux) %>% 
   summarise(co2_available = 100-sum(is.na(NEE))/n()*100,
             ch4_available = 100-sum(is.na(ch4_flux))/n()*100)
-# 29% CO2 data; 23% CH4 data
+# 29% CO2 data; 25% CH4 data
 
 # Total number of available time points
 eddy_fcr3 %>% select(DateTime, NEE, ch4_flux) %>% 
@@ -545,9 +582,11 @@ Eproc <- sEddyProc$new('FCR', eddy_fcr3, c('NEE','Tair', 'VPD',
 # Look at available data for each year/flux
 Eproc$sPlotFingerprintY('NEE',Year = '2020')
 Eproc$sPlotFingerprintY('NEE',Year = '2021')
+Eproc$sPlotFingerprintY('NEE',Year = '2022')
 
 Eproc$sPlotFingerprintY('ch4_flux',Year = '2020')
 Eproc$sPlotFingerprintY('ch4_flux',Year = '2021')
+Eproc$sPlotFingerprintY('ch4_flux',Year = '2022')
 
 # gapfill air temperature, solar radiation, par, H and LE: include uncertainty calculations
 Eproc$sMDSGapFill('Tair', V1 = 'Rg', V2 = 'VPD', FillAll = TRUE)
@@ -558,8 +597,8 @@ Eproc$sMDSGapFill('H', V1 = 'Rg', V2 = 'VPD', V3 = 'Tair', FillAll = TRUE)
 Eproc$sMDSGapFill('LE', V1 = 'Rg', V2 = 'VPD', V3 = 'Tair', FillAll = TRUE)
 
 # Estimate ustar threshold distribution by bootstrapping the data
-Eproc$sEstimateUstarScenarios(UstarColName = 'Ustar', NEEColName = 'NEE', RgColName= 'Rg',
-                              nSample = 200L, probs = c(0.05, 0.7, 0.95))
+#Eproc$sEstimateUstarScenarios(UstarColName = 'Ustar', NEEColName = 'NEE', RgColName= 'Rg',
+#                              nSample = 200L, probs = c(0.05, 0.7, 0.95))
 
 # Beef up uncertainty following: https://github.com/bgctw/REddyProc/blob/master/vignettes/useCase.md
 Eproc$sEstimateUstarScenarios(UstarColName = 'Ustar', NEEColName = 'NEE', RgColName= 'Rg', 
@@ -604,7 +643,7 @@ fcr_gf_mean <- fcr_gf %>%
   summarise_all(mean,na.rm=TRUE)
 
 fcr_gf %>% ggplot() +
-  #geom_point(aes(DateTime, NEE),alpha=0.1) +
+  geom_point(aes(DateTime, NEE_uStar_orig),alpha=0.1) +
   geom_line(aes(DateTime, NEE_uStar_f), col='red', alpha = 0.4) +
   geom_line(aes(DateTime, NEE_U50_f), col = 'blue', alpha = 0.4)+
   theme_bw() +
@@ -627,4 +666,4 @@ ggplot()+
   xlab("") + ylab(expression(~CH[4]~flux~(g~m^-2~d^-1)))
 
 # Save the exported data
-write_csv(fcr_gf, "./Data/20211210_EC_processed.csv")
+write_csv(fcr_gf, "./Data/20220506_EC_processed.csv")
