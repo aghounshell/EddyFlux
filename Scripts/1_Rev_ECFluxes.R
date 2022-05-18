@@ -1,7 +1,7 @@
 ### Script conduct analysis of EC fluxes from FCR
 ### Apr 2020 - Apr 2022
 
-### Following revisions from inital submission to JGR-Biogeosciences
+### Following revisions from initial submission to JGR-Biogeosciences
 ### 12 May 2022, A. Hounshell
 
 ###############################################################################
@@ -14,8 +14,7 @@ wd <- getwd()
 setwd(wd)
 
 ## Load in libraries
-pacman::p_load(tidyverse,ncdf4,ggplot2,ggpubr,LakeMetabolizer,zoo,scales,lubridate,
-               lognorm,MuMIn,rsq,Metrics,astsa,DescTools,kSamples,openair)
+pacman::p_load(tidyverse,ggplot2,ggpubr,lubridate,openair)
 
 ###############################################################################
 
