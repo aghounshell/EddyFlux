@@ -4,6 +4,8 @@
 ### Following revisions from initial submission to JGR-Biogeosciences
 ### 12 May 2022, A. Hounshell
 
+### Updated to add in diffusive fluxes, 20 May 2022, A. Hounshell
+
 ###############################################################################
 
 ## Clear workspace
@@ -227,17 +229,28 @@ fcr_monthly$yearmon <- with(fcr_monthly, sprintf("%d-%02d", Year, Month))
 
 ###############################################################################
 
+## Load in diffusive fluxes:
+## Calculated using: 1a_Diffusive_Fluxes.R
+diff_flux <- read.csv("./Data/20220520_diffusive_fluxes_avg.csv") %>% 
+  mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d %H:%M:%S", tz = "EST"))
+
+diff_flux <- diff_flux %>% 
+  drop_na()
+
+###############################################################################
+
 ## Plot daily for both years
 
 co2_daily_year1 <- ggplot(fcr_daily) +
   geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
-  geom_point(ec2,mapping=aes(x=DateTime,y=NEE_uStar_orig),alpha = 0.1)+
+  geom_point(ec2,mapping=aes(x=DateTime,y=NEE_uStar_orig,color="30 min EC fluxes"),alpha = 0.1)+
   geom_ribbon(mapping=aes(x=Date,y=NEE,ymin=NEE-NEE_sd,ymax=NEE+NEE_sd),fill="#E63946",alpha=0.5)+
   geom_line(aes(Date, NEE,color="EC"),size = 1) +
-  #geom_errorbar(ghg_fluxes_avg_co2,mapping=aes(x=DateTime,y=mean,ymin=mean-sd,ymax=mean+sd,color="Diff"),size=1)+
-  #geom_point(ghg_fluxes_avg_co2,mapping=aes(x=DateTime,y=mean,color="Diff"),size=2)+
-  #scale_color_manual(breaks=c("EC","Diff"),
-  #                   values=c("#E63946","#4c8bfe"))+
+  geom_errorbar(diff_flux,mapping=aes(x=DateTime,y=co2_mean_umol_m2_s,ymin=co2_mean_umol_m2_s-co2_sd_umol_m2_s,ymax=co2_mean_umol_m2_s+co2_sd_umol_m2_s,color="Diff"),size=1)+
+  geom_point(diff_flux,mapping=aes(x=DateTime,y=co2_mean_umol_m2_s,color="Diff"),size=2)+
+  geom_line(diff_flux,mapping=aes(x=DateTime,y=co2_mean_umol_m2_s,color="Diff"))+
+  scale_color_manual(breaks=c("30 min EC fluxes","EC","Diff"),
+                     values=c("black","#E63946","#4c8bfe"))+
   xlab("") +
   ylab(expression(~CO[2]~(mu~mol~m^-2~s^-1))) +
   geom_hline(yintercept = 0, lty = 2) +
@@ -247,13 +260,14 @@ co2_daily_year1 <- ggplot(fcr_daily) +
 
 co2_daily_year2 <- ggplot(fcr_daily) +
   geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
-  geom_point(ec2,mapping=aes(x=DateTime,y=NEE_uStar_orig),alpha = 0.1)+
+  geom_point(ec2,mapping=aes(x=DateTime,y=NEE_uStar_orig,color="30 min EC fluxes"),alpha = 0.1)+
   geom_ribbon(mapping=aes(x=Date,y=NEE,ymin=NEE-NEE_sd,ymax=NEE+NEE_sd),fill="#E63946",alpha=0.5)+
   geom_line(aes(Date, NEE,color="EC"),size = 1) +
-  #geom_errorbar(ghg_fluxes_avg_co2,mapping=aes(x=DateTime,y=mean,ymin=mean-sd,ymax=mean+sd,color="Diff"),size=1)+
-  #geom_point(ghg_fluxes_avg_co2,mapping=aes(x=DateTime,y=mean,color="Diff"),size=2)+
-  #scale_color_manual(breaks=c("EC","Diff"),
-  #                   values=c("#E63946","#4c8bfe"))+
+  geom_errorbar(diff_flux,mapping=aes(x=DateTime,y=co2_mean_umol_m2_s,ymin=co2_mean_umol_m2_s-co2_sd_umol_m2_s,ymax=co2_mean_umol_m2_s+co2_sd_umol_m2_s,color="Diff"),size=1)+
+  geom_point(diff_flux,mapping=aes(x=DateTime,y=co2_mean_umol_m2_s,color="Diff"),size=2)+
+  geom_line(diff_flux,mapping=aes(x=DateTime,y=co2_mean_umol_m2_s,color="Diff"))+
+  scale_color_manual(breaks=c("30 min EC fluxes","EC","Diff"),
+                     values=c("black","#E63946","#4c8bfe"))+
   xlab("") +
   ylab(expression(~CO[2]~(mu~mol~m^-2~s^-1))) +
   geom_hline(yintercept = 0, lty = 2) +
@@ -264,13 +278,14 @@ co2_daily_year2 <- ggplot(fcr_daily) +
 ch4_daily_year1 <- fcr_daily %>% 
   ggplot() +
   geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
-  geom_point(ec2,mapping=aes(x=DateTime,y=ch4_flux_uStar_orig),alpha = 0.1)+
+  geom_point(ec2,mapping=aes(x=DateTime,y=ch4_flux_uStar_orig,color="30 min EC fluxes"),alpha = 0.1)+
   geom_ribbon(mapping=aes(x=Date,y=CH4,ymin=CH4-CH4_sd,ymax=CH4+CH4_sd),fill="#E63946",alpha=0.5)+
   geom_line(aes(Date, CH4,color="EC"),size = 1) +
-  #geom_errorbar(ghg_fluxes_avg_ch4,mapping=aes(x=DateTime,y=mean,ymin=mean-sd,ymax=mean+sd,color="Diff"),size=1)+
-  #geom_point(ghg_fluxes_avg_ch4,mapping=aes(x=DateTime,y=mean,color="Diff"),size=2)+
-  #scale_color_manual(breaks=c("EC","Diff"),
-  #                   values=c("#E63946","#4c8bfe"))+
+  geom_errorbar(diff_flux,mapping=aes(x=DateTime,y=ch4_mean_umol_m2_s,ymin=ch4_mean_umol_m2_s-ch4_sd_umol_m2_s,ymax=ch4_mean_umol_m2_s+ch4_sd_umol_m2_s,color="Diff"),size=1)+
+  geom_point(diff_flux,mapping=aes(x=DateTime,y=ch4_mean_umol_m2_s,color="Diff"),size=2)+
+  geom_line(diff_flux,mapping=aes(x=DateTime,y=ch4_mean_umol_m2_s,color="Diff"))+
+  scale_color_manual(breaks=c("30 min EC fluxes","EC","Diff"),
+                     values=c("black","#E63946","#4c8bfe"))+
   xlab("") +
   ylab(expression(~CH[4]~(mu~mol~m^-2~s^-1))) +
   geom_hline(yintercept = 0, lty = 2) +
@@ -281,13 +296,14 @@ ch4_daily_year1 <- fcr_daily %>%
 ch4_daily_year2 <- fcr_daily %>% 
   ggplot() +
   geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
-  geom_point(ec2,mapping=aes(x=DateTime,y=ch4_flux_uStar_orig),alpha = 0.1)+
+  geom_point(ec2,mapping=aes(x=DateTime,y=ch4_flux_uStar_orig,color="30 min EC fluxes"),alpha = 0.1)+
   geom_ribbon(mapping=aes(x=Date,y=CH4,ymin=CH4-CH4_sd,ymax=CH4+CH4_sd),fill="#E63946",alpha=0.5)+
   geom_line(aes(Date, CH4,color="EC"),size = 1) +
-  #geom_errorbar(ghg_fluxes_avg_ch4,mapping=aes(x=DateTime,y=mean,ymin=mean-sd,ymax=mean+sd,color="Diff"),size=1)+
-  #geom_point(ghg_fluxes_avg_ch4,mapping=aes(x=DateTime,y=mean,color="Diff"),size=2)+
-  #scale_color_manual(breaks=c("EC","Diff"),
-  #                   values=c("#E63946","#4c8bfe"))+
+  geom_errorbar(diff_flux,mapping=aes(x=DateTime,y=ch4_mean_umol_m2_s,ymin=ch4_mean_umol_m2_s-ch4_sd_umol_m2_s,ymax=ch4_mean_umol_m2_s+ch4_sd_umol_m2_s,color="Diff"),size=1)+
+  geom_point(diff_flux,mapping=aes(x=DateTime,y=ch4_mean_umol_m2_s,color="Diff"),size=2)+
+  geom_line(diff_flux,mapping=aes(x=DateTime,y=ch4_mean_umol_m2_s,color="Diff"))+
+  scale_color_manual(breaks=c("30 min EC fluxes","EC","Diff"),
+                     values=c("black","#E63946","#4c8bfe"))+
   xlab("") +
   ylab(expression(~CH[4]~(mu~mol~m^-2~s^-1))) +
   geom_hline(yintercept = 0, lty = 2) +
@@ -299,6 +315,51 @@ ggarrange(co2_daily_year1,co2_daily_year2,ch4_daily_year1,ch4_daily_year2,ncol=1
           nrow=4,labels=c("A.","B.","C.","D."),font.label = list(face="plain",size=15), common.legend = TRUE)
 
 ggsave("./Fig_Output/EC_Daily.jpg",width = 9, height=12, units="in",dpi=320)
+
+###############################################################################
+
+## Compare discrete diffusive fluxes and EC fluxes by timepoint
+# First combine by the hour
+diff_flux_hr <- diff_flux %>% 
+  mutate(DateTime = format(round(DateTime, units="hours"), format="%Y-%m-%d %H:%M")) %>% 
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d %H:%M", tz="EST")))
+
+diff_ec_hr <- left_join(diff_flux_hr,fcr_hourly,by="DateTime")
+
+diff_ec_hr %>% 
+  drop_na(NEE) %>% 
+  count()
+
+diff_ec_hr %>% 
+  drop_na(CH4) %>% 
+  count()
+
+## Plot
+diff_ec_co2 <- ggplot(diff_ec_hr,mapping=aes(x=co2_mean_umol_m2_s,y=NEE))+
+  geom_abline(intercept = 0)+
+  geom_hline(yintercept = 0, lty = 2) +
+  geom_vline(xintercept = 0, lty=2) +
+  geom_errorbar(mapping=aes(x = co2_mean_umol_m2_s, y = NEE, xmin = co2_mean_umol_m2_s-co2_sd_umol_m2_s, xmax = co2_mean_umol_m2_s+co2_sd_umol_m2_s),position = position_dodge(0.3), width = 0.2,color="lightgrey")+
+  geom_errorbar(mapping=aes(x=co2_mean_umol_m2_s,y=NEE,ymin=NEE-NEE_sd,ymax=NEE+NEE_sd),position = position_dodge(0.3), width = 0.2,color="lightgrey")+
+  geom_point(mapping=aes(x=co2_mean_umol_m2_s,y=NEE))+
+  ylab(expression(~EC~CO[2]~(mu~mol~m^-2~s^-1))) +
+  xlab(expression(~Mean~Diff~CO[2]~(mu~mol~m^-2~s^-1))) +
+  theme_classic(base_size = 15)
+
+diff_ec_ch4 <- ggplot(diff_ec_hr,mapping=aes(x=ch4_mean_umol_m2_s,y=CH4))+
+  geom_abline(intercept = 0)+
+  geom_hline(yintercept = 0, lty = 2) +
+  geom_vline(xintercept = 0, lty=2) +
+  geom_errorbar(mapping=aes(x = ch4_mean_umol_m2_s, y = CH4, xmin = ch4_mean_umol_m2_s-ch4_sd_umol_m2_s, xmax = ch4_mean_umol_m2_s+ch4_sd_umol_m2_s),position = position_dodge(0.3), width = 0.2,color="lightgrey")+
+  geom_errorbar(mapping=aes(x=ch4_mean_umol_m2_s,y=CH4,ymin=CH4-CH4_sd,ymax=CH4+CH4_sd),position = position_dodge(0.3), width = 0.2,color="lightgrey")+
+  geom_point(mapping=aes(x=ch4_mean_umol_m2_s,y=CH4))+
+  ylab(expression(~EC~CH[4]~(mu~mol~m^-2~s^-1))) +
+  xlab(expression(~Mean~Diff~CH[4]~(mu~mol~m^-2~s^-1))) +
+  theme_classic(base_size = 15)
+
+ggarrange(diff_ec_co2,diff_ec_ch4,ncol=2,nrow=1,labels=c("A.","B."),font.label = list(face="plain",size=15))
+
+ggsave("./Fig_Output/SI_Diff_EC.jpg",width = 8, height=4, units="in",dpi=320)
 
 ###############################################################################
 
@@ -376,14 +437,58 @@ ec2_season <- ec2 %>%
 ec2_fall <- ec2_season %>% 
   filter(Season == "Fall")
 
+ec2_fall_stats <- ec2_fall %>% 
+  group_by(Year) %>% 
+  summarise(p25_nee = quantile(NEE_uStar_orig,0.25,na.rm=TRUE),
+            med_nee = median(NEE_uStar_orig,na.rm=TRUE),
+            p75_nee = quantile(NEE_uStar_orig,0.75,na.rm=TRUE),
+            p25_ch4 = quantile(ch4_flux_uStar_orig,0.25,na.rm=TRUE),
+            med_ch4 = median(ch4_flux_uStar_orig,na.rm=TRUE),
+            p75_ch4 = quantile(ch4_flux_uStar_orig,0.75,na.rm=TRUE)) %>% 
+  mutate(Season = "Fall")
+
 ec2_winter <- ec2_season %>% 
   filter(Season == "Winter")
+
+ec2_winter_stats <- ec2_winter %>% 
+  group_by(Year) %>% 
+  summarise(p25_nee = quantile(NEE_uStar_orig,0.25,na.rm=TRUE),
+            med_nee = median(NEE_uStar_orig,na.rm=TRUE),
+            p75_nee = quantile(NEE_uStar_orig,0.75,na.rm=TRUE),
+            p25_ch4 = quantile(ch4_flux_uStar_orig,0.25,na.rm=TRUE),
+            med_ch4 = median(ch4_flux_uStar_orig,na.rm=TRUE),
+            p75_ch4 = quantile(ch4_flux_uStar_orig,0.75,na.rm=TRUE)) %>% 
+  mutate(Season = "Winter")
 
 ec2_spring <- ec2_season %>% 
   filter(Season == "Spring")
 
+ec2_spring_stats <- ec2_spring %>% 
+  group_by(Year) %>% 
+  summarise(p25_nee = quantile(NEE_uStar_orig,0.25,na.rm=TRUE),
+            med_nee = median(NEE_uStar_orig,na.rm=TRUE),
+            p75_nee = quantile(NEE_uStar_orig,0.75,na.rm=TRUE),
+            p25_ch4 = quantile(ch4_flux_uStar_orig,0.25,na.rm=TRUE),
+            med_ch4 = median(ch4_flux_uStar_orig,na.rm=TRUE),
+            p75_ch4 = quantile(ch4_flux_uStar_orig,0.75,na.rm=TRUE)) %>% 
+  mutate(Season = "Spring")
+
 ec2_summer <- ec2_season %>% 
   filter(Season == "Summer")
+
+ec2_summer_stats <- ec2_summer %>% 
+  group_by(Year) %>% 
+  summarise(p25_nee = quantile(NEE_uStar_orig,0.25,na.rm=TRUE),
+            med_nee = median(NEE_uStar_orig,na.rm=TRUE),
+            p75_nee = quantile(NEE_uStar_orig,0.75,na.rm=TRUE),
+            p25_ch4 = quantile(ch4_flux_uStar_orig,0.25,na.rm=TRUE),
+            med_ch4 = median(ch4_flux_uStar_orig,na.rm=TRUE),
+            p75_ch4 = quantile(ch4_flux_uStar_orig,0.75,na.rm=TRUE)) %>% 
+  mutate(Season = "Summer")
+
+season_stats <- do.call("rbind", list(ec2_fall_stats, ec2_winter_stats, ec2_spring_stats, ec2_summer_stats))
+
+write.csv(season_stats,"./Data/Season_Stats.csv")
 
 # Calculate statistics between seasons of each year (Year 1 vs. Year 2)
 wilcox.test(NEE_uStar_orig ~ Year, data=ec2_fall)
@@ -721,6 +826,17 @@ ice_fluxes_30min <- ec2 %>%
 ## Compare ice on to ice off for 2021 and 2022
 ice_fluxes_30min_comps <- ice_fluxes_30min %>% 
   filter(Ice %in% c("Ice_2021","Ice_2022"))
+
+ice_stats <- ice_fluxes_30min_comps %>% 
+  group_by(Ice) %>% 
+  summarise(p25_nee = quantile(NEE_uStar_orig,0.25,na.rm=TRUE),
+            med_nee = median(NEE_uStar_orig,na.rm=TRUE),
+            p75_nee = quantile(NEE_uStar_orig,0.75,na.rm=TRUE),
+            p25_ch4 = quantile(ch4_flux_uStar_orig,0.25,na.rm=TRUE),
+            med_ch4 = median(ch4_flux_uStar_orig,na.rm=TRUE),
+            p75_ch4 = quantile(ch4_flux_uStar_orig,0.75,na.rm=TRUE))
+
+write.csv(ice_stats,"./Fig_output/Ice_Stats.csv")
 
 wilcox.test(NEE_uStar_orig ~ Ice, data=ice_fluxes_30min_comps)
 wilcox.test(ch4_flux_uStar_orig ~ Ice, data=ice_fluxes_30min_comps)
