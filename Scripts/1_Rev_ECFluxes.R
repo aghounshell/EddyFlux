@@ -118,7 +118,7 @@ season_data_ch4 <- ec2 %>%
                                                                                         'Dec', 'Jan', 'Feb', 'Mar'))) %>% 
   count(month,!is.na(ch4_flux_uStar_orig))
 
-season_data_total <- season_data %>% 
+season_data_total <- season_data_co2 %>% 
   group_by(year,month) %>% 
   summarise(sum(n))
 
@@ -152,7 +152,7 @@ season_ch4 <- season_data_ch4 %>%
 
 ggarrange(season_co2,season_ch4,ncol=2,nrow=1,labels=c("A.","B."),font.label = list(face="plain",size=15),common.legend = TRUE)
 
-ggsave("./Fig_Output/SI_Data_Season.jpg",width = 8, height=4, units="in",dpi=320)
+ggsave("./Fig_Output/SI_Data_Season.jpg",width = 9, height=4, units="in",dpi=320)
 
 ###############################################################################
 
@@ -239,17 +239,17 @@ diff_flux <- diff_flux %>%
 
 ###############################################################################
 
-## Plot daily for both years
+## Plot daily and monthly for both years
 
 co2_daily_year1 <- ggplot(fcr_daily) +
   geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
   geom_point(ec2,mapping=aes(x=DateTime,y=NEE_uStar_orig,color="30 min EC fluxes"),alpha = 0.1)+
   geom_ribbon(mapping=aes(x=Date,y=NEE,ymin=NEE-NEE_sd,ymax=NEE+NEE_sd),fill="#E63946",alpha=0.5)+
-  geom_line(aes(Date, NEE,color="EC"),size = 1) +
+  geom_line(aes(Date, NEE,color="Daily Mean EC"),size = 1) +
   geom_errorbar(diff_flux,mapping=aes(x=DateTime,y=co2_mean_umol_m2_s,ymin=co2_mean_umol_m2_s-co2_sd_umol_m2_s,ymax=co2_mean_umol_m2_s+co2_sd_umol_m2_s,color="Diff"),size=1)+
   geom_point(diff_flux,mapping=aes(x=DateTime,y=co2_mean_umol_m2_s,color="Diff"),size=2)+
   geom_line(diff_flux,mapping=aes(x=DateTime,y=co2_mean_umol_m2_s,color="Diff"))+
-  scale_color_manual(breaks=c("30 min EC fluxes","EC","Diff"),
+  scale_color_manual(breaks=c("30 min EC fluxes","Daily Mean EC","Diff"),
                      values=c("black","#E63946","#4c8bfe"))+
   xlab("") +
   ylab(expression(~CO[2]~(mu~mol~m^-2~s^-1))) +
@@ -262,11 +262,11 @@ co2_daily_year2 <- ggplot(fcr_daily) +
   geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
   geom_point(ec2,mapping=aes(x=DateTime,y=NEE_uStar_orig,color="30 min EC fluxes"),alpha = 0.1)+
   geom_ribbon(mapping=aes(x=Date,y=NEE,ymin=NEE-NEE_sd,ymax=NEE+NEE_sd),fill="#E63946",alpha=0.5)+
-  geom_line(aes(Date, NEE,color="EC"),size = 1) +
+  geom_line(aes(Date, NEE,color="Daily Mean EC"),size = 1) +
   geom_errorbar(diff_flux,mapping=aes(x=DateTime,y=co2_mean_umol_m2_s,ymin=co2_mean_umol_m2_s-co2_sd_umol_m2_s,ymax=co2_mean_umol_m2_s+co2_sd_umol_m2_s,color="Diff"),size=1)+
   geom_point(diff_flux,mapping=aes(x=DateTime,y=co2_mean_umol_m2_s,color="Diff"),size=2)+
   geom_line(diff_flux,mapping=aes(x=DateTime,y=co2_mean_umol_m2_s,color="Diff"))+
-  scale_color_manual(breaks=c("30 min EC fluxes","EC","Diff"),
+  scale_color_manual(breaks=c("30 min EC fluxes","Daily Mean EC","Diff"),
                      values=c("black","#E63946","#4c8bfe"))+
   xlab("") +
   ylab(expression(~CO[2]~(mu~mol~m^-2~s^-1))) +
@@ -275,16 +275,36 @@ co2_daily_year2 <- ggplot(fcr_daily) +
   theme_classic(base_size = 15)+
   theme(legend.title=element_blank())
 
+co2_month <- ggplot(fcr_monthly) +
+  geom_vline(xintercept = "2021-01", color="lightgrey")+
+  geom_vline(xintercept = "2022-01", color="lightgrey")+
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_errorbar(aes(yearmon, ymin = NEE - NEE_sd, ymax = NEE + NEE_sd), width = 0.2) +
+  geom_point(aes(yearmon, NEE), color = "#E63946", size=4) +
+  ylab(expression(~CO[2]~(mu~mol~m^-2~s^-1))) +
+  xlab("") +
+  theme_classic(base_size=15) +
+  theme(axis.text = element_text(colour = 'black'),
+        axis.text.x = element_text(angle = 90, hjust = 0.5, vjust = 0.5),
+        axis.title = element_text(colour = 'black'))
+
+ggarrange(co2_daily_year1,co2_daily_year2,co2_month,ncol=1,
+          nrow=3,labels=c("A.","B.","C."),font.label = list(face="plain",size=15), common.legend = TRUE)
+
+ggsave("./Fig_Output/CO2_Daily_Monthly.jpg",width = 9, height=12, units="in",dpi=320)
+
+## Plot CH4 daily and monthly for MS
+
 ch4_daily_year1 <- fcr_daily %>% 
   ggplot() +
   geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
   geom_point(ec2,mapping=aes(x=DateTime,y=ch4_flux_uStar_orig,color="30 min EC fluxes"),alpha = 0.1)+
   geom_ribbon(mapping=aes(x=Date,y=CH4,ymin=CH4-CH4_sd,ymax=CH4+CH4_sd),fill="#E63946",alpha=0.5)+
-  geom_line(aes(Date, CH4,color="EC"),size = 1) +
+  geom_line(aes(Date, CH4,color="Daily Mean EC"),size = 1) +
   geom_errorbar(diff_flux,mapping=aes(x=DateTime,y=ch4_mean_umol_m2_s,ymin=ch4_mean_umol_m2_s-ch4_sd_umol_m2_s,ymax=ch4_mean_umol_m2_s+ch4_sd_umol_m2_s,color="Diff"),size=1)+
   geom_point(diff_flux,mapping=aes(x=DateTime,y=ch4_mean_umol_m2_s,color="Diff"),size=2)+
   geom_line(diff_flux,mapping=aes(x=DateTime,y=ch4_mean_umol_m2_s,color="Diff"))+
-  scale_color_manual(breaks=c("30 min EC fluxes","EC","Diff"),
+  scale_color_manual(breaks=c("30 min EC fluxes","Daily Mean EC","Diff"),
                      values=c("black","#E63946","#4c8bfe"))+
   xlab("") +
   ylab(expression(~CH[4]~(mu~mol~m^-2~s^-1))) +
@@ -298,11 +318,11 @@ ch4_daily_year2 <- fcr_daily %>%
   geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
   geom_point(ec2,mapping=aes(x=DateTime,y=ch4_flux_uStar_orig,color="30 min EC fluxes"),alpha = 0.1)+
   geom_ribbon(mapping=aes(x=Date,y=CH4,ymin=CH4-CH4_sd,ymax=CH4+CH4_sd),fill="#E63946",alpha=0.5)+
-  geom_line(aes(Date, CH4,color="EC"),size = 1) +
+  geom_line(aes(Date, CH4,color="Daily Mean EC"),size = 1) +
   geom_errorbar(diff_flux,mapping=aes(x=DateTime,y=ch4_mean_umol_m2_s,ymin=ch4_mean_umol_m2_s-ch4_sd_umol_m2_s,ymax=ch4_mean_umol_m2_s+ch4_sd_umol_m2_s,color="Diff"),size=1)+
   geom_point(diff_flux,mapping=aes(x=DateTime,y=ch4_mean_umol_m2_s,color="Diff"),size=2)+
   geom_line(diff_flux,mapping=aes(x=DateTime,y=ch4_mean_umol_m2_s,color="Diff"))+
-  scale_color_manual(breaks=c("30 min EC fluxes","EC","Diff"),
+  scale_color_manual(breaks=c("30 min EC fluxes","Daily Mean EC","Diff"),
                      values=c("black","#E63946","#4c8bfe"))+
   xlab("") +
   ylab(expression(~CH[4]~(mu~mol~m^-2~s^-1))) +
@@ -311,10 +331,23 @@ ch4_daily_year2 <- fcr_daily %>%
   theme_classic(base_size = 15)+
   theme(legend.title=element_blank())
 
-ggarrange(co2_daily_year1,co2_daily_year2,ch4_daily_year1,ch4_daily_year2,ncol=1,
-          nrow=4,labels=c("A.","B.","C.","D."),font.label = list(face="plain",size=15), common.legend = TRUE)
+ch4_month <- ggplot(fcr_monthly) +
+  geom_vline(xintercept = "2021-01", color="lightgrey")+
+  geom_vline(xintercept = "2022-01", color="lightgrey")+
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_errorbar(aes(yearmon, ymin = CH4 - CH4_sd, ymax = CH4 + CH4_sd), width = 0.2) +
+  geom_point(aes(yearmon, CH4), color = "#E63946", size=4) +
+  ylab(expression(~CH[4]~(mu~mol~m^-2~s^-1))) +
+  xlab("") +
+  theme_classic(base_size=15) +
+  theme(axis.text = element_text(colour = 'black'),
+        axis.text.x = element_text(angle = 90, hjust = 0.5, vjust = 0.5),
+        axis.title = element_text(colour = 'black'))
 
-ggsave("./Fig_Output/EC_Daily.jpg",width = 9, height=12, units="in",dpi=320)
+ggarrange(ch4_daily_year1,ch4_daily_year2,ch4_month,ncol=1,
+          nrow=3,labels=c("A.","B.","C."),font.label = list(face="plain",size=15), common.legend = TRUE)
+
+ggsave("./Fig_Output/CH4_Daily_Monthly.jpg",width = 9, height=12, units="in",dpi=320)
 
 ###############################################################################
 
@@ -334,6 +367,20 @@ diff_ec_hr %>%
   drop_na(CH4) %>% 
   count()
 
+diff_ec_hr_long_co2 <- diff_ec_hr %>% 
+  select(DateTime,co2_mean_umol_m2_s,NEE) %>% 
+  pivot_longer(!DateTime, names_to = "Type", values_to = "flux_umol_m2_s") %>% 
+  mutate(Type = ifelse(Type == "co2_mean_umol_m2_s","Diff",
+                       ifelse(Type == "NEE", "EC", NA)),
+         Flux = "co2")
+
+diff_ec_hr_long_ch4 <- diff_ec_hr %>% 
+  select(DateTime,ch4_mean_umol_m2_s,CH4) %>% 
+  pivot_longer(!DateTime, names_to = "Type", values_to = "flux_umol_m2_s") %>% 
+  mutate(Type = ifelse(Type == "ch4_mean_umol_m2_s","Diff",
+                       ifelse(Type == "CH4", "EC", NA)),
+         Flux = "ch4")
+
 ## Plot
 diff_ec_co2 <- ggplot(diff_ec_hr,mapping=aes(x=co2_mean_umol_m2_s,y=NEE))+
   geom_abline(intercept = 0)+
@@ -346,6 +393,14 @@ diff_ec_co2 <- ggplot(diff_ec_hr,mapping=aes(x=co2_mean_umol_m2_s,y=NEE))+
   xlab(expression(~Mean~Diff~CO[2]~(mu~mol~m^-2~s^-1))) +
   theme_classic(base_size = 15)
 
+co2_box <- ggplot(diff_ec_hr_long_co2,mapping=aes(x=Type,y=flux_umol_m2_s))+
+  geom_hline(yintercept = 0, lty = 2) +
+  geom_boxplot(outlier.shape = NA,size=1)+
+  geom_point(alpha=0.3)+
+  ylab(expression(CO[2]~(mu~mol~m^-2~s^-1))) +
+  xlab("")+
+  theme_classic()
+
 diff_ec_ch4 <- ggplot(diff_ec_hr,mapping=aes(x=ch4_mean_umol_m2_s,y=CH4))+
   geom_abline(intercept = 0)+
   geom_hline(yintercept = 0, lty = 2) +
@@ -357,9 +412,18 @@ diff_ec_ch4 <- ggplot(diff_ec_hr,mapping=aes(x=ch4_mean_umol_m2_s,y=CH4))+
   xlab(expression(~Mean~Diff~CH[4]~(mu~mol~m^-2~s^-1))) +
   theme_classic(base_size = 15)
 
-ggarrange(diff_ec_co2,diff_ec_ch4,ncol=2,nrow=1,labels=c("A.","B."),font.label = list(face="plain",size=15))
+ch4_box <- ggplot(diff_ec_hr_long_ch4,mapping=aes(x=Type,y=flux_umol_m2_s))+
+  geom_hline(yintercept = 0, lty = 2) +
+  geom_boxplot(outlier.shape = NA,size=1)+
+  geom_point(alpha=0.3)+
+  ylab(expression(CH[4]~(mu~mol~m^-2~s^-1))) +
+  xlab("")+
+  theme_classic()
 
-ggsave("./Fig_Output/SI_Diff_EC.jpg",width = 8, height=4, units="in",dpi=320)
+ggarrange(diff_ec_co2,co2_box,diff_ec_ch4,ch4_box,ncol=2,nrow=2,labels=c("A.","B.","C.","D."),
+          font.label = list(face="plain",size=15))
+
+ggsave("./Fig_Output/SI_Diff_EC.jpg",width = 8, height=7, units="in",dpi=320)
 
 ###############################################################################
 
@@ -393,33 +457,6 @@ ggarrange(co2_week,ch4_week,ncol=1,
 ggsave("./Fig_Output/EC_Weekly.jpg",width = 8, height = 8, units="in",dpi=320)
 
 ###############################################################################
-
-## Plot monthly for all years
-co2_month <- ggplot(fcr_monthly) +
-  geom_vline(xintercept = "2021-01", color="lightgrey")+
-  geom_vline(xintercept = "2022-01", color="lightgrey")+
-  geom_hline(yintercept = 0, linetype="dashed")+
-  geom_errorbar(aes(yearmon, ymin = NEE - NEE_sd, ymax = NEE + NEE_sd), width = 0.2) +
-  geom_point(aes(yearmon, NEE), color = "#E63946", size=4) +
-  ylab(expression(~CO[2]~(mu~mol~m^-2~s^-1))) +
-  xlab("") +
-  theme_classic(base_size=15) +
-  theme(axis.text = element_text(colour = 'black'),
-        axis.text.x = element_text(angle = 90, hjust = 0.5, vjust = 0.5),
-        axis.title = element_text(colour = 'black'))
-
-ch4_month <- ggplot(fcr_monthly) +
-  geom_vline(xintercept = "2021-01", color="lightgrey")+
-  geom_vline(xintercept = "2022-01", color="lightgrey")+
-  geom_hline(yintercept = 0, linetype="dashed")+
-  geom_errorbar(aes(yearmon, ymin = CH4 - CH4_sd, ymax = CH4 + CH4_sd), width = 0.2) +
-  geom_point(aes(yearmon, CH4), color = "#E63946", size=4) +
-  ylab(expression(~CH[4]~(mu~mol~m^-2~s^-1))) +
-  xlab("") +
-  theme_classic(base_size=15) +
-  theme(axis.text = element_text(colour = 'black'),
-        axis.text.x = element_text(angle = 90, hjust = 0.5, vjust = 0.5),
-        axis.title = element_text(colour = 'black'))
 
 ## Plot by half-hourly fluxes by season
 # Define as: Winter = Dec, Jan, Feb; Spring = Mar, Apr, May; Summer = Jun, Jul, Aug;
@@ -706,7 +743,7 @@ n = 295",
   geom_boxplot(outlier.shape = NA,size=1)+
   geom_point(position=position_jitterdodge(),alpha=0.1)+
   scale_color_manual(breaks=c('Day','Night'),values=c("#F4BB01","#183662"))+
-  ylab(expression(paste("CO"[2]*" (",mu,"mol C m"^-2*" s"^-1*")")))+
+  ylab(expression(paste("CO"[2]*" (",mu,"mol m"^-2*" s"^-1*")")))+
   xlab("")+
   ylim(-20,20)+
   theme_classic(base_size = 15)+
@@ -721,7 +758,7 @@ n = 246",
   geom_boxplot(outlier.shape = NA,size=1)+
   geom_point(position=position_jitterdodge(),alpha=0.1)+
   scale_color_manual(breaks=c('Day','Night'),values=c("#F4BB01","#183662"))+
-  ylab(expression(paste("CH"[4]*" (",mu,"mol C m"^-2*" s"^-1*")")))+
+  ylab(expression(paste("CH"[4]*" (",mu,"mol m"^-2*" s"^-1*")")))+
   xlab("")+
   theme_classic(base_size = 15)+
   theme(legend.position = "none") 
@@ -748,7 +785,7 @@ n = 189",
   geom_boxplot(outlier.shape = NA,size=1)+
   geom_point(position=position_jitterdodge(),alpha=0.1)+
   scale_color_manual(breaks=c('Dusk','Dawn'),values=c("#F4BB01","#183662"))+
-  ylab(expression(paste("CO"[2]*" (",mu,"mol C m"^-2*" s"^-1*")")))+
+  ylab(expression(paste("CO"[2]*" (",mu,"mol m"^-2*" s"^-1*")")))+
   xlab("")+
   ylim(-20,20)+
   theme_classic(base_size = 15)+
@@ -763,7 +800,7 @@ n = 152",
   geom_boxplot(outlier.shape = NA,size=1)+
   geom_point(position=position_jitterdodge(),alpha=0.1)+
   scale_color_manual(breaks=c('Dusk','Dawn'),values=c("#F4BB01","#183662"))+
-  ylab(expression(paste("CH"[4]*" (",mu,"mol C m"^-2*" s"^-1*")")))+
+  ylab(expression(paste("CH"[4]*" (",mu,"mol m"^-2*" s"^-1*")")))+
   xlab("")+
   theme_classic(base_size = 15)+
   theme(legend.position = "none")
@@ -985,3 +1022,42 @@ ggarrange(co2_annual,ch4_annual,nrow=1,ncol=2,common.legend = TRUE,labels=c("A."
           font.label=list(face="plain",size=15))
 
 ggsave("./Fig_Output/Rev_AnnualFluxes.png",width = 9, height=4.5, units="in",dpi=320)
+
+## Calculate cumulative fluxes in summer (Jun, Jul, Aug, Sep) vs. winter (Dec, Jan, Feb, Mar)
+## Summer (May - Oct) = 132 g C-CO2 m2 d; 0.221 g C-CH4 m2 d
+ec2_annual_fluxes_year1 %>% 
+  filter(DateTime == as.POSIXct("2020-05-01 01:00:00") | DateTime == as.POSIXct("2020-10-31 24:00:00")) %>% 
+  select(DateTime,ch4_sum_g_m2_d,co2_sum_g_m2_d)
+
+## Summer (May - Oct) = 124 g C-CO2 m2 d; 0.234 g C-CH4 m2 d
+ec2_annual_fluxes_year2 %>% 
+  filter(DateTime == as.POSIXct("2021-05-01 01:00:00") | DateTime == as.POSIXct("2021-10-31 24:00:00")) %>% 
+  select(DateTime,ch4_sum_g_m2_d,co2_sum_g_m2_d)
+
+# Winter (Nov - Apr) = 38.1 g C-CO2 m2 d; 0.012 g C-CH4 m2 d
+ec2_annual_fluxes_year1 %>% 
+  filter(DateTime == as.POSIXct("2020-10-31 24:00:00") | DateTime == as.POSIXct("2021-04-30 23:00:00")) %>% 
+  select(DateTime,ch4_sum_g_m2_d,co2_sum_g_m2_d)
+
+# Winter (Nov - Apr) = 33.3 g C-CO2 m2 d; 0.003 g C-CH4 m2 d
+ec2_annual_fluxes_year2 %>% 
+  filter(DateTime == as.POSIXct("2021-10-31 24:00:00") | DateTime == as.POSIXct("2022-04-30 23:00:00")) %>% 
+  select(DateTime,ch4_sum_g_m2_d,co2_sum_g_m2_d)
+
+# June-September
+ec2_annual_fluxes_year1 %>% 
+  filter(DateTime == as.POSIXct("2020-06-01 01:00:00") | DateTime == as.POSIXct("2020-09-30 24:00:00")) %>% 
+  select(DateTime,ch4_sum_g_m2_d,co2_sum_g_m2_d)
+
+ec2_annual_fluxes_year2 %>% 
+  filter(DateTime == as.POSIXct("2021-06-01 01:00:00") | DateTime == as.POSIXct("2021-09-30 24:00:00")) %>% 
+  select(DateTime,ch4_sum_g_m2_d,co2_sum_g_m2_d)
+
+# December - March
+ec2_annual_fluxes_year1 %>% 
+  filter(DateTime == as.POSIXct("2020-12-01 01:00:00") | DateTime == as.POSIXct("2021-03-31 24:00:00")) %>% 
+  select(DateTime,ch4_sum_g_m2_d,co2_sum_g_m2_d)
+
+ec2_annual_fluxes_year2 %>% 
+  filter(DateTime == as.POSIXct("2021-12-01 01:00:00") | DateTime == as.POSIXct("2022-03-31 24:00:00")) %>% 
+  select(DateTime,ch4_sum_g_m2_d,co2_sum_g_m2_d)
