@@ -243,6 +243,7 @@ diff_flux <- diff_flux %>%
 
 co2_daily_year1 <- ggplot(fcr_daily) +
   geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
+  geom_vline(xintercept = as.POSIXct("2021-11-03 12:00"), col = "black", size = 1, linetype = "dotted")+
   geom_point(ec2,mapping=aes(x=DateTime,y=NEE_uStar_orig,color="30 min EC fluxes"),alpha = 0.1)+
   geom_ribbon(mapping=aes(x=Date,y=NEE,ymin=NEE-NEE_sd,ymax=NEE+NEE_sd),fill="#E63946",alpha=0.5)+
   geom_line(aes(Date, NEE,color="Daily Mean EC"),size = 1) +
@@ -260,6 +261,7 @@ co2_daily_year1 <- ggplot(fcr_daily) +
 
 co2_daily_year2 <- ggplot(fcr_daily) +
   geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
+  geom_vline(xintercept = as.POSIXct("2021-11-03 12:00"), col = "black", size = 1, linetype = "dotted")+
   geom_point(ec2,mapping=aes(x=DateTime,y=NEE_uStar_orig,color="30 min EC fluxes"),alpha = 0.1)+
   geom_ribbon(mapping=aes(x=Date,y=NEE,ymin=NEE-NEE_sd,ymax=NEE+NEE_sd),fill="#E63946",alpha=0.5)+
   geom_line(aes(Date, NEE,color="Daily Mean EC"),size = 1) +
@@ -298,6 +300,7 @@ ggsave("./Fig_Output/CO2_Daily_Monthly.jpg",width = 9, height=12, units="in",dpi
 ch4_daily_year1 <- fcr_daily %>% 
   ggplot() +
   geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
+  geom_vline(xintercept = as.POSIXct("2021-11-03 12:00"), col = "black", size = 1, linetype = "dotted")+
   geom_point(ec2,mapping=aes(x=DateTime,y=ch4_flux_uStar_orig,color="30 min EC fluxes"),alpha = 0.1)+
   geom_ribbon(mapping=aes(x=Date,y=CH4,ymin=CH4-CH4_sd,ymax=CH4+CH4_sd),fill="#E63946",alpha=0.5)+
   geom_line(aes(Date, CH4,color="Daily Mean EC"),size = 1) +
@@ -316,6 +319,7 @@ ch4_daily_year1 <- fcr_daily %>%
 ch4_daily_year2 <- fcr_daily %>% 
   ggplot() +
   geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
+  geom_vline(xintercept = as.POSIXct("2021-11-03 12:00"), col = "black", size = 1, linetype = "dotted")+
   geom_point(ec2,mapping=aes(x=DateTime,y=ch4_flux_uStar_orig,color="30 min EC fluxes"),alpha = 0.1)+
   geom_ribbon(mapping=aes(x=Date,y=CH4,ymin=CH4-CH4_sd,ymax=CH4+CH4_sd),fill="#E63946",alpha=0.5)+
   geom_line(aes(Date, CH4,color="Daily Mean EC"),size = 1) +
@@ -431,6 +435,7 @@ ggsave("./Fig_Output/SI_Diff_EC.jpg",width = 8, height=7, units="in",dpi=320)
 
 co2_week <- ggplot(fcr_weekly)+
   geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
+  geom_vline(xintercept = as.POSIXct("2021-11-03 12:00"), col = "black", size = 1, linetype = "dotted")+
   geom_hline(yintercept = 0, linetype="dashed")+
   geom_point(ec2,mapping=aes(x=DateTime,y=NEE_uStar_orig),alpha = 0.1)+
   geom_ribbon(mapping=aes(x=Date,ymin=NEE-NEE_sd,ymax=NEE+NEE_sd),fill="#E63946",alpha=0.3)+
@@ -442,6 +447,7 @@ co2_week <- ggplot(fcr_weekly)+
 
 ch4_week <- ggplot(fcr_weekly)+
   geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
+  geom_vline(xintercept = as.POSIXct("2021-11-03 12:00"), col = "black", size = 1, linetype = "dotted")+
   geom_hline(yintercept = 0, linetype="dashed")+
   geom_point(ec2,mapping=aes(x=DateTime,y=ch4_flux_uStar_orig),alpha = 0.1)+
   geom_ribbon(mapping=aes(x=Date,ymin=CH4-CH4_sd,ymax=CH4+CH4_sd),fill="#E63946",alpha=0.3)+
@@ -455,6 +461,189 @@ ggarrange(co2_week,ch4_week,ncol=1,
           nrow=2,labels=c("A.","B."),font.label = list(face="plain",size=15))
 
 ggsave("./Fig_Output/EC_Weekly.jpg",width = 8, height = 8, units="in",dpi=320)
+
+###############################################################################
+
+## Look at fluxes around turnover - both EC and diffusive
+
+## Load in wind speed data from Met first to plot with the fluxes
+## Downloaded from EDI: 06 May 2022
+## Included preliminary met data for 2022 downloaded from the Gateway
+
+#inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/389/6/a5524c686e2154ec0fd0459d46a7d1eb" 
+#infile1 <- paste0(getwd(),"/Data/Met_final_2015_2021.csv")
+#download.file(inUrl1,infile1,method="curl")
+
+met_edi <- read.csv("./Data/Met_final_2015_2021.csv", header=T) %>%
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d %H:%M:%S", tz="EST"))) %>% 
+  filter(DateTime > as.POSIXct("2019-12-31"))
+
+met_2022 <- read.csv("./Data/FCR_Met_final_2022.csv",header=T) %>% 
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d %H:%M:%S", tz="EST")))
+
+met_all <- rbind(met_edi,met_2022)
+
+# Start timeseries on the 00:15:00 to facilitate 30-min averages
+met_all <- met_all %>% 
+  filter(DateTime >= as.POSIXct("2019-12-31 00:15:00"))
+
+# Select data every 30 minutes from Jan 2020 to end of met data
+met_all$Breaks <- cut(met_all$DateTime,breaks = "30 mins",right=FALSE)
+met_all$Breaks <- ymd_hms(as.character(met_all$Breaks))
+
+# Average met data to the 30 min mark (excluding Total Rain and Total PAR)
+met_30 <- met_all %>% 
+  select(DateTime,BP_Average_kPa,AirTemp_Average_C,RH_percent,ShortwaveRadiationUp_Average_W_m2,ShortwaveRadiationDown_Average_W_m2,
+         InfraredRadiationUp_Average_W_m2,InfraredRadiationDown_Average_W_m2,Albedo_Average_W_m2,WindSpeed_Average_m_s,WindDir_degrees,Breaks) %>% 
+  group_by(Breaks) %>% 
+  summarise_all(mean,na.rm=TRUE)
+
+# Sum met data to the 30 min mark (for Total Rain and Total PAR)
+met_30_rain <- met_all %>% 
+  select(Rain_Total_mm,PAR_Total_mmol_m2,Breaks) %>% 
+  group_by(Breaks) %>% 
+  summarise_all(sum,na.rm=TRUE)
+
+# Combine averaged and summed data together
+met_30_2 <- cbind.data.frame(met_30,met_30_rain)
+
+# Adjust datetime to 30 minute intervals, select relevant parameters, and rename
+# following Brenda's conventions
+met_30_2 <- met_30_2 %>% 
+  select(-Breaks) %>% 
+  mutate(DateTime_Adj = DateTime + 30) %>% 
+  select(-DateTime) %>% 
+  filter(DateTime_Adj >= as.POSIXct("2020-05-01 20:00:00") & DateTime_Adj < as.POSIXct("2022-04-30 20:00:00"))
+
+names(met_30_2)[names(met_30_2) == 'DateTime_Adj'] <- 'DateTime'
+
+## Aggregate to daily
+
+met_daily <- met_30_2 %>% 
+  mutate(Year = year(DateTime), 
+         Month = month(DateTime), 
+         Day = day(DateTime), 
+         Hour = hour(DateTime)) %>% 
+  dplyr::group_by(Year, Month, Day) %>% 
+  dplyr::summarise(wind_ms = mean(WindSpeed_Average_m_s, na.rm = TRUE),
+                   wind_ms_sd = sd(WindSpeed_Average_m_s, na.rm = TRUE))
+
+met_daily$DateTime <- as.POSIXct(paste(met_daily$Year, met_daily$Month, met_daily$Day, sep = '-'), "%Y-%m-%d", tz = 'EST')
+
+## Plot fluxes and wind speed
+
+co2_2020 <- ggplot(fcr_daily) +
+  geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
+  geom_point(ec2,mapping=aes(x=DateTime,y=NEE_uStar_orig,color="30 min EC fluxes"),alpha = 0.1)+
+  geom_ribbon(mapping=aes(x=Date,y=NEE,ymin=NEE-NEE_sd,ymax=NEE+NEE_sd),fill="#E63946",alpha=0.5)+
+  geom_line(aes(Date, NEE,color="Daily Mean EC"),size = 1) +
+  geom_errorbar(diff_flux,mapping=aes(x=DateTime,y=co2_mean_umol_m2_s,ymin=co2_mean_umol_m2_s-co2_sd_umol_m2_s,ymax=co2_mean_umol_m2_s+co2_sd_umol_m2_s,color="Diff"),size=1)+
+  geom_point(diff_flux,mapping=aes(x=DateTime,y=co2_mean_umol_m2_s,color="Diff"),size=2)+
+  geom_line(diff_flux,mapping=aes(x=DateTime,y=co2_mean_umol_m2_s,color="Diff"))+
+  scale_color_manual(breaks=c("30 min EC fluxes","Daily Mean EC","Diff"),
+                     values=c("black","#E63946","#4c8bfe"))+
+  xlab("2020") +
+  ylab(expression(~CO[2]~(mu~mol~m^-2~s^-1))) +
+  geom_hline(yintercept = 0, lty = 2) +
+  xlim(as.POSIXct("2020-10-01"),as.POSIXct("2020-11-30"))+
+  ylim(-30,30)+
+  theme_classic(base_size = 15)+
+  theme(legend.title=element_blank())
+
+co2_2021 <- ggplot(fcr_daily) +
+  geom_vline(xintercept = as.POSIXct("2021-11-03 12:00"), col = "black", size = 1, linetype = "dotted")+
+  geom_point(ec2,mapping=aes(x=DateTime,y=NEE_uStar_orig,color="30 min EC fluxes"),alpha = 0.1)+
+  geom_ribbon(mapping=aes(x=Date,y=NEE,ymin=NEE-NEE_sd,ymax=NEE+NEE_sd),fill="#E63946",alpha=0.5)+
+  geom_line(aes(Date, NEE,color="Daily Mean EC"),size = 1) +
+  geom_errorbar(diff_flux,mapping=aes(x=DateTime,y=co2_mean_umol_m2_s,ymin=co2_mean_umol_m2_s-co2_sd_umol_m2_s,ymax=co2_mean_umol_m2_s+co2_sd_umol_m2_s,color="Diff"),size=1)+
+  geom_point(diff_flux,mapping=aes(x=DateTime,y=co2_mean_umol_m2_s,color="Diff"),size=2)+
+  geom_line(diff_flux,mapping=aes(x=DateTime,y=co2_mean_umol_m2_s,color="Diff"))+
+  scale_color_manual(breaks=c("30 min EC fluxes","Daily Mean EC","Diff"),
+                     values=c("black","#E63946","#4c8bfe"))+
+  xlab("2021") +
+  ylab(expression(~CO[2]~(mu~mol~m^-2~s^-1))) +
+  geom_hline(yintercept = 0, lty = 2) +
+  xlim(as.POSIXct("2021-10-01"),as.POSIXct("2021-11-30"))+
+  ylim(-30,30)+
+  theme_classic(base_size = 15)+
+  theme(legend.title=element_blank())
+
+ch4_2020 <- fcr_daily %>% 
+  ggplot() +
+  geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
+  geom_point(ec2,mapping=aes(x=DateTime,y=ch4_flux_uStar_orig,color="30 min EC fluxes"),alpha = 0.1)+
+  geom_ribbon(mapping=aes(x=Date,y=CH4,ymin=CH4-CH4_sd,ymax=CH4+CH4_sd),fill="#E63946",alpha=0.5)+
+  geom_line(aes(Date, CH4,color="Daily Mean EC"),size = 1) +
+  geom_errorbar(diff_flux,mapping=aes(x=DateTime,y=ch4_mean_umol_m2_s,ymin=ch4_mean_umol_m2_s-ch4_sd_umol_m2_s,ymax=ch4_mean_umol_m2_s+ch4_sd_umol_m2_s,color="Diff"),size=1)+
+  geom_point(diff_flux,mapping=aes(x=DateTime,y=ch4_mean_umol_m2_s,color="Diff"),size=2)+
+  geom_line(diff_flux,mapping=aes(x=DateTime,y=ch4_mean_umol_m2_s,color="Diff"))+
+  scale_color_manual(breaks=c("30 min EC fluxes","Daily Mean EC","Diff"),
+                     values=c("black","#E63946","#4c8bfe"))+
+  xlab("2020") +
+  ylab(expression(~CH[4]~(mu~mol~m^-2~s^-1))) +
+  geom_hline(yintercept = 0, lty = 2) +
+  xlim(as.POSIXct("2020-10-01"),as.POSIXct("2020-11-30"))+
+  theme_classic(base_size = 15)+
+  theme(legend.title=element_blank())
+
+ch4_2021 <- fcr_daily %>% 
+  ggplot() +
+  geom_vline(xintercept = as.POSIXct("2021-11-03 12:00"), col = "black", size = 1, linetype = "dotted")+
+  geom_point(ec2,mapping=aes(x=DateTime,y=ch4_flux_uStar_orig,color="30 min EC fluxes"),alpha = 0.1)+
+  geom_ribbon(mapping=aes(x=Date,y=CH4,ymin=CH4-CH4_sd,ymax=CH4+CH4_sd),fill="#E63946",alpha=0.5)+
+  geom_line(aes(Date, CH4,color="Daily Mean EC"),size = 1) +
+  geom_errorbar(diff_flux,mapping=aes(x=DateTime,y=ch4_mean_umol_m2_s,ymin=ch4_mean_umol_m2_s-ch4_sd_umol_m2_s,ymax=ch4_mean_umol_m2_s+ch4_sd_umol_m2_s,color="Diff"),size=1)+
+  geom_point(diff_flux,mapping=aes(x=DateTime,y=ch4_mean_umol_m2_s,color="Diff"),size=2)+
+  geom_line(diff_flux,mapping=aes(x=DateTime,y=ch4_mean_umol_m2_s,color="Diff"))+
+  scale_color_manual(breaks=c("30 min EC fluxes","Daily Mean EC","Diff"),
+                     values=c("black","#E63946","#4c8bfe"))+
+  xlab("2021") +
+  ylab(expression(~CH[4]~(mu~mol~m^-2~s^-1))) +
+  geom_hline(yintercept = 0, lty = 2) +
+  xlim(as.POSIXct("2021-10-01"),as.POSIXct("2021-11-30"))+
+  theme_classic(base_size = 15)+
+  theme(legend.title=element_blank())
+
+wnd_2020 <- met_daily %>% 
+  ggplot() +
+  geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
+  geom_point(met_30_2,mapping=aes(x=DateTime,y=WindSpeed_Average_m_s,color="30 min Wind"),alpha = 0.1)+
+  geom_ribbon(mapping=aes(x=DateTime,y=wind_ms,ymin=wind_ms-wind_ms_sd,ymax=wind_ms+wind_ms_sd),fill="#E63946",alpha=0.5)+
+  geom_line(aes(DateTime, wind_ms,color="Daily Mean Wind"),size = 1) +
+  scale_color_manual(breaks=c("30 min Wind","Daily Mean Wind"),
+                     values=c("black","#E63946"))+
+  xlab("2020") +
+  ylab(expression(~Wind~Speed~(m~s^-1))) +
+  geom_hline(yintercept = 0, lty = 2) +
+  xlim(as.POSIXct("2020-10-01"),as.POSIXct("2020-11-30"))+
+  theme_classic(base_size = 15)+
+  theme(legend.title=element_blank())
+
+wnd_2021 <- met_daily %>% 
+  ggplot() +
+  geom_vline(xintercept = as.POSIXct("2021-11-03 12:00"), col = "black", size = 1, linetype = "dotted")+
+  geom_point(met_30_2,mapping=aes(x=DateTime,y=WindSpeed_Average_m_s,color="30 min Wind"),alpha = 0.1)+
+  geom_ribbon(mapping=aes(x=DateTime,y=wind_ms,ymin=wind_ms-wind_ms_sd,ymax=wind_ms+wind_ms_sd),fill="#E63946",alpha=0.5)+
+  geom_line(aes(DateTime, wind_ms,color="Daily Mean Wind"),size = 1) +
+  scale_color_manual(breaks=c("30 min Wind","Daily Mean Wind"),
+                     values=c("black","#E63946"))+
+  xlab("2020") +
+  ylab(expression(~Wind~Speed~(m~s^-1))) +
+  geom_hline(yintercept = 0, lty = 2) +
+  xlim(as.POSIXct("2021-10-01"),as.POSIXct("2021-11-30"))+
+  theme_classic(base_size = 15)+
+  theme(legend.title=element_blank())
+
+ggarrange(co2_2020,ch4_2020,co2_2021,ch4_2021,wnd_2020,wnd_2021,ncol=2,
+          nrow=3,labels=c("A.","B.","C.","D.","E.","F."),font.label = list(face="plain",size=15),common.legend = TRUE)
+
+ggsave("./Fig_Output/SI_Fluxes_Turnover.jpg",width = 11, height = 10, units="in",dpi=320)
+
+###############################################################################
+
+## Create table with min/median/max for various met station parameters
+## Temp, Wind speed, wind direction, precipitation
+
 
 ###############################################################################
 
@@ -964,7 +1153,7 @@ ggsave("./Fig_Output/Figure_WinterIce.png",width = 8, height=9, units="in",dpi=3
 
 ## Estimate and plot annual fluxes for Year 1 and Year 2, CO2 and CH4
 ec2_annual_fluxes <- ec2 %>% 
-  select(DateTime,NEE_uStar_orig,ch4_flux_uStar_orig,NEE_uStar_fsd,ch4_flux_uStar_fsd) %>% 
+  select(DateTime,NEE_uStar_orig,ch4_flux_uStar_orig,NEE_uStar_f,ch4_flux_uStar_f,NEE_uStar_fsd,ch4_flux_uStar_fsd) %>% 
   mutate(NEE_uStar_orig = ifelse(is.na(NEE_uStar_orig), 0, NEE_uStar_orig),
          ch4_flux_uStar_orig = ifelse(is.na(ch4_flux_uStar_orig), 0, ch4_flux_uStar_orig))
 
@@ -972,6 +1161,8 @@ ec2_annual_fluxes_year1 <- ec2_annual_fluxes %>%
   filter(DateTime < as.POSIXct("2021-05-01")) %>% 
   mutate(ch4_sum_g_m2_d = cumsum(ch4_flux_uStar_orig*1800*12.01/1000000)) %>% 
   mutate(co2_sum_g_m2_d = cumsum(NEE_uStar_orig*1800*12.01/1000000)) %>% 
+  mutate(co2_sum_g_m2_d_gapfilled = cumsum(NEE_uStar_f*1800*12.01/1000000)) %>% 
+  mutate(ch4_sum_g_m2_d_gapfilled = cumsum(ch4_flux_uStar_f*1800*12.01/1000000)) %>% 
   mutate(co2_v = (NEE_uStar_fsd*1800*12.01/1000000)^2) %>% 
   mutate(ch4_v = (ch4_flux_uStar_fsd*1800*12.01/1000000)^2) %>% 
   mutate(co2_sum_sd = sqrt(cumsum(co2_v))) %>% 
@@ -982,6 +1173,8 @@ ec2_annual_fluxes_year2 <- ec2_annual_fluxes %>%
   filter(DateTime >= as.POSIXct("2021-05-01")) %>% 
   mutate(ch4_sum_g_m2_d = cumsum(ch4_flux_uStar_orig*1800*12.01/1000000)) %>% 
   mutate(co2_sum_g_m2_d = cumsum(NEE_uStar_orig*1800*12.01/1000000)) %>% 
+  mutate(co2_sum_g_m2_d_gapfilled = cumsum(NEE_uStar_f*1800*12.01/1000000)) %>% 
+  mutate(ch4_sum_g_m2_d_gapfilled = cumsum(ch4_flux_uStar_f*1800*12.01/1000000)) %>% 
   mutate(co2_v = (NEE_uStar_fsd*1800*12.01/1000000)^2) %>% 
   mutate(ch4_v = (ch4_flux_uStar_fsd*1800*12.01/1000000)^2) %>% 
   mutate(co2_sum_sd = sqrt(cumsum(co2_v))) %>% 
@@ -990,6 +1183,7 @@ ec2_annual_fluxes_year2 <- ec2_annual_fluxes %>%
 
 co2_annual <- ggplot()+
   geom_vline(xintercept = 8854,linetype="dotted",color="#ED6E78",size=0.8)+ #Turnover FCR (11-01-2022); operationally defined
+  geom_vline(xintercept = 8955, linetype="dotted",color="#A31420",size=0.8)+
   geom_hline(yintercept = 0, linetype="dashed")+
   geom_line(ec2_annual_fluxes_year1,mapping=aes(x=NumCount,y=co2_sum_g_m2_d,color="Year1"),size=1)+
   geom_ribbon(ec2_annual_fluxes_year1,mapping=aes(x=NumCount,y=co2_sum_g_m2_d,ymin=co2_sum_g_m2_d-co2_sum_sd,ymax=co2_sum_g_m2_d+co2_sum_sd,fill="Year1"),alpha=0.3)+
@@ -1005,6 +1199,7 @@ co2_annual <- ggplot()+
 
 ch4_annual <- ggplot()+
   geom_vline(xintercept = 8854,linetype="dotted",color="#ED6E78",size=0.8)+ #Turnover FCR (11-01-2022); operationally defined
+  geom_vline(xintercept = 8955, linetype="dotted",color="#A31420",size=0.8)+
   geom_hline(yintercept = 0, linetype="dashed")+
   geom_line(ec2_annual_fluxes_year1,mapping=aes(x=NumCount,y=ch4_sum_g_m2_d,color="Year1"),size=1)+
   geom_ribbon(ec2_annual_fluxes_year1,mapping=aes(x=NumCount,y=ch4_sum_g_m2_d,ymin=ch4_sum_g_m2_d-ch4_sum_sd,ymax=ch4_sum_g_m2_d+ch4_sum_sd,fill="Year1"),alpha=0.3)+
@@ -1022,6 +1217,45 @@ ggarrange(co2_annual,ch4_annual,nrow=1,ncol=2,common.legend = TRUE,labels=c("A."
           font.label=list(face="plain",size=15))
 
 ggsave("./Fig_Output/Rev_AnnualFluxes.png",width = 9, height=4.5, units="in",dpi=320)
+
+## Plot gap-filled annual estimates for SI
+co2_sum_gapfilled <- ggplot()+
+  geom_vline(xintercept = 8854,linetype="dotted",color="#ED6E78",size=0.8)+ #Turnover FCR (11-01-2022); operationally defined
+  geom_vline(xintercept = 8955, linetype="dotted",color="#A31420",size=0.8)+
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_line(ec2_annual_fluxes_year1,mapping=aes(x=NumCount,y=co2_sum_g_m2_d_gapfilled,color="Year1"),size=1)+
+  geom_ribbon(ec2_annual_fluxes_year1,mapping=aes(x=NumCount,y=co2_sum_g_m2_d_gapfilled,ymin=co2_sum_g_m2_d_gapfilled-co2_sum_sd,ymax=co2_sum_g_m2_d_gapfilled+co2_sum_sd,fill="Year1"),alpha=0.3)+
+  geom_line(ec2_annual_fluxes_year2,mapping=aes(x=NumCount,y=co2_sum_g_m2_d_gapfilled,color="Year2"),size=1)+
+  geom_ribbon(ec2_annual_fluxes_year2,mapping=aes(x=NumCount,y=co2_sum_g_m2_d_gapfilled,ymin=co2_sum_g_m2_d_gapfilled-co2_sum_sd,ymax=co2_sum_g_m2_d_gapfilled+co2_sum_sd,fill="Year2"),alpha=0.3)+
+  scale_color_manual(breaks=c('Year1','Year2'),values=c("#ED6E78","#A31420"),labels=c("Year 1","Year 2"),"")+
+  scale_fill_manual(breaks=c('Year1','Year2'),values=c("#ED6E78","#A31420"),labels=c("Year 1","Year 2"),"")+
+  scale_x_continuous(breaks=c(0,2929,5905,8833,11763,14593,17518), 
+                     labels=c("May","Jul.","Sep.","Nov.","Jan.","Mar.","May"))+
+  ylab(expression(paste("CO"[2]*" (g C m"^-2*")")))+
+  xlab("")+
+  theme_classic(base_size = 15)
+
+ch4_sum_gapfilled <- ggplot()+
+  geom_vline(xintercept = 8854,linetype="dotted",color="#ED6E78",size=0.8)+ #Turnover FCR (11-01-2022); operationally defined
+  geom_vline(xintercept = 8955, linetype="dotted",color="#A31420",size=0.8)+
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_line(ec2_annual_fluxes_year1,mapping=aes(x=NumCount,y=ch4_sum_g_m2_d_gapfilled,color="Year1"),size=1)+
+  geom_ribbon(ec2_annual_fluxes_year1,mapping=aes(x=NumCount,y=ch4_sum_g_m2_d_gapfilled,ymin=ch4_sum_g_m2_d_gapfilled-ch4_sum_sd,ymax=ch4_sum_g_m2_d_gapfilled+ch4_sum_sd,fill="Year1"),alpha=0.3)+
+  geom_line(ec2_annual_fluxes_year2,mapping=aes(x=NumCount,y=ch4_sum_g_m2_d_gapfilled,color="Year2"),size=1)+
+  geom_ribbon(ec2_annual_fluxes_year2,mapping=aes(x=NumCount,y=ch4_sum_g_m2_d_gapfilled,ymin=ch4_sum_g_m2_d_gapfilled-ch4_sum_sd,ymax=ch4_sum_g_m2_d_gapfilled+ch4_sum_sd,fill="Year2"),alpha=0.3)+
+  scale_color_manual(breaks=c('Year1','Year2'),values=c("#ED6E78","#A31420"),labels=c("Year 1","Year 2"),"")+
+  scale_fill_manual(breaks=c('Year1','Year2'),values=c("#ED6E78","#A31420"),labels=c("Year 1","Year 2"),"")+
+  scale_x_continuous(breaks=c(0,2929,5905,8833,11763,14593,17518), 
+                     labels=c("May","Jul.","Sep.","Nov.","Jan.","Mar.","May"))+
+  ylab(expression(paste("CH"[4]*" (g C m"^-2*")")))+
+  xlab("")+
+  theme_classic(base_size = 15)
+
+ggarrange(co2_sum_gapfilled,ch4_sum_gapfilled,nrow=1,ncol=2,common.legend = TRUE,labels=c("A.","B."),
+          font.label=list(face="plain",size=15))
+
+ggsave("./Fig_Output/SI_Rev_AnnualFluxes_GapFilled.png",width = 9, height=4.5, units="in",dpi=320)
+
 
 ## Calculate cumulative fluxes in summer (Jun, Jul, Aug, Sep) vs. winter (Dec, Jan, Feb, Mar)
 ## Summer (May - Oct) = 132 g C-CO2 m2 d; 0.221 g C-CH4 m2 d
