@@ -5,6 +5,7 @@
 ### 12 May 2022, A. Hounshell
 
 ### Updated to add in diffusive fluxes, 20 May 2022, A. Hounshell
+### Updated with all diffusive fluxes (through Spring 2022), 17 June 2022
 
 ###############################################################################
 
@@ -34,26 +35,6 @@ ec2 <- ec %>%
 
 ###############################################################################
 
-## Load in 'raw' EC data following EddyPro processing
-ec_raw <- read.csv("./Data/20220506_EddyPro_cleaned.csv")
-
-# Format time
-ec_raw$datetime <- as.POSIXct(paste(ec_raw$date, ec$time), format="%Y-%m-%d %H:%M", tz="EST")
-ec_raw$datetime <- as_datetime(ec_raw$datetime)
-
-# Set new dataframe with list of dates+times:
-# every 30 minutes
-# Constrain to study time period: 2020-04-05 (time series start date) to
-# last 30 minute period - UPDATE WITH EACH NEW SET OF DATA!
-ts <- seq.POSIXt(as.POSIXct("2020-05-01 00:00:00",'%Y-%m-%d %H:%M:%S', tz="EST"), 
-                 as.POSIXct("2022-04-30 24:00:00",'%Y-%m-%d %H:%M:%S', tz="EST"), by = "30 min")
-ts2 <- data.frame(datetime = ts)
-
-# Join Eddy Flux data with list of dates+time
-ec2_raw <- left_join(ts2, ec_raw, by = 'datetime')
-
-###############################################################################
-
 ## Visualizations of missing data - following all QA/QC
 
 ## Amount of data retained following filtering due to low u*
@@ -62,9 +43,18 @@ ec2 %>% select(DateTime, NEE_uStar_orig, ch4_flux_uStar_orig) %>%
             ch4_available = 100-sum(is.na(ch4_flux_uStar_orig))/n()*100)
 # 23% CO2 fluxes; 19% CH4 fluxes
 
-## Distribution of wind speed and direction were removed?
+## Separate by year
+ec2 %>% select(DateTime, NEE_uStar_orig, ch4_flux_uStar_orig) %>% 
+  filter(DateTime < "2021-05-01") %>% 
+  summarise(co2_available = 100-sum(is.na(NEE_uStar_orig))/n()*100,
+            ch4_available = 100-sum(is.na(ch4_flux_uStar_orig))/n()*100)
+# 22% CO2 fluxes; 16% Ch4 fluxes for year 1
 
-### COME BACK TO THIS!!!!
+ec2 %>% select(DateTime, NEE_uStar_orig, ch4_flux_uStar_orig) %>% 
+  filter(DateTime >= "2021-05-01") %>% 
+  summarise(co2_available = 100-sum(is.na(NEE_uStar_orig))/n()*100,
+            ch4_available = 100-sum(is.na(ch4_flux_uStar_orig))/n()*100)
+# 24% CO2 fluxes; 23% CH4 fluxes in year 2
 
 ## Distribution of missing data by season, day vs. night, etc.
 day_co2_data <- ec2 %>% 
@@ -231,7 +221,7 @@ fcr_monthly$yearmon <- with(fcr_monthly, sprintf("%d-%02d", Year, Month))
 
 ## Load in diffusive fluxes:
 ## Calculated using: 1a_Diffusive_Fluxes.R
-diff_flux <- read.csv("./Data/20220520_diffusive_fluxes_avg.csv") %>% 
+diff_flux <- read.csv("./Data/20220617_diffusive_fluxes_avg.csv") %>% 
   mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d %H:%M:%S", tz = "EST"))
 
 diff_flux <- diff_flux %>% 
@@ -1071,6 +1061,7 @@ wilcox.test(ch4_flux_uStar_orig ~ Ice, data=ice_fluxes_30min_comps)
 co2_year1 <- ggplot()+
   geom_vline(xintercept = as.POSIXct("2021-01-10"), linetype = "dotted", color="blue")+
   geom_vline(xintercept = as.POSIXct("2021-02-09"), linetype = "dotted", color="red")+
+  geom_vline(xintercept = as.POSIXct("2021-02-26"), linetype = "dotted", color="black")+
   geom_point(ice_fluxes_30min,mapping=aes(x=DateTime,y=NEE_uStar_orig),alpha=0.1)+
   geom_ribbon(ice_fluxes_daily,mapping=aes(x=Date,y=NEE,ymin=NEE-NEE_sd,ymax=NEE+NEE_sd),fill="#E63946",alpha=0.5)+
   geom_line(ice_fluxes_daily,mapping=aes(x=Date,y=NEE),color="#E63946",size=1)+
@@ -1083,6 +1074,7 @@ co2_year1 <- ggplot()+
 ch4_year1 <- ggplot()+
   geom_vline(xintercept = as.POSIXct("2021-01-10"), linetype = "dotted", color="blue")+
   geom_vline(xintercept = as.POSIXct("2021-02-09"), linetype = "dotted", color="red")+
+  geom_vline(xintercept = as.POSIXct("2021-02-26"), linetype = "dotted", color="black")+
   geom_point(ice_fluxes_30min,mapping=aes(x=DateTime,y=ch4_flux_uStar_orig),alpha=0.1)+
   geom_ribbon(ice_fluxes_daily,mapping=aes(x=Date,y=CH4,ymin=CH4-CH4_sd,ymax=CH4+CH4_sd),fill="#E63946",alpha=0.5)+
   geom_line(ice_fluxes_daily,mapping=aes(x=Date,y=CH4),color="#E63946",size=1)+
@@ -1147,7 +1139,7 @@ ch4_comps <- ggplot(ice_fluxes_30min_comps,mapping=aes(x=Ice,y=ch4_flux_uStar_or
 ggarrange(co2_year1,ch4_year1,co2_year2,ch4_year2,co2_comps,ch4_comps,ncol=2,nrow=3,
           labels=c("A.","B.","C.","D.","E.","F."), font.label = list(face="plain",size=15))
 
-ggsave("./Fig_Output/Figure_WinterIce.png",width = 8, height=9, units="in",dpi=320)
+ggsave("./Fig_Output/Figure_WinterIce.png",width = 10, height=9, units="in",dpi=320)
 
 ###############################################################################
 
@@ -1258,40 +1250,40 @@ ggsave("./Fig_Output/SI_Rev_AnnualFluxes_GapFilled.png",width = 9, height=4.5, u
 
 
 ## Calculate cumulative fluxes in summer (Jun, Jul, Aug, Sep) vs. winter (Dec, Jan, Feb, Mar)
-## Summer (May - Oct) = 132 g C-CO2 m2 d; 0.221 g C-CH4 m2 d
+## Summer (May - Oct) = 132 g C-CO2 m2 d; 0.221 g C-CH4 m2 d; Gap-filled: 0.91 CH4; 474 CO2
 ec2_annual_fluxes_year1 %>% 
   filter(DateTime == as.POSIXct("2020-05-01 01:00:00") | DateTime == as.POSIXct("2020-10-31 24:00:00")) %>% 
-  select(DateTime,ch4_sum_g_m2_d,co2_sum_g_m2_d)
+  select(DateTime,ch4_sum_g_m2_d_gapfilled,co2_sum_g_m2_d_gapfilled,ch4_sum_g_m2_d,co2_sum_g_m2_d)
 
-## Summer (May - Oct) = 124 g C-CO2 m2 d; 0.234 g C-CH4 m2 d
+## Summer (May - Oct) = 124 g C-CO2 m2 d; 0.234 g C-CH4 m2 d; Gap-filled: 619 CO2; 1.21 CH4
 ec2_annual_fluxes_year2 %>% 
   filter(DateTime == as.POSIXct("2021-05-01 01:00:00") | DateTime == as.POSIXct("2021-10-31 24:00:00")) %>% 
-  select(DateTime,ch4_sum_g_m2_d,co2_sum_g_m2_d)
+  select(DateTime,ch4_sum_g_m2_d_gapfilled,co2_sum_g_m2_d_gapfilled,ch4_sum_g_m2_d,co2_sum_g_m2_d)
 
-# Winter (Nov - Apr) = 38.1 g C-CO2 m2 d; 0.012 g C-CH4 m2 d
+# Winter (Nov - Apr) = 38.1 g C-CO2 m2 d; 0.012 g C-CH4 m2 d; Gap-filled: 159 CO2; 0.11 CH4
 ec2_annual_fluxes_year1 %>% 
   filter(DateTime == as.POSIXct("2020-10-31 24:00:00") | DateTime == as.POSIXct("2021-04-30 23:00:00")) %>% 
-  select(DateTime,ch4_sum_g_m2_d,co2_sum_g_m2_d)
+  select(DateTime,ch4_sum_g_m2_d,co2_sum_g_m2_d,ch4_sum_g_m2_d_gapfilled,co2_sum_g_m2_d_gapfilled)
 
-# Winter (Nov - Apr) = 33.3 g C-CO2 m2 d; 0.003 g C-CH4 m2 d
+# Winter (Nov - Apr) = 33.3 g C-CO2 m2 d; 0.003 g C-CH4 m2 d; Gap-filled: 111 CO2; 0.08 CH4
 ec2_annual_fluxes_year2 %>% 
   filter(DateTime == as.POSIXct("2021-10-31 24:00:00") | DateTime == as.POSIXct("2022-04-30 23:00:00")) %>% 
-  select(DateTime,ch4_sum_g_m2_d,co2_sum_g_m2_d)
+  select(DateTime,ch4_sum_g_m2_d,co2_sum_g_m2_d,ch4_sum_g_m2_d_gapfilled,co2_sum_g_m2_d_gapfilled)
 
 # June-September
 ec2_annual_fluxes_year1 %>% 
   filter(DateTime == as.POSIXct("2020-06-01 01:00:00") | DateTime == as.POSIXct("2020-09-30 24:00:00")) %>% 
-  select(DateTime,ch4_sum_g_m2_d,co2_sum_g_m2_d)
+  select(DateTime,ch4_sum_g_m2_d,co2_sum_g_m2_d,ch4_sum_g_m2_d_gapfilled,co2_sum_g_m2_d_gapfilled)
 
 ec2_annual_fluxes_year2 %>% 
   filter(DateTime == as.POSIXct("2021-06-01 01:00:00") | DateTime == as.POSIXct("2021-09-30 24:00:00")) %>% 
-  select(DateTime,ch4_sum_g_m2_d,co2_sum_g_m2_d)
+  select(DateTime,ch4_sum_g_m2_d,co2_sum_g_m2_d,ch4_sum_g_m2_d_gapfilled,co2_sum_g_m2_d_gapfilled)
 
 # December - March
 ec2_annual_fluxes_year1 %>% 
   filter(DateTime == as.POSIXct("2020-12-01 01:00:00") | DateTime == as.POSIXct("2021-03-31 24:00:00")) %>% 
-  select(DateTime,ch4_sum_g_m2_d,co2_sum_g_m2_d)
+  select(DateTime,ch4_sum_g_m2_d,co2_sum_g_m2_d,ch4_sum_g_m2_d_gapfilled,co2_sum_g_m2_d_gapfilled)
 
 ec2_annual_fluxes_year2 %>% 
   filter(DateTime == as.POSIXct("2021-12-01 01:00:00") | DateTime == as.POSIXct("2022-03-31 24:00:00")) %>% 
-  select(DateTime,ch4_sum_g_m2_d,co2_sum_g_m2_d)
+  select(DateTime,ch4_sum_g_m2_d,co2_sum_g_m2_d,ch4_sum_g_m2_d_gapfilled,co2_sum_g_m2_d_gapfilled)

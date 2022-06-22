@@ -9,7 +9,7 @@
 rm(list = ls())
 
 # Download/load libraries
-pacman::p_load(lubridate,readr,ggpubr,ggplot2,dplyr,openair)
+pacman::p_load(lubridate,readr,ggpubr,ggplot2,dplyr,openair,clifro)
 
 # Set working directory - up-date for your specific working directory
 wd <- getwd()
@@ -119,6 +119,37 @@ winddir <- met2 %>%
 winddir_tot <- met2 %>% 
   count(WindDir)
 
+## Look at differences in winter temps
+met2 %>% 
+  filter(datetime >= "2021-01-01 00:00:00" & datetime <= "2021-02-28 00:00:00") %>% 
+  summarise(avg_temp = mean(AirTC_Avg, na.rm = TRUE),
+            min_temp = min(AirTC_Avg, na.rm = TRUE),
+            max_temp = max(AirTC_Avg, na.rm = TRUE),
+            rainfall = sum(Rain_sum, na.rm = TRUE),
+            avg_wind = mean(WS_ms_Avg, na.rm = TRUE),
+            max_wind = max(WS_ms_Avg, na.rm = TRUE))
+
+met2 %>% 
+  filter(datetime >= "2022-01-01 00:00:00" & datetime <= "2022-02-28 00:00:00") %>% 
+  summarise(avg_temp = mean(AirTC_Avg, na.rm = TRUE),
+            min_temp = min(AirTC_Avg, na.rm = TRUE),
+            max_temp = max(AirTC_Avg, na.rm = TRUE),
+            rainfall = sum(Rain_sum, na.rm = TRUE),
+            avg_wind = mean(WS_ms_Avg, na.rm = TRUE),
+            max_wind = max(WS_ms_Avg, na.rm = TRUE))
+
+###############################################################################
+
+## Visualize day vs. night wind
+met2 <- met2 %>% 
+  mutate(daynight = ifelse(SW_in > 0, "Day", "Night"))
+
+with(met2, windrose(WS_ms_Avg, WindDir, daynight, n_col=2,
+                    legend_title = 'Wind Speed (m/s)',
+                    ggtheme = "bw"))
+
+ggsave("./Fig_Output/SI_DayNight_Wind.jpg",width = 8, height = 4, units="in",dpi=320)
+
 ###############################################################################
 
 ## Visualize the dominant wind direction
@@ -158,6 +189,43 @@ catwalk_2022 <- read.csv("./Data/Catwalk_first_QAQC_2018_2021.csv",header=T) %>%
 catwalk_all <- rbind(catwalk_2021,catwalk_2022) %>% 
   filter(DateTime >= as.POSIXct("2020-05-01 01:00:00") & DateTime < as.POSIXct("2022-05-01 01:00:00")) %>% 
   mutate(Temp_diff = ThermistorTemp_C_surface - ThermistorTemp_C_9)
+
+catwalk_all <- catwalk_all %>% 
+  mutate(year = ifelse(DateTime < as.POSIXct("2021-05-01 00:00:00"), "year1", "year2"))
+
+## Calculate differences between years for key environmental variables
+catwalk_all %>% 
+  group_by(year) %>% 
+  summarise(avg_surf_temp = mean(ThermistorTemp_C_surface, na.rm = TRUE),
+            min_surf_temp = min(ThermistorTemp_C_surface, na.rm = TRUE),
+            max_surf_temp = max(ThermistorTemp_C_surface, na.rm = TRUE),
+            avg_chla = mean(EXOChla_ugL_1, na.rm=TRUE),
+            min_chla = min(EXOChla_ugL_1, na.rm = TRUE),
+            max_chla = max(EXOChla_ugL_1, na.rm=TRUE),
+            avg_fdom = mean(EXOfDOM_RFU_1, na.rm=TRUE),
+            min_fdom = min(EXOfDOM_RFU_1, na.rm=TRUE),
+            max_fdom = max(EXOfDOM_RFU_1, na.rm=TRUE),
+            avg_DO = mean(EXODOsat_percent_1, na.rm=TRUE),
+            min_DO = min(EXODOsat_percent_1, na.rm=TRUE),
+            max_DO = max(EXODOsat_percent_1, na.rm = TRUE))
+
+catwalk_all %>% 
+  summarise(avg_surf_temp = mean(ThermistorTemp_C_surface, na.rm = TRUE),
+            avg_chla = mean(EXOChla_ugL_1, na.rm=TRUE),
+            avg_fdom = mean(EXOfDOM_RFU_1, na.rm=TRUE),
+            avg_DO = mean(EXODOsat_percent_1, na.rm=TRUE))
+
+## Find spring mixing for 2020 and 2021:
+## Defined as: first day after ice-off when temp at 1m is similar to 8m
+spring_21 <- catwalk_all %>% 
+  filter(DateTime >= "2021-02-09 00:00:00" & DateTime <= "2021-03-01 00:00:00") %>% 
+  mutate(mixing = ThermistorTemp_C_1-ThermistorTemp_C_8) %>% 
+  filter(mixing < abs(1))
+
+spring_22 <- catwalk_all %>% 
+  filter(DateTime >= "2022-02-10 00:00:00" & DateTime <= "2022-03-01 00:00:00") %>% 
+  mutate(mixing = ThermistorTemp_C_1-ThermistorTemp_C_8) %>% 
+  filter(mixing < abs(1))
 
 ## Aggregate to hourly
 catwalk_hourly <- catwalk_all %>% 
@@ -209,4 +277,28 @@ ggarrange(hour_temp,hour_wind,nrow=1,ncol=2,
           labels=c("A.","B."), font.label = list(face="plain",size=15))
 
 ggsave("./Fig_Output/SI_DielTempWnd.jpg",width = 8, height=4, units="in",dpi=320)
+
+################################################################################
+## Load in inflow and calculate mean, min, and max for each year
+q_2021 <- read.csv("./Data/inflow_for_EDI_2013_2021.csv") %>% 
+  mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d %H:%M:%S", tz = "EST"))
+
+## Add in rough QA/QC'd data for 2022
+q_2022 <- read.csv("./Data/Inflow_2013_May2022.csv") %>% 
+  mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d %H:%M:%S", tz = "EST")) %>% 
+  filter(DateTime >= as.POSIXct("2022-01-01"))
+
+q_all <- rbind(q_2021,q_2022) %>% 
+  filter(DateTime >= as.POSIXct("2020-05-01 01:00:00") & DateTime < as.POSIXct("2022-05-01 01:00:00")) %>% 
+  select(DateTime,VT_Flow_cms) %>% 
+  mutate(year = ifelse(DateTime < as.POSIXct("2021-05-01 00:00:00"), "year1", "year2"))
+
+q_all %>% 
+  group_by(year) %>%
+  summarise(avg_inflow = mean(VT_Flow_cms, na.rm = TRUE),
+            min_inflow = min(VT_Flow_cms, na.rm = TRUE),
+            max_inflow = max(VT_Flow_cms, na.rm = TRUE))
+ 
+q_all %>% 
+  summarise(avg_inflow = mean(VT_Flow_cms, na.rm = TRUE))
            

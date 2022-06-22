@@ -78,7 +78,7 @@ names(met_30_2)[names(met_30_2) == 'DateTime_Adj'] <- 'DateTime'
 #download.file(inUrl1,infile1,method="curl")
 
 ## Will also want to include GHG data from 2022 - forthcoming!
-ghg <- read.csv("./Data/final_GHG_2015-2021.csv") %>% 
+ghg <- read.csv("./Data/final_GHG_2015-June2022.csv") %>% 
   mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d %H:%M", tz="EST"))) %>% 
   filter(Reservoir == "FCR" & Site == 50 & Depth_m == 0.1) %>% 
   filter(DateTime >= "2020-01-01") %>% 
@@ -216,14 +216,14 @@ ghg_match <- left_join(ghg_fluxes,all_data,by="DateTime") %>%
 
 ## Then calculate K
 # Define variables following convention used in LakeMetabolizer
-wnd.z <- rep(3,56) # in m
-Kd <- rep(0.40,56) # units 1/m
-lat <- rep(37.30,56) # in degrees N
-lake.area <- rep(0.119*1000000,56) # in m2
+wnd.z <- rep(3,66) # in m
+Kd <- rep(0.402,66) # units 1/m
+lat <- rep(37.30,66) # in degrees N
+lake.area <- rep(0.119*1000000,66) # in m2
 atm.press <- ghg_match$BP_Average_kPa*10 # in millibar
 dateTime <- ghg_match$DateTime
 Ts <- ghg_match$ThermistorTemp_C_surface # in deg C
-z.aml <- rep(0.15,56) # set to 0.15 following Heiskanen method
+z.aml <- rep(0.15,66) # set to 0.15 following Heiskanen method
 airT <- ghg_match$AirTemp_Average_C # in deg C
 wnd <- ghg_match$WindSpeed_Average_m_s # in m/s
 RH <- ghg_match$RH_percent # percent
@@ -244,28 +244,28 @@ k600_crusius <- k.crusius.base(U10)
 k600_vachon <- k.vachon.base(U10, lake.area, params=c(2.51,1.48,0.39))
 
 # Will need to complete these with loops
-k600_read <- rep(0,56)
+k600_read <- rep(0,66)
 
 for (i in 1:length(wnd)){
   k600_read[i] <- k.read.base(wnd.z[i], Kd[i], lat[i], lake.area[i], atm.press[i], dateTime[i], Ts[i], z.aml[i],
                               airT[i], wnd[i], RH[i], sw[i], lwnet[i])
 }
 
-k600_soloviev <- rep(0,56)
+k600_soloviev <- rep(0,66)
 
 for (i in 1:length(wnd)){
   k600_soloviev[i] <- k.read.soloviev.base(wnd.z[i], Kd[i], lat[i], lake.area[i], atm.press[i], dateTime[i], Ts[i], z.aml[i],
                                            airT[i], wnd[i], RH[i], sw[i], lwnet[i])
 }
 
-k600_macIntyre <- rep(0,56)
+k600_macIntyre <- rep(0,66)
 
 for (i in 1:length(wnd)){
   k600_macIntyre[i] <- k.macIntyre.base(wnd.z[i], Kd[i], atm.press[i], dateTime[i], Ts[i], z.aml[i], airT[i], wnd[i], RH[i], sw[i],
                                         lwnet[i], params=c(1.2,0.4872,1.4784))
 }
 
-k600_heiskanen <- rep(0,56)
+k600_heiskanen <- rep(0,66)
 
 for (i in 1:length(wnd)){
   k600_heiskanen[i] <- k.heiskanen.base(wnd.z[i], Kd[i], atm.press[i], dateTime[i], Ts[i], z.aml[i], airT[i], wnd[i], RH[i], sw[i], lwnet[i])
@@ -273,13 +273,13 @@ for (i in 1:length(wnd)){
 
 ## Then convert all k600 values by temperature and gas following Lake Metabolizer
 # Correct k600 for CO2
-k600_cole_co2 <- rep(0,56)
-k600_crusius_co2 <- rep(0,56)
-k600_vachon_co2 <- rep(0,56)
-k600_read_co2 <- rep(0,56)
-k600_soloviev_co2 <- rep(0,56)
-k600_macIntyre_co2 <- rep(0,56)
-k600_heiskanen_co2 <- rep(0,56)
+k600_cole_co2 <- rep(0,66)
+k600_crusius_co2 <- rep(0,66)
+k600_vachon_co2 <- rep(0,66)
+k600_read_co2 <- rep(0,66)
+k600_soloviev_co2 <- rep(0,66)
+k600_macIntyre_co2 <- rep(0,66)
+k600_heiskanen_co2 <- rep(0,66)
 
 k600_cole_co2 <- k600.2.kGAS.base(k600_cole,Ts,gas="CO2")
 k600_crusius_co2 <- k600.2.kGAS.base(k600_crusius,Ts,gas="CO2")
@@ -290,13 +290,13 @@ k600_macIntyre_co2 <- k600.2.kGAS.base(k600_macIntyre,Ts,gas="CO2")
 k600_heiskanen_co2 <- k600.2.kGAS.base(k600_heiskanen,Ts,gas="CO2")
 
 # Correct k600 for CH4
-k600_cole_ch4 <- rep(0,56)
-k600_crusius_ch4 <- rep(0,56)
-k600_vachon_ch4 <- rep(0,56)
-k600_read_ch4 <- rep(0,56)
-k600_soloviev_ch4 <- rep(0,56)
-k600_macIntyre_ch4 <- rep(0,56)
-k600_heiskanen_ch4 <- rep(0,56)
+k600_cole_ch4 <- rep(0,66)
+k600_crusius_ch4 <- rep(0,66)
+k600_vachon_ch4 <- rep(0,66)
+k600_read_ch4 <- rep(0,66)
+k600_soloviev_ch4 <- rep(0,66)
+k600_macIntyre_ch4 <- rep(0,66)
+k600_heiskanen_ch4 <- rep(0,66)
 
 k600_cole_ch4 <- k600.2.kGAS.base(k600_cole,Ts,gas="CH4")
 k600_crusius_ch4 <- k600.2.kGAS.base(k600_crusius,Ts,gas="CH4")
@@ -307,7 +307,7 @@ k600_macIntyre_ch4 <- k600.2.kGAS.base(k600_macIntyre,Ts,gas="CH4")
 k600_heiskanen_ch4 <- k600.2.kGAS.base(k600_heiskanen,Ts,gas="CH4")
 
 # Aggregate CO2 and CH4 k600 into a single data frame
-k600_corr <- data.frame(matrix(ncol = 15, nrow = 56))
+k600_corr <- data.frame(matrix(ncol = 15, nrow = 66))
 
 colnames(k600_corr) <- c('DateTime', 'k600_Cole_co2', 'k600_Crusius_co2','k600_Vachon_co2',
                          'k600_Read_co2','k600_Soloviev_co2','k600_MacIntyre_co2','k600_Heiskanen_co2',
@@ -334,7 +334,7 @@ k600_corr <- k600_corr %>%
          AirTemp_Average_C = Ts)
 
 ## Save k600 corrected values
-write.csv(k600_corr,"./Data/20220519_k600_corr.csv", row.names = FALSE)
+write.csv(k600_corr,"./Data/20220617_k600_corr.csv", row.names = FALSE)
 
 ###############################################################################
 
@@ -500,9 +500,9 @@ fluxes_all <- fluxes_all %>%
   select(-c(Rep_mean,Rep_sd))
 
 ## Save diffusive GHG fluxes
-write.csv(fluxes_all,"./Data/20220520_diffusive_fluxes_all.csv",row.names = FALSE)
+write.csv(fluxes_all,"./Data/20220617_diffusive_fluxes_all.csv",row.names = FALSE)
 
-write.csv(fluxes_avg,"./Data/20220520_diffusive_fluxes_avg.csv",row.names = FALSE)
+write.csv(fluxes_avg,"./Data/20220617_diffusive_fluxes_avg.csv",row.names = FALSE)
 
 ###############################################################################
 
@@ -528,9 +528,10 @@ ghg_stats_all_ch4 <- fluxes_long_ch4 %>%
 fluxes_all <- fluxes_all %>% 
   drop_na()
 
-## Plot Diffusive fluxes for Supplementary (Figure S5 and S6)
+## Plot Diffusive fluxes for Supplementary (Figure S4)
 ch4_diff <- ggplot(fluxes_all)+
   geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
+  geom_vline(xintercept = as.POSIXct("2021-11-03"), col='black', size = 1, linetype = "dotted")+
   geom_errorbar(mapping=aes(x=DateTime,ymin=ch4_flux_k600_Cole_mean-ch4_flux_k600_Cole_sd,ymax=ch4_flux_k600_Cole_mean+ch4_flux_k600_Cole_sd,color="Cole"),size=1)+
   geom_line(mapping=aes(DateTime,ch4_flux_k600_Cole_mean,color="Cole"),size = 1) +
   geom_point(mapping=aes(DateTime,ch4_flux_k600_Cole_mean,color="Cole"),size=3) +
@@ -562,6 +563,7 @@ ch4_diff <- ggplot(fluxes_all)+
 
 co2_diff <- ggplot(fluxes_all)+
   geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
+  geom_vline(xintercept = as.POSIXct("2021-11-03"), col='black', size = 1, linetype = "dotted")+
   geom_errorbar(mapping=aes(x=DateTime,ymin=co2_flux_k600_Cole_mean-co2_flux_k600_Cole_sd,ymax=co2_flux_k600_Cole_mean+co2_flux_k600_Cole_sd,color="Cole"),size=1)+
   geom_line(mapping=aes(DateTime,co2_flux_k600_Cole_mean,color="Cole"),size = 1) +
   geom_point(mapping=aes(DateTime,co2_flux_k600_Cole_mean,color="Cole"),size=3) +
