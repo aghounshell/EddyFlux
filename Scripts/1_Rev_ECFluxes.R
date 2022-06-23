@@ -1253,7 +1253,7 @@ ggsave("./Fig_Output/SI_Rev_AnnualFluxes_GapFilled.png",width = 9, height=4.5, u
 ## Summer (May - Oct) = 132 g C-CO2 m2 d; 0.221 g C-CH4 m2 d; Gap-filled: 0.91 CH4; 474 CO2
 ec2_annual_fluxes_year1 %>% 
   filter(DateTime == as.POSIXct("2020-05-01 01:00:00") | DateTime == as.POSIXct("2020-10-31 24:00:00")) %>% 
-  select(DateTime,ch4_sum_g_m2_d_gapfilled,co2_sum_g_m2_d_gapfilled,ch4_sum_g_m2_d,co2_sum_g_m2_d)
+  select(DateTime,ch4_sum_g_m2_d_gapfilled,co2_sum_g_m2_d_gapfilled)
 
 ## Summer (May - Oct) = 124 g C-CO2 m2 d; 0.234 g C-CH4 m2 d; Gap-filled: 619 CO2; 1.21 CH4
 ec2_annual_fluxes_year2 %>% 
@@ -1269,6 +1269,33 @@ ec2_annual_fluxes_year1 %>%
 ec2_annual_fluxes_year2 %>% 
   filter(DateTime == as.POSIXct("2021-10-31 24:00:00") | DateTime == as.POSIXct("2022-04-30 23:00:00")) %>% 
   select(DateTime,ch4_sum_g_m2_d,co2_sum_g_m2_d,ch4_sum_g_m2_d_gapfilled,co2_sum_g_m2_d_gapfilled)
+
+## Plot Summer vs.Winter
+Season <- c("Summer","Winter","Summer","Winter")
+year <- c("Year 1", "Year 1", "Year 2", "Year 2")
+co2 <- c(474, 159, 619, 111)
+ch4 <- c(0.91, 0.11, 1.21, 0.08)
+
+ghg_comps <- data.frame(Season,year,co2,ch4)
+
+co2_comp <- ggplot(ghg_comps,mapping=aes(x=year,y=co2,fill=Season))+
+  geom_bar(stat="identity", position="dodge")+
+  scale_fill_manual(breaks=c('Summer','Winter'),values=c("#ED6E78","#A31420"),"")+
+  xlab("")+
+  ylab(expression(paste("CO"[2]*" (g C m"^-2*")")))+
+  theme_classic(base_size = 15)
+
+ch4_comp <- ggplot(ghg_comps,mapping=aes(x=year,y=ch4,fill=Season))+
+  geom_bar(stat="identity", position="dodge")+
+  scale_fill_manual(breaks=c('Summer','Winter'),values=c("#ED6E78","#A31420"),"")+
+  xlab("")+
+  ylab(expression(paste("CH"[4]*" (g C m"^-2*")")))+
+  theme_classic(base_size = 15)
+
+ggarrange(co2_comp,ch4_comp,nrow=1,ncol=2,common.legend = TRUE,labels=c("A.","B."),
+          font.label=list(face="plain",size=15))
+
+ggsave("./Fig_Output/SI_GHG_Annual_Season.png",width = 9, height=4.5, units="in",dpi=320)
 
 # June-September
 ec2_annual_fluxes_year1 %>% 

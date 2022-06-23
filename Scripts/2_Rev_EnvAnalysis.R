@@ -345,6 +345,7 @@ env_monthly <- join_all(list(fcr_monthly,catwalk_monthly,q_monthly,la_monthly),b
 ## Plot Environmental Variables for SI
 temp_time <- ggplot(env_daily,mapping=aes(x=DateTime,y=Temp_C_surface))+
   geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
+  geom_vline(xintercept = as.POSIXct("2021-11-03"),linetype="dotted")+
   geom_point(catwalk_all,mapping=aes(x=DateTime,y=ThermistorTemp_C_surface),color="lightgrey",alpha=0.1)+
   geom_line(size=1)+
   xlab("") + 
@@ -355,6 +356,7 @@ temp_time <- ggplot(env_daily,mapping=aes(x=DateTime,y=Temp_C_surface))+
 
 dosat_time <- ggplot(env_daily,mapping=aes(x=DateTime,y=DO_sat))+
   geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
+  geom_vline(xintercept = as.POSIXct("2021-11-03"),linetype="dotted")+
   geom_point(catwalk_all,mapping=aes(x=DateTime,y=EXODOsat_percent_1),color="lightgrey",alpha=0.1)+
   geom_line(size=1)+
   xlab("") + 
@@ -365,6 +367,7 @@ dosat_time <- ggplot(env_daily,mapping=aes(x=DateTime,y=DO_sat))+
 
 chla_time <- ggplot(env_daily,mapping=aes(x=DateTime,y=Chla_ugL))+
   geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
+  geom_vline(xintercept = as.POSIXct("2021-11-03"),linetype="dotted")+
   geom_point(catwalk_all,mapping=aes(x=DateTime,y=EXOChla_ugL_1),color="lightgrey",alpha=0.1)+
   geom_line(size=1)+
   xlab("") + 
@@ -375,6 +378,7 @@ chla_time <- ggplot(env_daily,mapping=aes(x=DateTime,y=Chla_ugL))+
 
 fdom_time <- ggplot(env_daily,mapping=aes(x=DateTime,y=fdom_rfu))+
   geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
+  geom_vline(xintercept = as.POSIXct("2021-11-03"),linetype="dotted")+
   geom_point(catwalk_all,mapping=aes(x=DateTime,y=EXOfDOM_RFU_1),color="lightgrey",alpha=0.1)+
   geom_line(size=1)+
   xlab("") + 
@@ -386,6 +390,7 @@ fdom_time <- ggplot(env_daily,mapping=aes(x=DateTime,y=fdom_rfu))+
 
 q_time <- ggplot(env_daily,mapping=aes(x=DateTime,y=Flow_cms))+
   geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
+  geom_vline(xintercept = as.POSIXct("2021-11-03"),linetype="dotted")+
   geom_point(q_all,mapping=aes(x=DateTime,y=VT_Flow_cms),color="lightgrey",alpha=0.1)+
   geom_line(size=1)+
   xlab("") + 
@@ -396,6 +401,7 @@ q_time <- ggplot(env_daily,mapping=aes(x=DateTime,y=Flow_cms))+
 
 n2_time <- ggplot(env_daily,mapping=aes(x=DateTime,y=n2))+
   geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
+  geom_vline(xintercept = as.POSIXct("2021-11-03"),linetype="dotted")+
   geom_point(la,mapping=aes(x=DateTime,y=n2),color="lightgrey",alpha=0.1)+
   geom_line(size=1)+
   xlab("") + 
@@ -407,6 +413,7 @@ n2_time <- ggplot(env_daily,mapping=aes(x=DateTime,y=n2))+
 diff_temp_time <- ggplot(env_daily,mapping=aes(x=DateTime,y=Temp_diff))+
   geom_hline(yintercept = 0, linetype="dashed")+
   geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
+  geom_vline(xintercept = as.POSIXct("2021-11-03"),linetype="dotted")+
   geom_point(catwalk_all,mapping=aes(x=DateTime,y=Temp_diff),color="lightgrey",alpha=0.1)+
   geom_line(size=1)+
   xlab("") + 
@@ -417,6 +424,7 @@ diff_temp_time <- ggplot(env_daily,mapping=aes(x=DateTime,y=Temp_diff))+
 
 thermo_time <- ggplot(env_daily,mapping=aes(x=DateTime,y=-thermo.depth))+
   geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
+  geom_vline(xintercept = as.POSIXct("2021-11-03"),linetype="dotted")+
   geom_point(la,mapping=aes(x=DateTime,y=-thermo.depth),color="lightgrey",alpha=0.1)+
   geom_line(size=1)+
   xlab("") + 
