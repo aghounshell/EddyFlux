@@ -227,6 +227,17 @@ diff_flux <- read.csv("./Data/20220617_diffusive_fluxes_avg.csv") %>%
 diff_flux <- diff_flux %>% 
   drop_na()
 
+## Compare EC and Diff fluxes at turnover
+ec_turnover_year1 <- ec2 %>% 
+  filter(DateTime >= "2020-10-31 00:00:00" & DateTime < "2020-11-03 00:00:00") %>% 
+  dplyr::summarise(ch4_mean = mean(ch4_flux_uStar_orig,na.rm=TRUE),
+                   co2_mean = mean(NEE_uStar_orig, na.rm=TRUE))
+
+ec_turnover_year2 <- ec2 %>% 
+  filter(DateTime >= "2021-11-02 00:00:00" & DateTime < "2021-11-05 00:00:00") %>% 
+  dplyr::summarise(ch4_mean = mean(ch4_flux_uStar_orig,na.rm=TRUE),
+                   co2_mean = mean(NEE_uStar_orig, na.rm=TRUE))
+
 ###############################################################################
 
 ## Plot daily and monthly for both years
@@ -617,14 +628,14 @@ wnd_2021 <- met_daily %>%
   geom_line(aes(DateTime, wind_ms,color="Daily Mean Wind"),size = 1) +
   scale_color_manual(breaks=c("30 min Wind","Daily Mean Wind"),
                      values=c("black","#E63946"))+
-  xlab("2020") +
+  xlab("2021") +
   ylab(expression(~Wind~Speed~(m~s^-1))) +
   geom_hline(yintercept = 0, lty = 2) +
   xlim(as.POSIXct("2021-10-01"),as.POSIXct("2021-11-30"))+
   theme_classic(base_size = 15)+
   theme(legend.title=element_blank())
 
-ggarrange(co2_2020,ch4_2020,co2_2021,ch4_2021,wnd_2020,wnd_2021,ncol=2,
+ggarrange(co2_2020,co2_2021,ch4_2020,ch4_2021,wnd_2020,wnd_2021,ncol=2,
           nrow=3,labels=c("A.","B.","C.","D.","E.","F."),font.label = list(face="plain",size=15),common.legend = TRUE)
 
 ggsave("./Fig_Output/SI_Fluxes_Turnover.jpg",width = 11, height = 10, units="in",dpi=320)
