@@ -1,4 +1,4 @@
-### Script conduct environmental correlation analysis of EC fluxes from FCR
+### Script to conduct environmental correlation analysis of EC fluxes from FCR
 ### Apr 2020 - Apr 2022
 
 ### ARIMA modeling on measured data ONLY!
@@ -27,7 +27,7 @@ pacman::p_load(tidyverse,ggplot2,ggpubr,zoo,scales,plyr,
 
 ## Load in data from Brenda - 30 minute fluxes from 2020-04-04 to 2021-05-06
 ## Data corrected following FCR_Process_BD
-## Data downloaded from: https://doi.org/10.6073/pasta/a1324bcf3e1415268996ba867c636489
+## Data downloaded from: https://pasta-s.lternet.edu/package/data/eml/edi/920/2/9e658ef44de05303dbc496fc25e8c49a
 
 ec <- read.csv("./Data/20220506_EC_processed.csv") 
 
@@ -96,11 +96,11 @@ fcr_monthly$yearmon <- with(fcr_monthly, sprintf("%d-%02d", Year, Month))
 ## Start with Catwalk data
 
 ## Load in catwalk data - updated on 17 May 2022
-#inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/271/6/23a191c1870a5b18cbc17f2779f719cf" 
-#infile1 <- paste0(getwd(),"/Data/FCR_Catwalk_2018_2021.csv")
+#inUrl1  <- "https://pasta-s.lternet.edu/package/data/eml/edi/518/11/5255c0af78097b91d6b32267c32ee7be" 
+#infile1 <- paste0(getwd(),"/Data/FCR_Catwalk_2018_2022.csv")
 #download.file(inUrl1,infile1,method="curl")
 
-catwalk_2021 <- read.csv("./Data/FCR_Catwalk_2018_2021.csv",header = T)%>%
+catwalk_all <- read.csv("./Data/FCR_Catwalk_2018_2022.csv",header = T)%>%
   mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d %H:%M:%S", tz="EST"))) %>% 
   filter(DateTime >= "2020-01-01") %>% 
   select(DateTime, ThermistorTemp_C_surface, ThermistorTemp_C_1, ThermistorTemp_C_2, ThermistorTemp_C_3,
@@ -108,15 +108,7 @@ catwalk_2021 <- read.csv("./Data/FCR_Catwalk_2018_2021.csv",header = T)%>%
          ThermistorTemp_C_9, EXOTemp_C_1, EXOSpCond_uScm_1,EXODO_mgL_1,EXOChla_ugL_1,EXOfDOM_RFU_1,
          EXODOsat_percent_1)
 
-catwalk_2022 <- read.csv("./Data/Catwalk_first_QAQC_2018_2021.csv",header=T) %>% 
-  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d %H:%M:%S", tz="EST"))) %>% 
-  filter(DateTime >= "2022-01-01") %>% 
-  select(DateTime, ThermistorTemp_C_surface, ThermistorTemp_C_1, ThermistorTemp_C_2, ThermistorTemp_C_3,
-         ThermistorTemp_C_4, ThermistorTemp_C_5, ThermistorTemp_C_6, ThermistorTemp_C_7, ThermistorTemp_C_8,
-         ThermistorTemp_C_9, EXOTemp_C_1, EXOSpCond_uScm_1,EXODO_mgL_1,EXOChla_ugL_1,EXOfDOM_RFU_1,
-         EXODOsat_percent_1)
-
-catwalk_all <- rbind(catwalk_2021,catwalk_2022) %>% 
+catwalk_all <- catwalk_all %>% 
   filter(DateTime >= as.POSIXct("2020-05-01 01:00:00") & DateTime < as.POSIXct("2022-05-01 01:00:00")) %>% 
   mutate(Temp_diff = ThermistorTemp_C_surface - ThermistorTemp_C_9)
 
@@ -209,18 +201,13 @@ catwalk_monthly <- catwalk_all %>%
 
 ## Load in data from 2020-2021 via EDI
 #inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/202/8/cc045f9fe32501138d5f4e1e7f40d492" 
-#infile1 <- paste0(getwd(),"/Data/inflow_for_EDI_2013_2021.csv")
+#infile1 <- paste0(getwd(),"/Data/inflow_for_EDI_2013_15May2022.csv")
 #download.file(inUrl1,infile1,method="curl")
 
-q_2021 <- read.csv("./Data/inflow_for_EDI_2013_2021.csv") %>% 
+q_all <- read.csv("./Data/inflow_for_EDI_2013_15May2022.csv") %>% 
   mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d %H:%M:%S", tz = "EST"))
 
-## Add in rough QA/QC'd data for 2022
-q_2022 <- read.csv("./Data/Inflow_2013_May2022.csv") %>% 
-  mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d %H:%M:%S", tz = "EST")) %>% 
-  filter(DateTime >= as.POSIXct("2022-01-01"))
-
-q_all <- rbind(q_2021,q_2022) %>% 
+q_all <- q_all %>% 
   filter(DateTime >= as.POSIXct("2020-05-01 01:00:00") & DateTime < as.POSIXct("2022-05-01 01:00:00")) %>% 
   select(DateTime,VT_Flow_cms)
   
@@ -343,6 +330,7 @@ env_monthly <- join_all(list(fcr_monthly,catwalk_monthly,q_monthly,la_monthly),b
 ###############################################################################
 
 ## Plot Environmental Variables for SI
+## Fig. S2 and S3
 temp_time <- ggplot(env_daily,mapping=aes(x=DateTime,y=Temp_C_surface))+
   geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
   geom_vline(xintercept = as.POSIXct("2021-11-03"),linetype="dotted")+
@@ -522,7 +510,7 @@ ch4_monthly <- env_monthly %>%
 
 all_cor <- rbind(hourly_cor,daily_cor,weekly_cor,monthly_cor)
 
-# For Table S4
+# For Table S2
 write_csv(all_cor,"./Fig_output/20220518_env_cor.csv")
 
 ###############################################################################

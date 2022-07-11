@@ -39,6 +39,7 @@ met_edi <- read.csv("./Data/Met_final_2015_2021.csv", header=T) %>%
   mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d %H:%M:%S", tz="EST"))) %>% 
   filter(DateTime > as.POSIXct("2019-12-31"))
 
+## Load in preliminary Met 2022 data: following 1a_Rev_2022_MetData.R
 met_2022 <- read.csv("./Data/FCR_Met_final_2022.csv",header=T) %>% 
   mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d %H:%M:%S", tz="EST")))
 
@@ -91,6 +92,7 @@ met2 <- met2 %>%
 ### Calculate climatological information for FCR - during study period
 # Include: Avg Temp, Min Temp, Max Temp, Yearly rainfall (both years), AVg wind speed, Max wind speed,
 # predominant wind direction
+# Table S6
 met2 <- met2 %>% 
   mutate(year = ifelse(datetime < as.POSIXct("2021-05-01 00:00:00"), "year1", "year2"),
          WindDir = round(WindDir, digits = 0))
@@ -141,6 +143,7 @@ met2 %>%
 ###############################################################################
 
 ## Visualize day vs. night wind
+# Fig. S5
 met2 <- met2 %>% 
   mutate(daynight = ifelse(SW_in > 0, "Day", "Night"))
 
@@ -166,11 +169,11 @@ windRose(mydata = met2, ws = "WS_ms_Avg", wd = "WindDir",
 ## Plot daily surface water temp and wind speed throughout the study period
 
 ## Load in Catwalk data first
-#inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/271/6/23a191c1870a5b18cbc17f2779f719cf" 
-#infile1 <- paste0(getwd(),"/Data/FCR_Catwalk_2018_2021.csv")
+#inUrl1  <- "https://pasta-s.lternet.edu/package/data/eml/edi/518/11/5255c0af78097b91d6b32267c32ee7be" 
+#infile1 <- paste0(getwd(),"/Data/FCR_Catwalk_2018_2022.csv")
 #download.file(inUrl1,infile1,method="curl")
 
-catwalk_2021 <- read.csv("./Data/FCR_Catwalk_2018_2021.csv",header = T)%>%
+catwalk_all <- read.csv("./Data/FCR_Catwalk_2018_2022.csv",header = T)%>%
   mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d %H:%M:%S", tz="EST"))) %>% 
   filter(DateTime >= "2020-01-01") %>% 
   select(DateTime, ThermistorTemp_C_surface, ThermistorTemp_C_1, ThermistorTemp_C_2, ThermistorTemp_C_3,
@@ -178,15 +181,7 @@ catwalk_2021 <- read.csv("./Data/FCR_Catwalk_2018_2021.csv",header = T)%>%
          ThermistorTemp_C_9, EXOTemp_C_1, EXOSpCond_uScm_1,EXODO_mgL_1,EXOChla_ugL_1,EXOfDOM_RFU_1,
          EXODOsat_percent_1)
 
-catwalk_2022 <- read.csv("./Data/Catwalk_first_QAQC_2018_2021.csv",header=T) %>% 
-  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d %H:%M:%S", tz="EST"))) %>% 
-  filter(DateTime >= "2022-01-01") %>% 
-  select(DateTime, ThermistorTemp_C_surface, ThermistorTemp_C_1, ThermistorTemp_C_2, ThermistorTemp_C_3,
-         ThermistorTemp_C_4, ThermistorTemp_C_5, ThermistorTemp_C_6, ThermistorTemp_C_7, ThermistorTemp_C_8,
-         ThermistorTemp_C_9, EXOTemp_C_1, EXOSpCond_uScm_1,EXODO_mgL_1,EXOChla_ugL_1,EXOfDOM_RFU_1,
-         EXODOsat_percent_1)
-
-catwalk_all <- rbind(catwalk_2021,catwalk_2022) %>% 
+catwalk_all <- catwalk_all %>% 
   filter(DateTime >= as.POSIXct("2020-05-01 01:00:00") & DateTime < as.POSIXct("2022-05-01 01:00:00")) %>% 
   mutate(Temp_diff = ThermistorTemp_C_surface - ThermistorTemp_C_9)
 
@@ -280,15 +275,11 @@ ggsave("./Fig_Output/SI_DielTempWnd.jpg",width = 8, height=4, units="in",dpi=320
 
 ################################################################################
 ## Load in inflow and calculate mean, min, and max for each year
-q_2021 <- read.csv("./Data/inflow_for_EDI_2013_2021.csv") %>% 
+## From: https://pasta-s.lternet.edu/package/data/eml/edi/923/1/9e438aa8bcca18bf0ba70c8307aafed9
+q_all <- read.csv("./Data/inflow_for_EDI_2013_15May2022.csv") %>% 
   mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d %H:%M:%S", tz = "EST"))
 
-## Add in rough QA/QC'd data for 2022
-q_2022 <- read.csv("./Data/Inflow_2013_May2022.csv") %>% 
-  mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d %H:%M:%S", tz = "EST")) %>% 
-  filter(DateTime >= as.POSIXct("2022-01-01"))
-
-q_all <- rbind(q_2021,q_2022) %>% 
+q_all <- q_all %>% 
   filter(DateTime >= as.POSIXct("2020-05-01 01:00:00") & DateTime < as.POSIXct("2022-05-01 01:00:00")) %>% 
   select(DateTime,VT_Flow_cms) %>% 
   mutate(year = ifelse(DateTime < as.POSIXct("2021-05-01 00:00:00"), "year1", "year2"))

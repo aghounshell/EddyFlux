@@ -25,7 +25,7 @@ pacman::p_load(tidyverse,ggplot2,ggpubr,lubridate,openair)
 
 ## Load in data from Brenda - 30 minute fluxes from 2020-04-04 to 2021-05-06
 ## Data corrected following FCR_Process_BD
-## Data downloaded from: https://doi.org/10.6073/pasta/a1324bcf3e1415268996ba867c636489
+## Data downloaded from: https://pasta-s.lternet.edu/package/data/eml/edi/920/2/9e658ef44de05303dbc496fc25e8c49a
 
 ec <- read.csv("./Data/20220506_EC_processed.csv") 
 
@@ -57,6 +57,7 @@ ec2 %>% select(DateTime, NEE_uStar_orig, ch4_flux_uStar_orig) %>%
 # 24% CO2 fluxes; 23% CH4 fluxes in year 2
 
 ## Distribution of missing data by season, day vs. night, etc.
+## Fig S4
 day_co2_data <- ec2 %>% 
   mutate(time = format(as.POSIXct(DateTime,format='%Y-%m-%d %H:%M:%S'),format='%H:%M:%S')) %>% 
   select(time,NEE_uStar_orig) %>% 
@@ -96,6 +97,7 @@ ggarrange(co2_time,ch4_time,ncol=1,nrow=2,labels=c("A.","B."),font.label = list(
 ggsave("./Fig_Output/SI_Data_Time.jpg",width = 8, height=8, units="in",dpi=320)
 
 ## Look at data availability seasonally
+# Fig S6
 season_data_co2 <- ec2 %>% 
   group_by(year = year(DateTime), month = factor(month.abb[month(DateTime)], levels = c("Apr", "May", "Jun",
                                                                                         "Jul", "Aug", "Sep", "Oct", 'Nov', 
@@ -161,6 +163,7 @@ fcr_hourly <- ec2 %>%
             CH4_sd = sd(ch4_flux_uStar_orig, na.rm = TRUE))
 
 # Calculate min, max, median, mean, standard deviation, and coefficient of variation
+# Table S4
 fcr_stats <- fcr_hourly %>% 
   summarise(min_co2 = min(NEE,na.rm = TRUE),
             max_co2 = max(NEE,na.rm=TRUE),
@@ -220,7 +223,7 @@ fcr_monthly$yearmon <- with(fcr_monthly, sprintf("%d-%02d", Year, Month))
 ###############################################################################
 
 ## Load in diffusive fluxes:
-## Calculated using: 1a_Diffusive_Fluxes.R
+## Calculated using: 1b_Diffusive_Fluxes.R
 diff_flux <- read.csv("./Data/20220617_diffusive_fluxes_avg.csv") %>% 
   mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d %H:%M:%S", tz = "EST"))
 
@@ -241,7 +244,7 @@ ec_turnover_year2 <- ec2 %>%
 ###############################################################################
 
 ## Plot daily and monthly for both years
-
+# Fig 2
 co2_daily_year1 <- ggplot(fcr_daily) +
   geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
   geom_vline(xintercept = as.POSIXct("2021-11-03 12:00"), col = "black", size = 1, linetype = "dotted")+
@@ -297,7 +300,7 @@ ggarrange(co2_daily_year1,co2_daily_year2,co2_month,ncol=1,
 ggsave("./Fig_Output/CO2_Daily_Monthly.jpg",width = 9, height=12, units="in",dpi=320)
 
 ## Plot CH4 daily and monthly for MS
-
+# Fig. 3
 ch4_daily_year1 <- fcr_daily %>% 
   ggplot() +
   geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
@@ -387,6 +390,7 @@ diff_ec_hr_long_ch4 <- diff_ec_hr %>%
          Flux = "ch4")
 
 ## Plot
+# Fig S11
 diff_ec_co2 <- ggplot(diff_ec_hr,mapping=aes(x=co2_mean_umol_m2_s,y=NEE))+
   geom_abline(intercept = 0)+
   geom_hline(yintercept = 0, lty = 2) +
@@ -433,7 +437,7 @@ ggsave("./Fig_Output/SI_Diff_EC.jpg",width = 8, height=7, units="in",dpi=320)
 ###############################################################################
 
 ## Plot weekly for both years
-
+# Fig. S9
 co2_week <- ggplot(fcr_weekly)+
   geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
   geom_vline(xintercept = as.POSIXct("2021-11-03 12:00"), col = "black", size = 1, linetype = "dotted")+
@@ -479,6 +483,7 @@ met_edi <- read.csv("./Data/Met_final_2015_2021.csv", header=T) %>%
   mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d %H:%M:%S", tz="EST"))) %>% 
   filter(DateTime > as.POSIXct("2019-12-31"))
 
+# Load in preliminary Met 2022 data (from 1a_Rev_2022_MetData.R)
 met_2022 <- read.csv("./Data/FCR_Met_final_2022.csv",header=T) %>% 
   mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d %H:%M:%S", tz="EST")))
 
@@ -519,7 +524,6 @@ met_30_2 <- met_30_2 %>%
 names(met_30_2)[names(met_30_2) == 'DateTime_Adj'] <- 'DateTime'
 
 ## Aggregate to daily
-
 met_daily <- met_30_2 %>% 
   mutate(Year = year(DateTime), 
          Month = month(DateTime), 
@@ -532,7 +536,7 @@ met_daily <- met_30_2 %>%
 met_daily$DateTime <- as.POSIXct(paste(met_daily$Year, met_daily$Month, met_daily$Day, sep = '-'), "%Y-%m-%d", tz = 'EST')
 
 ## Plot fluxes and wind speed
-
+# Fig. S9
 co2_2020 <- ggplot(fcr_daily) +
   geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
   geom_point(ec2,mapping=aes(x=DateTime,y=NEE_uStar_orig,color="30 min EC fluxes"),alpha = 0.1)+
@@ -642,126 +646,6 @@ ggsave("./Fig_Output/SI_Fluxes_Turnover.jpg",width = 11, height = 10, units="in"
 
 ###############################################################################
 
-## Create table with min/median/max for various met station parameters
-## Temp, Wind speed, wind direction, precipitation
-
-
-###############################################################################
-
-## Plot by half-hourly fluxes by season
-# Define as: Winter = Dec, Jan, Feb; Spring = Mar, Apr, May; Summer = Jun, Jul, Aug;
-# Fall = Sep, Oct, Nov
-ec2_season <- ec2 %>% 
-  select(DateTime,NEE_uStar_orig,ch4_flux_uStar_orig) %>% 
-  mutate(Month = month(DateTime),
-         Year = ifelse(DateTime < as.POSIXct("2021-05-01"), "Year1", "Year2")) %>% 
-  mutate(Season = ifelse(Month == 12 | Month == 1 | Month == 2, "Winter",
-                         ifelse(Month == 3 | Month == 4 | Month == 5, "Spring",
-                                ifelse(Month == 6 | Month == 7 | Month == 8, "Summer",
-                                       ifelse(Month == 9 | Month == 10 | Month == 11, "Fall", NA)))))
-
-# Compare seasons by Year1 and Year2
-ec2_fall <- ec2_season %>% 
-  filter(Season == "Fall")
-
-ec2_fall_stats <- ec2_fall %>% 
-  group_by(Year) %>% 
-  summarise(p25_nee = quantile(NEE_uStar_orig,0.25,na.rm=TRUE),
-            med_nee = median(NEE_uStar_orig,na.rm=TRUE),
-            p75_nee = quantile(NEE_uStar_orig,0.75,na.rm=TRUE),
-            p25_ch4 = quantile(ch4_flux_uStar_orig,0.25,na.rm=TRUE),
-            med_ch4 = median(ch4_flux_uStar_orig,na.rm=TRUE),
-            p75_ch4 = quantile(ch4_flux_uStar_orig,0.75,na.rm=TRUE)) %>% 
-  mutate(Season = "Fall")
-
-ec2_winter <- ec2_season %>% 
-  filter(Season == "Winter")
-
-ec2_winter_stats <- ec2_winter %>% 
-  group_by(Year) %>% 
-  summarise(p25_nee = quantile(NEE_uStar_orig,0.25,na.rm=TRUE),
-            med_nee = median(NEE_uStar_orig,na.rm=TRUE),
-            p75_nee = quantile(NEE_uStar_orig,0.75,na.rm=TRUE),
-            p25_ch4 = quantile(ch4_flux_uStar_orig,0.25,na.rm=TRUE),
-            med_ch4 = median(ch4_flux_uStar_orig,na.rm=TRUE),
-            p75_ch4 = quantile(ch4_flux_uStar_orig,0.75,na.rm=TRUE)) %>% 
-  mutate(Season = "Winter")
-
-ec2_spring <- ec2_season %>% 
-  filter(Season == "Spring")
-
-ec2_spring_stats <- ec2_spring %>% 
-  group_by(Year) %>% 
-  summarise(p25_nee = quantile(NEE_uStar_orig,0.25,na.rm=TRUE),
-            med_nee = median(NEE_uStar_orig,na.rm=TRUE),
-            p75_nee = quantile(NEE_uStar_orig,0.75,na.rm=TRUE),
-            p25_ch4 = quantile(ch4_flux_uStar_orig,0.25,na.rm=TRUE),
-            med_ch4 = median(ch4_flux_uStar_orig,na.rm=TRUE),
-            p75_ch4 = quantile(ch4_flux_uStar_orig,0.75,na.rm=TRUE)) %>% 
-  mutate(Season = "Spring")
-
-ec2_summer <- ec2_season %>% 
-  filter(Season == "Summer")
-
-ec2_summer_stats <- ec2_summer %>% 
-  group_by(Year) %>% 
-  summarise(p25_nee = quantile(NEE_uStar_orig,0.25,na.rm=TRUE),
-            med_nee = median(NEE_uStar_orig,na.rm=TRUE),
-            p75_nee = quantile(NEE_uStar_orig,0.75,na.rm=TRUE),
-            p25_ch4 = quantile(ch4_flux_uStar_orig,0.25,na.rm=TRUE),
-            med_ch4 = median(ch4_flux_uStar_orig,na.rm=TRUE),
-            p75_ch4 = quantile(ch4_flux_uStar_orig,0.75,na.rm=TRUE)) %>% 
-  mutate(Season = "Summer")
-
-season_stats <- do.call("rbind", list(ec2_fall_stats, ec2_winter_stats, ec2_spring_stats, ec2_summer_stats))
-
-write.csv(season_stats,"./Data/Season_Stats.csv")
-
-# Calculate statistics between seasons of each year (Year 1 vs. Year 2)
-wilcox.test(NEE_uStar_orig ~ Year, data=ec2_fall)
-wilcox.test(NEE_uStar_orig ~ Year, data=ec2_winter)
-wilcox.test(NEE_uStar_orig ~ Year, data=ec2_spring)
-wilcox.test(NEE_uStar_orig ~ Year, data=ec2_summer)
-
-wilcox.test(ch4_flux_uStar_orig ~ Year, data=ec2_fall)
-wilcox.test(ch4_flux_uStar_orig ~ Year, data=ec2_winter)
-wilcox.test(ch4_flux_uStar_orig ~ Year, data=ec2_spring)
-wilcox.test(ch4_flux_uStar_orig ~ Year, data=ec2_summer)
-
-co2_season <- ggplot(ec2_season,mapping=aes(x=Season,y=NEE_uStar_orig,color=as.factor(Year)))+
-  annotate("text",label ="*",x = "Fall", hjust = 0, y = 18, size = 5)+
-  annotate("text",label ="***",x="Winter",hjust=0,y=18,size=5)+
-  annotate("text",label="***",x="Spring",hjust=0,y=18,size=5)+
-  geom_hline(yintercept = 0, linetype = "dashed", color="darkgrey", size = 0.8)+
-  geom_point(position=position_jitterdodge(),alpha=0.1)+
-  geom_boxplot(outlier.shape = NA,size=1,alpha=0.3)+
-  ylab(expression(paste("CO"[2]*" (",mu,"mol C m"^-2*" s"^-1*")")))+
-  scale_color_manual(breaks=c('Year1','Year2'),values=c("#ED6E78","#A31420"),labels=c("Year 1","Year 2"),"")+
-  xlab("")+
-  ylim(-20,20)+
-  theme_classic(base_size = 15)
-
-ch4_season <- ggplot(ec2_season,mapping=aes(x=Season,y=ch4_flux_uStar_orig,color=as.factor(Year)))+
-  annotate("text",label ="***",x = "Fall", hjust = 0, y = 0.045, size = 5)+
-  annotate("text",label ="***",x="Winter",hjust=0,y=0.045,size=5)+
-  geom_hline(yintercept = 0, linetype = "dashed", color="darkgrey", size = 0.8)+
-  geom_point(position=position_jitterdodge(),alpha=0.1)+
-  geom_boxplot(outlier.shape = NA,size=1,alpha=0.3)+
-  ylab(expression(paste("CH"[4]*" (",mu,"mol C m"^-2*" s"^-1*")")))+
-  scale_color_manual(breaks=c('Year1','Year2'),values=c("#ED6E78","#A31420"),labels=c("Year 1","Year 2"),"")+
-  xlab("")+
-  ylim(-0.05,0.05)+
-  theme_classic(base_size = 15)
-
-ggarrange(co2_month,ch4_month,
-          ggarrange(co2_season, ch4_season,nrow=1,ncol=2, labels = c("C.","D."), font.label = list(face="plain",size=15), common.legend = TRUE),
-          nrow=3,ncol=1,labels = c("A.","B."),
-          font.label = list(face="plain",size=15),common.legend = TRUE)
-
-ggsave("./Fig_Output/EC_Monthly.jpg",width = 8, height = 11, units="in",dpi=320)
-
-###############################################################################
-
 ## Compare day to night
 ## Noon = 11-1 pm; Midnight = 23-1 am
 diel_flux <- ec2 %>% 
@@ -839,7 +723,7 @@ dawn_agg %>%
   group_by(diel,season) %>% 
   summarise_all(median,na.rm=TRUE)
 
-## Calculate statistics for Supplementary Table (Fig S7) - Day vs. Night
+## Calculate statistics for Supplementary Table (Table S5) - Day vs. Night
 diel_stats <- diel_agg %>% 
   ungroup() %>% 
   group_by(diel) %>% 
@@ -856,7 +740,7 @@ diel_stats <- diel_agg %>%
 ## Save for supplementary table (Table S7)
 write.csv(diel_stats,"./Fig_output/20220513_TableSx_DielStats.csv")
 
-## Calculate statistics for Supplementary Table (Fig S7) - Dawn vs. Dusk
+## Calculate statistics for Supplementary Table (Table S5) - Dawn vs. Dusk
 dawn_stats <- dawn_agg %>% 
   ungroup() %>% 
   group_by(diel) %>% 
@@ -923,7 +807,8 @@ dawndusk_wide_u <- dawn_agg %>%
 
 wilcox.test(dawndusk_wide_u$Dawn,dawndusk_wide_u$Dusk,paired=TRUE)
 
-## Plot diel (day/night) and dawn/dusk comparisons: Figure XX
+## Plot diel (day/night) and dawn/dusk comparisons
+# Fig. 4
 diel_co2 <- diel_agg %>% 
   ggplot(mapping=aes(x=diel,y=NEE,color=diel))+
   geom_hline(yintercept = 0, linetype = "dashed", color="darkgrey", size = 0.8)+
@@ -1054,6 +939,7 @@ ice_fluxes_30min <- ec2 %>%
 ice_fluxes_30min_comps <- ice_fluxes_30min %>% 
   filter(Ice %in% c("Ice_2021","Ice_2022"))
 
+# Table S9
 ice_stats <- ice_fluxes_30min_comps %>% 
   group_by(Ice) %>% 
   summarise(p25_nee = quantile(NEE_uStar_orig,0.25,na.rm=TRUE),
@@ -1069,6 +955,7 @@ wilcox.test(NEE_uStar_orig ~ Ice, data=ice_fluxes_30min_comps)
 wilcox.test(ch4_flux_uStar_orig ~ Ice, data=ice_fluxes_30min_comps)
 
 ## Plot ice on/ice off for 2021 and 2022
+# Fig. 6
 co2_year1 <- ggplot()+
   geom_vline(xintercept = as.POSIXct("2021-01-10"), linetype = "dotted", color="blue")+
   geom_vline(xintercept = as.POSIXct("2021-02-09"), linetype = "dotted", color="red")+
@@ -1184,6 +1071,8 @@ ec2_annual_fluxes_year2 <- ec2_annual_fluxes %>%
   mutate(ch4_sum_sd = sqrt(cumsum(ch4_v))) %>% 
   mutate(NumCount = 1:length(ec2_annual_fluxes_year2$DateTime))
 
+## Non gap-filled
+## Fig. S12
 co2_annual <- ggplot()+
   geom_vline(xintercept = 8854,linetype="dotted",color="#ED6E78",size=0.8)+ #Turnover FCR (11-01-2022); operationally defined
   geom_vline(xintercept = 8955, linetype="dotted",color="#A31420",size=0.8)+
@@ -1221,7 +1110,8 @@ ggarrange(co2_annual,ch4_annual,nrow=1,ncol=2,common.legend = TRUE,labels=c("A."
 
 ggsave("./Fig_Output/Rev_AnnualFluxes.png",width = 9, height=4.5, units="in",dpi=320)
 
-## Plot gap-filled annual estimates for SI
+## Plot gap-filled annual estimates
+## Fig. 5
 co2_sum_gapfilled <- ggplot()+
   geom_vline(xintercept = 8854,linetype="dotted",color="#ED6E78",size=0.8)+ #Turnover FCR (11-01-2022); operationally defined
   geom_vline(xintercept = 8955, linetype="dotted",color="#A31420",size=0.8)+

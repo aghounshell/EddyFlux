@@ -3,6 +3,8 @@
 
 ### 19 May 2022, A. Hounshell
 
+### For re-submission of EC MS
+
 ###############################################################################
 
 ## Clear workspace
@@ -30,9 +32,11 @@ met_edi <- read.csv("./Data/Met_final_2015_2021.csv", header=T) %>%
   mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d %H:%M:%S", tz="EST"))) %>% 
   filter(DateTime > as.POSIXct("2019-12-31"))
 
+# Load in initial 2022 Met data (from 1a_Rev_2022_MetData.R)
 met_2022 <- read.csv("./Data/FCR_Met_final_2022.csv",header=T) %>% 
   mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d %H:%M:%S", tz="EST")))
 
+# Combine Met Data together
 met_all <- rbind(met_edi,met_2022)
 
 # Start timeseries on the 00:15:00 to facilitate 30-min averages
@@ -72,23 +76,17 @@ names(met_30_2)[names(met_30_2) == 'DateTime_Adj'] <- 'DateTime'
 ###############################################################################
 
 ## Load in GHG data
-## Downloaded 2022 EDI data
-#inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/551/6/38d72673295864956cccd6bbba99a1a3" 
-#infile1 <- paste0(getwd(),"/Data/final_GHG_2015-2021.csv")
+## Downloaded 2022 EDI staged data
+#inUrl1  <- "https://pasta-s.lternet.edu/package/data/eml/edi/928/3/38d72673295864956cccd6bbba99a1a3" 
+#infile1 <- paste0(getwd(),"/Data/final_GHG_2015_May2022.csv")
 #download.file(inUrl1,infile1,method="curl")
 
 ## Will also want to include GHG data from 2022 - forthcoming!
-ghg <- read.csv("./Data/final_GHG_2015-June2022.csv") %>% 
+ghg <- read.csv("./Data/final_GHG_2015_May2022.csv") %>% 
   mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d %H:%M", tz="EST"))) %>% 
   filter(Reservoir == "FCR" & Site == 50 & Depth_m == 0.1) %>% 
   filter(DateTime >= "2020-01-01") %>% 
   mutate(DateTime = round_date(DateTime, "30 mins")) 
-
-## Remove samples with Flag = 2 (below detection; set to zero)
-ghg <- ghg %>% 
-  mutate(ch4_umolL = ifelse(flag_ch4 == 2, 0, ch4_umolL),
-         co2_umolL = ifelse(flag_co2 == 2, 0, co2_umolL)) %>% 
-  select(-flag_ch4,-flag_co2)
 
 ## Plot to check
 ## Methane
@@ -111,11 +109,11 @@ ghg_fluxes <- ghg %>%
 ###############################################################################
 
 ## Load in catwalk data - updated on 17 May 2022
-#inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/271/6/23a191c1870a5b18cbc17f2779f719cf" 
-#infile1 <- paste0(getwd(),"/Data/FCR_Catwalk_2018_2021.csv")
+#inUrl1  <- "https://pasta-s.lternet.edu/package/data/eml/edi/518/11/5255c0af78097b91d6b32267c32ee7be" 
+#infile1 <- paste0(getwd(),"/Data/FCR_Catwalk_2018_2022.csv")
 #download.file(inUrl1,infile1,method="curl")
 
-catwalk_2021 <- read.csv("./Data/FCR_Catwalk_2018_2021.csv",header = T)%>%
+catwalk_all <- read.csv("./Data/FCR_Catwalk_2018_2022.csv",header = T)%>%
   mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d %H:%M:%S", tz="EST"))) %>% 
   filter(DateTime >= "2020-01-01") %>% 
   select(DateTime, ThermistorTemp_C_surface, ThermistorTemp_C_1, ThermistorTemp_C_2, ThermistorTemp_C_3,
@@ -123,15 +121,7 @@ catwalk_2021 <- read.csv("./Data/FCR_Catwalk_2018_2021.csv",header = T)%>%
          ThermistorTemp_C_9, EXOTemp_C_1, EXOSpCond_uScm_1,EXODO_mgL_1,EXOChla_ugL_1,EXOfDOM_RFU_1,
          EXODOsat_percent_1)
 
-catwalk_2022 <- read.csv("./Data/Catwalk_first_QAQC_2018_2021.csv",header=T) %>% 
-  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d %H:%M:%S", tz="EST"))) %>% 
-  filter(DateTime >= "2022-01-01") %>% 
-  select(DateTime, ThermistorTemp_C_surface, ThermistorTemp_C_1, ThermistorTemp_C_2, ThermistorTemp_C_3,
-         ThermistorTemp_C_4, ThermistorTemp_C_5, ThermistorTemp_C_6, ThermistorTemp_C_7, ThermistorTemp_C_8,
-         ThermistorTemp_C_9, EXOTemp_C_1, EXOSpCond_uScm_1,EXODO_mgL_1,EXOChla_ugL_1,EXOfDOM_RFU_1,
-         EXODOsat_percent_1)
-
-catwalk_all <- rbind(catwalk_2021,catwalk_2022) %>% 
+catwalk_all <- catwalk_all %>% 
   filter(DateTime >= as.POSIXct("2020-05-01 01:00:00") & DateTime < as.POSIXct("2022-05-01 01:00:00")) %>% 
   mutate(Temp_diff = ThermistorTemp_C_surface - ThermistorTemp_C_9)
 
@@ -342,7 +332,7 @@ write.csv(k600_corr,"./Data/20220617_k600_corr.csv", row.names = FALSE)
 ghg_fluxes <- left_join(ghg_fluxes,k600_corr,by="DateTime")
 
 ## Use EC concentrations (CO2 and CH4) for atmospheric concentrations
-## Load in EC data from EDI: https://doi.org/10.6073/pasta/a1324bcf3e1415268996ba867c636489
+## Load in EC data from EDI: https://pasta-s.lternet.edu/package/data/eml/edi/920/2/9e658ef44de05303dbc496fc25e8c49a
 ec <- read.csv("./Data/20220506_EddyPro_cleaned.csv")
 
 ec <- ec %>% 
@@ -506,7 +496,7 @@ write.csv(fluxes_avg,"./Data/20220617_diffusive_fluxes_avg.csv",row.names = FALS
 
 ###############################################################################
 
-## Calculate stats for GHG diffusive fluxes (used in Table S5 and S6, aggregated below w/ EC data)
+## Calculate stats for GHG diffusive fluxes (used in Table S4, aggregated below w/ EC data)
 ghg_stats_all_co2 <- fluxes_long_co2 %>% 
   summarise(min_co2 = min(co2_flux_umolm2s,na.rm = TRUE),
             max_co2 = max(co2_flux_umolm2s,na.rm=TRUE),
@@ -528,7 +518,7 @@ ghg_stats_all_ch4 <- fluxes_long_ch4 %>%
 fluxes_all <- fluxes_all %>% 
   drop_na()
 
-## Plot Diffusive fluxes for Supplementary (Figure S4)
+## Plot Diffusive fluxes for Supplementary (Figure S10)
 ch4_diff <- ggplot(fluxes_all)+
   geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
   geom_vline(xintercept = as.POSIXct("2021-11-03"), col='black', size = 1, linetype = "dotted")+
