@@ -680,10 +680,12 @@ diel_agg %>%
   group_by(diel) %>% 
   summarise_all(median,na.rm=TRUE)
 
-diel_agg %>% 
+season_diel <- diel_agg %>% 
   select(diel,season,NEE,CH4,u) %>% 
   group_by(diel,season) %>% 
   summarise_all(median,na.rm=TRUE)
+
+write.csv(season_diel,"./Fig_output/20221108_TableSx_DielSeason.csv")
 
 ## Look at dawn vs. dusk differences in fluxes
 dawn_flux <- ec2 %>% 
@@ -718,10 +720,12 @@ dawn_agg %>%
   group_by(diel) %>% 
   summarise_all(median,na.rm=TRUE)
 
-dawn_agg %>% 
+season_dawn <- dawn_agg %>% 
   select(diel,season,NEE,CH4,u) %>% 
   group_by(diel,season) %>% 
   summarise_all(median,na.rm=TRUE)
+
+write.csv(season_dawn,"./Fig_output/20221108_TableSx_DawnSeason.csv")
 
 ## Calculate statistics for Supplementary Table (Table S5) - Day vs. Night
 diel_stats <- diel_agg %>% 
@@ -782,6 +786,115 @@ daynight_wide_u <- diel_agg %>%
 
 wilcox.test(daynight_wide_u$Day,daynight_wide_u$Night,paired=TRUE)
 
+## Calculate paired-wilcoxon signed rank tests for each season
+daynight_wide_co2_f_spring <- diel_agg %>% 
+  ungroup() %>% 
+  filter(season == "Spring") %>% 
+  select(Date,diel,NEE) %>% 
+  pivot_wider(names_from = diel, values_from = NEE) %>% 
+  drop_na
+
+wilcox.test(daynight_wide_co2_f_spring$Day,daynight_wide_co2_f_spring$Night,paired=TRUE)
+
+daynight_wide_co2_f_summer <- diel_agg %>% 
+  ungroup() %>% 
+  filter(season == "Summer") %>% 
+  select(Date,diel,NEE) %>% 
+  pivot_wider(names_from = diel, values_from = NEE) %>% 
+  drop_na
+
+wilcox.test(daynight_wide_co2_f_summer$Day,daynight_wide_co2_f_summer$Night,paired=TRUE)
+
+daynight_wide_co2_f_fall <- diel_agg %>% 
+  ungroup() %>% 
+  filter(season == "Fall") %>% 
+  select(Date,diel,NEE) %>% 
+  pivot_wider(names_from = diel, values_from = NEE) %>% 
+  drop_na
+
+wilcox.test(daynight_wide_co2_f_fall$Day,daynight_wide_co2_f_fall$Night,paired=TRUE)
+
+daynight_wide_co2_f_winter <- diel_agg %>% 
+  ungroup() %>% 
+  filter(season == "Winter") %>% 
+  select(Date,diel,NEE) %>% 
+  pivot_wider(names_from = diel, values_from = NEE) %>% 
+  drop_na
+
+wilcox.test(daynight_wide_co2_f_winter$Day,daynight_wide_co2_f_winter$Night,paired=TRUE)
+
+daynight_wide_ch4_f_spring <- diel_agg %>% 
+  ungroup() %>% 
+  filter(season == "Spring") %>% 
+  select(Date,diel,CH4) %>% 
+  pivot_wider(names_from = diel, values_from = CH4) %>% 
+  drop_na
+
+wilcox.test(daynight_wide_ch4_f_spring$Day,daynight_wide_ch4_f_spring$Night,paired=TRUE)
+
+daynight_wide_ch4_f_summer <- diel_agg %>% 
+  ungroup() %>% 
+  filter(season == "Summer") %>% 
+  select(Date,diel,CH4) %>% 
+  pivot_wider(names_from = diel, values_from = CH4) %>% 
+  drop_na
+
+wilcox.test(daynight_wide_ch4_f_summer$Day,daynight_wide_ch4_f_summer$Night,paired=TRUE)
+
+daynight_wide_ch4_f_fall <- diel_agg %>% 
+  ungroup() %>% 
+  filter(season == "Fall") %>% 
+  select(Date,diel,CH4) %>% 
+  pivot_wider(names_from = diel, values_from = CH4) %>% 
+  drop_na
+
+wilcox.test(daynight_wide_ch4_f_fall$Day,daynight_wide_ch4_f_fall$Night,paired=TRUE)
+
+daynight_wide_ch4_f_winter <- diel_agg %>% 
+  ungroup() %>% 
+  filter(season == "Winter") %>% 
+  select(Date,diel,CH4) %>% 
+  pivot_wider(names_from = diel, values_from = CH4) %>% 
+  drop_na
+
+wilcox.test(daynight_wide_ch4_f_winter$Day,daynight_wide_ch4_f_winter$Night,paired=TRUE)
+
+daynight_wide_u_f_spring <- diel_agg %>% 
+  ungroup() %>% 
+  filter(season == "Spring") %>% 
+  select(Date,diel,u) %>% 
+  pivot_wider(names_from = diel, values_from = u) %>% 
+  drop_na
+
+wilcox.test(daynight_wide_u_f_spring$Day,daynight_wide_u_f_spring$Night,paired=TRUE)
+
+daynight_wide_u_f_summer <- diel_agg %>% 
+  ungroup() %>% 
+  filter(season == "Summer") %>% 
+  select(Date,diel,u) %>% 
+  pivot_wider(names_from = diel, values_from = u) %>% 
+  drop_na
+
+wilcox.test(daynight_wide_u_f_summer$Day,daynight_wide_u_f_summer$Night,paired=TRUE)
+
+daynight_wide_u_f_fall <- diel_agg %>% 
+  ungroup() %>% 
+  filter(season == "Fall") %>% 
+  select(Date,diel,u) %>% 
+  pivot_wider(names_from = diel, values_from = u) %>% 
+  drop_na
+
+wilcox.test(daynight_wide_u_f_fall$Day,daynight_wide_u_f_fall$Night,paired=TRUE)
+
+daynight_wide_u_f_winter <- diel_agg %>% 
+  ungroup() %>% 
+  filter(season == "Winter") %>% 
+  select(Date,diel,u) %>% 
+  pivot_wider(names_from = diel, values_from = u) %>% 
+  drop_na
+
+wilcox.test(daynight_wide_u_f_winter$Day,daynight_wide_u_f_winter$Night,paired=TRUE)
+
 ## Calculate Dawn/Dusk differences
 dawndusk_wide_co2_f <- dawn_agg %>% 
   ungroup() %>% 
@@ -807,6 +920,115 @@ dawndusk_wide_u <- dawn_agg %>%
 
 wilcox.test(dawndusk_wide_u$Dawn,dawndusk_wide_u$Dusk,paired=TRUE)
 
+## Calculate paired-wilcoxon signed rank tests for each season
+dawndusk_wide_co2_f_spring <- dawn_agg %>% 
+  ungroup() %>% 
+  filter(season == "Spring") %>% 
+  select(Date,diel,NEE) %>% 
+  pivot_wider(names_from = diel, values_from = NEE) %>% 
+  drop_na
+
+wilcox.test(dawndusk_wide_co2_f_spring$Dawn,dawndusk_wide_co2_f_spring$Dusk,paired=TRUE)
+
+dawndusk_wide_co2_f_summer <- dawn_agg %>% 
+  ungroup() %>% 
+  filter(season == "Summer") %>% 
+  select(Date,diel,NEE) %>% 
+  pivot_wider(names_from = diel, values_from = NEE) %>% 
+  drop_na
+
+wilcox.test(dawndusk_wide_co2_f_summer$Dawn,dawndusk_wide_co2_f_summer$Dusk,paired=TRUE)
+
+dawndusk_wide_co2_f_fall <- dawn_agg %>% 
+  ungroup() %>% 
+  filter(season == "Fall") %>% 
+  select(Date,diel,NEE) %>% 
+  pivot_wider(names_from = diel, values_from = NEE) %>% 
+  drop_na
+
+wilcox.test(dawndusk_wide_co2_f_fall$Dawn,dawndusk_wide_co2_f_fall$Dusk,paired=TRUE)
+
+dawndusk_wide_co2_f_winter <- dawn_agg %>% 
+  ungroup() %>% 
+  filter(season == "Winter") %>% 
+  select(Date,diel,NEE) %>% 
+  pivot_wider(names_from = diel, values_from = NEE) %>% 
+  drop_na
+
+wilcox.test(dawndusk_wide_co2_f_winter$Dawn,dawndusk_wide_co2_f_winter$Dusk,paired=TRUE)
+
+dawndusk_wide_ch4_f_spring <- dawn_agg %>% 
+  ungroup() %>% 
+  filter(season == "Spring") %>% 
+  select(Date,diel,CH4) %>% 
+  pivot_wider(names_from = diel, values_from = CH4) %>% 
+  drop_na
+
+wilcox.test(dawndusk_wide_ch4_f_spring$Dawn,dawndusk_wide_ch4_f_spring$Dusk,paired=TRUE)
+
+dawndusk_wide_ch4_f_summer <- dawn_agg %>% 
+  ungroup() %>% 
+  filter(season == "Summer") %>% 
+  select(Date,diel,CH4) %>% 
+  pivot_wider(names_from = diel, values_from = CH4) %>% 
+  drop_na
+
+wilcox.test(dawndusk_wide_ch4_f_summer$Dawn,dawndusk_wide_ch4_f_summer$Dusk,paired=TRUE)
+
+dawndusk_wide_ch4_f_fall <- dawn_agg %>% 
+  ungroup() %>% 
+  filter(season == "Fall") %>% 
+  select(Date,diel,CH4) %>% 
+  pivot_wider(names_from = diel, values_from = CH4) %>% 
+  drop_na
+
+wilcox.test(dawndusk_wide_ch4_f_fall$Dawn,dawndusk_wide_ch4_f_fall$Dusk,paired=TRUE)
+
+dawndusk_wide_ch4_f_winter <- dawn_agg %>% 
+  ungroup() %>% 
+  filter(season == "Winter") %>% 
+  select(Date,diel,CH4) %>% 
+  pivot_wider(names_from = diel, values_from = CH4) %>% 
+  drop_na
+
+wilcox.test(dawndusk_wide_ch4_f_winter$Dawn,dawndusk_wide_ch4_f_winter$Dusk,paired=TRUE)
+
+dawndusk_wide_u_f_spring <- dawn_agg %>% 
+  ungroup() %>% 
+  filter(season == "Spring") %>% 
+  select(Date,diel,u) %>% 
+  pivot_wider(names_from = diel, values_from = u) %>% 
+  drop_na
+
+wilcox.test(dawndusk_wide_u_f_spring$Dawn,dawndusk_wide_u_f_spring$Dusk,paired=TRUE)
+
+dawndusk_wide_u_f_summer <- dawn_agg %>% 
+  ungroup() %>% 
+  filter(season == "Summer") %>% 
+  select(Date,diel,u) %>% 
+  pivot_wider(names_from = diel, values_from = u) %>% 
+  drop_na
+
+wilcox.test(dawndusk_wide_u_f_summer$Dawn,dawndusk_wide_u_f_summer$Dusk,paired=TRUE)
+
+dawndusk_wide_u_f_fall <- dawn_agg %>% 
+  ungroup() %>% 
+  filter(season == "Fall") %>% 
+  select(Date,diel,u) %>% 
+  pivot_wider(names_from = diel, values_from = u) %>% 
+  drop_na
+
+wilcox.test(dawndusk_wide_u_f_fall$Dawn,dawndusk_wide_u_f_fall$Dusk,paired=TRUE)
+
+dawndusk_wide_u_f_winter <- dawn_agg %>% 
+  ungroup() %>% 
+  filter(season == "Winter") %>% 
+  select(Date,diel,u) %>% 
+  pivot_wider(names_from = diel, values_from = u) %>% 
+  drop_na
+
+wilcox.test(dawndusk_wide_u_f_winter$Dawn,dawndusk_wide_u_f_winter$Dusk,paired=TRUE)
+
 ## Plot diel (day/night) and dawn/dusk comparisons
 # Fig. 4
 diel_co2 <- diel_agg %>% 
@@ -814,13 +1036,13 @@ diel_co2 <- diel_agg %>%
   geom_hline(yintercept = 0, linetype = "dashed", color="darkgrey", size = 0.8)+
   annotate("text",label ="p = 0.09
 n = 295",
-           x = "Day", hjust = 0, y = 18, size = 5)+
+           x = "Day", hjust = 0, y = 40, size = 5)+
   geom_boxplot(outlier.shape = NA,size=1)+
   geom_point(position=position_jitterdodge(),alpha=0.1)+
   scale_color_manual(breaks=c('Day','Night'),values=c("#F4BB01","#183662"))+
   ylab(expression(paste("CO"[2]*" (",mu,"mol m"^-2*" s"^-1*")")))+
   xlab("")+
-  ylim(-20,20)+
+  #ylim(-20,20)+
   theme_classic(base_size = 15)+
   theme(legend.position = "none")
 
@@ -856,13 +1078,13 @@ dawn_co2 <- dawn_agg %>%
   geom_hline(yintercept = 0, linetype = "dashed", color="darkgrey", size = 0.8)+
   annotate("text",label ="p < 0.001*
 n = 189",
-           x = "Dawn", hjust = 0, y = 18, size = 5)+
+           x = "Dawn", hjust = 0, y = 40, size = 5)+
   geom_boxplot(outlier.shape = NA,size=1)+
   geom_point(position=position_jitterdodge(),alpha=0.1)+
   scale_color_manual(breaks=c('Dusk','Dawn'),values=c("#F4BB01","#183662"))+
   ylab(expression(paste("CO"[2]*" (",mu,"mol m"^-2*" s"^-1*")")))+
   xlab("")+
-  ylim(-20,20)+
+  #ylim(-20,20)+
   theme_classic(base_size = 15)+
   theme(legend.position = "none")
 
@@ -896,7 +1118,7 @@ n = 312",
 ggarrange(diel_co2,diel_ch4,diel_wind,dawn_co2,dawn_ch4,dawn_wind,nrow=2,ncol=3,
           labels=c("A.","B.","C.","D.","E.","F."), font.label = list(face="plain",size=15))
 
-ggsave("./Fig_Output/Rev_Figure3.png",width = 9, height=7.5, units="in",dpi=320)
+ggsave("./Fig_Output/Rev2_Figure3.png",width = 9, height=7.5, units="in",dpi=320)
 
 ###############################################################################
 

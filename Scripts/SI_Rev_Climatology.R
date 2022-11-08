@@ -9,7 +9,7 @@
 rm(list = ls())
 
 # Download/load libraries
-pacman::p_load(lubridate,readr,ggpubr,ggplot2,dplyr,openair,clifro)
+pacman::p_load(lubridate,readr,ggpubr,ggplot2,dplyr,openair,clifro,tidyverse,viridis)
 
 # Set working directory - up-date for your specific working directory
 wd <- getwd()
@@ -275,8 +275,11 @@ ggsave("./Fig_Output/SI_DielTempWnd.jpg",width = 8, height=4, units="in",dpi=320
 
 ################################################################################
 ## Load in inflow and calculate mean, min, and max for each year
-## From: https://pasta-s.lternet.edu/package/data/eml/edi/923/1/9e438aa8bcca18bf0ba70c8307aafed9
-q_all <- read.csv("./Data/inflow_for_EDI_2013_15May2022.csv") %>% 
+#inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/202/8/cc045f9fe32501138d5f4e1e7f40d492" 
+#infile1 <- paste0(getwd(),"/Data/inflow_for_EDI_2013_15May2022.csv")
+#download.file(inUrl1,infile1,method="curl")
+
+q_all <- read.csv("./Data/inflow_2013_May2022.csv") %>% 
   mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d %H:%M:%S", tz = "EST"))
 
 q_all <- q_all %>% 
@@ -292,4 +295,146 @@ q_all %>%
  
 q_all %>% 
   summarise(avg_inflow = mean(VT_Flow_cms, na.rm = TRUE))
-           
+
+## Calculate daily water residence time
+q_daily <- q_all %>% 
+  mutate(Year = year(DateTime), 
+         Month = month(DateTime), 
+         Day = day(DateTime), 
+         Hour = hour(DateTime)) %>% 
+  dplyr::group_by(Year, Month, Day) %>% 
+  dplyr::summarise(Flow_cms = mean(VT_Flow_cms,na.rm=TRUE),
+                   Flow_cms_sd = sd(VT_Flow_cms,na.rm=TRUE))
+
+q_daily$DateTime <- as.POSIXct(paste(q_daily$Year, q_daily$Month, q_daily$Day, sep = '-'), "%Y-%m-%d", tz = 'EST')
+
+## Calculate water residence time assuming full pond (3.1 x 10^5 m3 following Howard et al. 2021 and Gerling et al. 2014)
+q_daily <- q_daily %>% 
+  mutate(wtr_d = (310000)/Flow_cms/60/60/24) %>% 
+  mutate(year = ifelse(DateTime < as.POSIXct("2021-05-01 00:00:00"), "year1", "year2"))
+
+## Calculate median and mean water residence time
+q_daily %>% 
+  group_by(year) %>% 
+  summarise(avg_wtr = mean(wtr_d,na.rm=TRUE),
+            st_wtr = sd(wtr_d,na.rm=TRUE),
+            med_wtr = median(wtr_d,na.rm=TRUE),
+            min_wtr = min(wtr_d,na.rm=TRUE),
+            max_wtr = max(wtr_d,na.rm=TRUE))
+
+q_daily %>% 
+  ungroup() %>% 
+  summarise(avg_wtr = mean(wtr_d,na.rm=TRUE),
+            st_wtr = sd(wtr_d,na.rm=TRUE),
+            med_wtr = median(wtr_d,na.rm=TRUE),
+            min_wtr = min(wtr_d,na.rm=TRUE),
+            max_wtr = max(wtr_d,na.rm=TRUE))
+
+# Plot daily water residence time
+wtr_year1 <- ggplot(q_daily, mapping=aes(x=DateTime,y=wtr_d))+
+  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
+  geom_vline(xintercept = as.POSIXct("2021-11-03"),linetype="dotted")+
+  geom_hline(yintercept = 148,linetype="dashed",color="darkgrey")+ # Mean WTR
+  annotate(geom="text", x=as.POSIXct("2021-04-15"), y=170, label="Mean")+
+  geom_hline(yintercept = 71.1,linetype="dashed",color="darkgrey")+ # Median WTR
+  annotate(geom="text", x=as.POSIXct("2021-04-15"), y=90, label="Median")+
+  geom_line(size=1)+
+  xlim(as.POSIXct("2020-05-01"),as.POSIXct("2021-04-30"))+
+  xlab("") + 
+  ylab(expression(Water~Residence~Time~(d)))+
+  theme_classic(base_size=15)
+
+wtr_year2 <- ggplot(q_daily, mapping=aes(x=DateTime,y=wtr_d))+
+  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
+  geom_vline(xintercept = as.POSIXct("2021-11-03"),linetype="dotted")+
+  geom_hline(yintercept = 347,linetype="dashed",color="darkgrey")+ # Mean WTR
+  annotate(geom="text", x=as.POSIXct("2021-05-01"), y=330, label="Mean")+
+  geom_hline(yintercept = 383,linetype="dashed",color="darkgrey")+ # Median WTR
+  annotate(geom="text", x=as.POSIXct("2021-05-01"), y=400, label="Median")+
+  geom_line(size=1)+
+  xlim(as.POSIXct("2021-05-01"),as.POSIXct("2022-04-30"))+
+  xlab("") + 
+  ylab(expression(Water~Residence~Time~(d)))+
+  theme_classic(base_size=15)
+
+ggarrange(wtr_year1,wtr_year2,ncol=1,nrow=2,
+          labels=c("A.","B."), font.label = list(face="plain",size=15))
+
+ggsave("./Fig_Output/SI_Daily_wtr.jpg",width = 8, height=7.5, units="in",dpi=320)
+
+################################################################################
+
+## Plot dissolved GHG concentrationst through the water column
+## Following comments from reviewers
+
+## Will also want to include GHG data from 2022 - forthcoming!
+ghg <- read.csv("./Data/final_GHG_2015-June2022.csv") %>% 
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d %H:%M", tz="EST"))) %>% 
+  filter(Reservoir == "FCR" & Site == 50) %>% 
+  filter(DateTime >= "2020-01-01") %>% 
+  mutate(DateTime = round_date(DateTime, "30 mins")) 
+
+ghg_fluxes <- ghg %>% 
+  group_by(Reservoir,Site,DateTime,Depth_m) %>% 
+  summarize(ch4_mean = mean(ch4_umolL,na.rm=TRUE),
+            ch4_sd = sd(ch4_umolL,na.rm = TRUE),
+            co2_mean = mean(co2_umolL,na.rm=TRUE),
+            co2_sd = sd(co2_umolL, na.rm=TRUE))
+
+## Plot
+ch4_all <- ggplot(ghg_fluxes,mapping=aes(x=DateTime,y=ch4_mean,color=as.factor(Depth_m)))+
+  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
+  geom_vline(xintercept = as.POSIXct("2021-11-03"),linetype="dotted")+
+  geom_point(size=3)+
+  geom_line(size=1)+
+  geom_errorbar(mapping=aes(ymin=ch4_mean-ch4_sd,ymax=ch4_mean+ch4_sd),size=1)+
+  xlim(as.POSIXct("2020-05-01"),as.POSIXct("2022-04-30"))+
+  xlab("")+
+  ylab(expression(~CH[4]~(mu~mol~L^-1)))+
+  scale_color_viridis(discrete=TRUE, name = "Depth (m)")+
+  theme_classic(base_size = 15)
+
+ch4_surf <- ghg_fluxes %>% 
+  filter(Depth_m == 0.1) %>% 
+  ggplot(ghg_fluxes,mapping=aes(x=DateTime,y=ch4_mean,color=as.factor(Depth_m)))+
+  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
+  geom_vline(xintercept = as.POSIXct("2021-11-03"),linetype="dotted")+
+  geom_point(size=3)+
+  geom_line(size=1)+
+  geom_errorbar(mapping=aes(ymin=ch4_mean-ch4_sd,ymax=ch4_mean+ch4_sd),size=1)+
+  xlim(as.POSIXct("2020-05-01"),as.POSIXct("2022-04-30"))+
+  xlab("")+
+  ylab(expression(~CH[4]~(mu~mol~L^-1)))+
+  scale_color_viridis(discrete=TRUE, name = "Depth (m)")+
+  theme_classic(base_size = 15)
+
+co2_all <- ggplot(ghg_fluxes,mapping=aes(x=DateTime,y=co2_mean,color=as.factor(Depth_m)))+
+  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
+  geom_vline(xintercept = as.POSIXct("2021-11-03"),linetype="dotted")+
+  geom_point(size=3)+
+  geom_line(size=1)+
+  geom_errorbar(mapping=aes(ymin=co2_mean-co2_sd,ymax=co2_mean+co2_sd),size=1)+
+  xlim(as.POSIXct("2020-05-01"),as.POSIXct("2022-04-30"))+
+  xlab("")+
+  ylab(expression(~CO[2]~(mu~mol~L^-1)))+
+  scale_color_viridis(discrete=TRUE, name = "Depth (m)")+
+  theme_classic(base_size = 15)
+
+co2_surf <- ghg_fluxes %>% 
+  filter(Depth_m == 0.1) %>% 
+  ggplot(ghg_fluxes,mapping=aes(x=DateTime,y=co2_mean,color=as.factor(Depth_m)))+
+  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted")+ #Turnover FCR; operationally defined
+  geom_vline(xintercept = as.POSIXct("2021-11-03"),linetype="dotted")+
+  geom_point(size=3)+
+  geom_line(size=1)+
+  geom_errorbar(mapping=aes(ymin=co2_mean-co2_sd,ymax=co2_mean+co2_sd),size=1)+
+  xlim(as.POSIXct("2020-05-01"),as.POSIXct("2022-04-30"))+
+  xlab("")+
+  ylab(expression(~CO[2]~(mu~mol~L^-1)))+
+  scale_color_viridis(discrete=TRUE, name = "Depth (m)")+
+  theme_classic(base_size = 15)
+
+ggarrange(ch4_all,ch4_surf,co2_all,co2_surf,ncol=1,nrow=4,
+          labels=c("A.","B.","C.","D."), font.label = list(face="plain",size=15),common.legend=TRUE)
+
+ggsave("./Fig_Output/SI_dGHG.jpg",width = 8, height=12, units="in",dpi=320)

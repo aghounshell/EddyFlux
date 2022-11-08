@@ -204,7 +204,7 @@ catwalk_monthly <- catwalk_all %>%
 #infile1 <- paste0(getwd(),"/Data/inflow_for_EDI_2013_15May2022.csv")
 #download.file(inUrl1,infile1,method="curl")
 
-q_all <- read.csv("./Data/inflow_for_EDI_2013_15May2022.csv") %>% 
+q_all <- read.csv("./Data/Inflow_2013_May2022.csv") %>% 
   mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d %H:%M:%S", tz = "EST"))
 
 q_all <- q_all %>% 
@@ -318,14 +318,102 @@ la_monthly <- la %>%
 
 ###############################################################################
 
+## Load in wind data - following suggestions from reviewer
+#inUrl1  <- "https://pasta-s.lternet.edu/package/data/eml/edi/143/17/02d36541de9088f2dd99d79dc3a7a853" 
+#infile1 <- paste0(getwd(),"/Data/Met_final_2015_2022.csv")
+#download.file(inUrl1,infile1,method="curl")
+
+met_all <- read.csv("./Data/Met_final_2015_2022.csv", header=T) %>%
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d %H:%M:%S", tz="EST"))) %>% 
+  filter(DateTime > as.POSIXct("2019-12-31"))
+
+# Start timeseries on the 00:15:00 to facilitate 30-min averages
+met_all <- met_all %>% 
+  filter(DateTime >= as.POSIXct("2019-12-31 00:15:00"))
+
+# Select data every 30 minutes from Jan 2020 to end of met data
+met_all$Breaks <- cut(met_all$DateTime,breaks = "30 mins",right=FALSE)
+met_all$Breaks <- ymd_hms(as.character(met_all$Breaks))
+
+# Average met data to the 30 min mark (excluding Total Rain and Total PAR)
+met_30 <- met_all %>% 
+  select(DateTime,BP_Average_kPa,AirTemp_Average_C,RH_percent,ShortwaveRadiationUp_Average_W_m2,ShortwaveRadiationDown_Average_W_m2,
+         InfraredRadiationUp_Average_W_m2,InfraredRadiationDown_Average_W_m2,Albedo_Average_W_m2,WindSpeed_Average_m_s,WindDir_degrees,Breaks) %>% 
+  group_by(Breaks) %>% 
+  summarise_all(mean,na.rm=TRUE)
+
+# Sum met data to the 30 min mark (for Total Rain and Total PAR)
+met_30_rain <- met_all %>% 
+  select(Rain_Total_mm,PAR_Total_mmol_m2,Breaks) %>% 
+  group_by(Breaks) %>% 
+  summarise_all(sum,na.rm=TRUE)
+
+# Combine averaged and summed data together
+met_30_2 <- cbind.data.frame(met_30,met_30_rain)
+
+# Adjust datetime to 30 minute intervals, select relevant parameters, and rename
+# following Brenda's conventions
+met_30_2 <- met_30_2 %>% 
+  select(-Breaks) %>% 
+  mutate(DateTime_Adj = DateTime + 30) %>% 
+  select(-DateTime) %>% 
+  filter(DateTime_Adj >= as.POSIXct("2020-05-01 01:00:00") & DateTime_Adj < as.POSIXct("2022-05-01 01:00:00"))
+
+names(met_30_2)[names(met_30_2) == 'DateTime_Adj'] <- 'DateTime'
+
+## Aggregate to hourly and select wind data
+met_hourly <- met_30_2 %>% 
+  mutate(DateTime = format(as.POSIXct(DateTime, "%Y-%m-%d %H"),"%Y-%m-%d %H")) %>% 
+  mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d %H", tz = "EST")) %>% 
+  dplyr::group_by(DateTime) %>% 
+  mutate(Year = year(DateTime), 
+         Month = month(DateTime), 
+         Day = day(DateTime), 
+         Hour = hour(DateTime)) %>% 
+  dplyr::summarise(wndspd_m_s_mean = mean(WindSpeed_Average_m_s,na.rm=TRUE),
+                   wndspd_m_s_sd = sd(WindSpeed_Average_m_s,na.rm=TRUE))
+
+## Met results daily
+met_daily <- met_30_2 %>% 
+  mutate(Year = year(DateTime), 
+         Month = month(DateTime), 
+         Day = day(DateTime), 
+         Hour = hour(DateTime)) %>% 
+  dplyr::group_by(Year, Month, Day) %>% 
+  dplyr::summarise(wndspd_m_s_mean = mean(WindSpeed_Average_m_s,na.rm=TRUE),
+                   wndspd_m_s_sd = sd(WindSpeed_Average_m_s,na.rm=TRUE))
+
+met_daily$DateTime <- as.POSIXct(paste(met_daily$Year, met_daily$Month, la_daily$Day, sep = '-'), "%Y-%m-%d", tz = 'EST')
+
+## Met results weekly
+met_weekly <- met_30_2 %>% 
+  mutate(Year = year(DateTime), 
+         Month = month(DateTime), 
+         Week = week(DateTime),
+         Day = day(DateTime), 
+         Hour = hour(DateTime)) %>% 
+  dplyr::group_by(Year, Week) %>% 
+  dplyr::summarise(wndspd_m_s_mean = mean(WindSpeed_Average_m_s,na.rm=TRUE),
+                   wndspd_m_s_sd = sd(WindSpeed_Average_m_s,na.rm=TRUE))
+
+## Met results monthly
+met_monthly <- met_30_2 %>% 
+  mutate(Year = year(DateTime), 
+         Month = month(DateTime)) %>% 
+  dplyr::group_by(Year, Month) %>% 
+  dplyr::summarise(wndspd_m_s_mean = mean(WindSpeed_Average_m_s,na.rm=TRUE),
+                   wndspd_m_s_sd = sd(WindSpeed_Average_m_s,na.rm=TRUE))
+
+###############################################################################
+
 ## Aggregate all Env data by timescale
-env_hourly <- join_all(list(fcr_hourly,catwalk_hourly,q_hourly,la_hourly),by="DateTime",type="left")
+env_hourly <- join_all(list(fcr_hourly,catwalk_hourly,q_hourly,la_hourly,met_hourly),by="DateTime",type="left")
 
-env_daily <- join_all(list(fcr_daily,catwalk_daily,q_daily,la_daily),by=c("DateTime","Year","Month","Day"),type="left")
+env_daily <- join_all(list(fcr_daily,catwalk_daily,q_daily,la_daily,met_daily),by=c("DateTime","Year","Month","Day"),type="left")
 
-env_weekly <- join_all(list(fcr_weekly,catwalk_weekly,q_weekly,la_weekly),by=c("Year","Week"))
+env_weekly <- join_all(list(fcr_weekly,catwalk_weekly,q_weekly,la_weekly,met_weekly),by=c("Year","Week"))
 
-env_monthly <- join_all(list(fcr_monthly,catwalk_monthly,q_monthly,la_monthly),by=c("Year","Month"))
+env_monthly <- join_all(list(fcr_monthly,catwalk_monthly,q_monthly,la_monthly,met_monthly),by=c("Year","Month"))
 
 ###############################################################################
 
@@ -439,7 +527,7 @@ co2_hourly <- env_hourly %>%
   select(NEE,Temp_C_surface,DO_sat,Chla_ugL,fdom_rfu,Flow_cms,
          #Temp_diff,
          #n2,
-         thermo.depth)
+         thermo.depth,wndspd_m_s_mean)
 
 hourly_cor = as.data.frame(cor(co2_hourly,use = "complete.obs"),method=c("pearson"))
 chart.Correlation(co2_hourly,histogram = TRUE,method=c("pearson"))
@@ -449,7 +537,7 @@ ch4_hourly <- env_hourly %>%
   select(CH4,Temp_C_surface,DO_sat,Chla_ugL,fdom_rfu,Flow_cms,
          #Temp_diff,
          #n2,
-         thermo.depth)
+         thermo.depth,wndspd_m_s_mean)
 
 ## Daily
 co2_daily <- env_daily %>% 
@@ -457,7 +545,7 @@ co2_daily <- env_daily %>%
   select(NEE,Temp_C_surface,DO_sat,Chla_ugL,fdom_rfu,Flow_cms,
          #Temp_diff,
          #n2,
-         thermo.depth)
+         thermo.depth,wndspd_m_s_mean)
 
 daily_cor = as.data.frame(cor(co2_daily,use = "complete.obs"),method=c("pearson"))
 chart.Correlation(co2_daily,histogram = TRUE,method=c("pearson"))
@@ -468,7 +556,7 @@ ch4_daily <- env_daily %>%
   select(CH4,Temp_C_surface,DO_sat,Chla_ugL,fdom_rfu,Flow_cms,
          #Temp_diff,
          #n2,
-         thermo.depth)
+         thermo.depth,wndspd_m_s_mean)
 
 ## Weekly
 co2_weekly <- env_weekly %>% 
@@ -476,7 +564,7 @@ co2_weekly <- env_weekly %>%
   select(NEE,Temp_C_surface,DO_sat,Chla_ugL,fdom_rfu,Flow_cms,
          #Temp_diff,
          #n2,
-         thermo.depth)
+         thermo.depth,wndspd_m_s_mean)
 
 weekly_cor = as.data.frame(cor(co2_weekly,use = "complete.obs"),method=c("pearson"))
 chart.Correlation(co2_weekly,histogram = TRUE,method=c("pearson"))
@@ -487,7 +575,7 @@ ch4_weekly <- env_weekly %>%
   select(CH4,Temp_C_surface,DO_sat,Chla_ugL,fdom_rfu,Flow_cms,
          #Temp_diff,
          #n2,
-         thermo.depth)
+         thermo.depth,wndspd_m_s_mean)
 
 ## Monthly
 co2_monthly <- env_monthly %>% 
@@ -495,23 +583,27 @@ co2_monthly <- env_monthly %>%
   select(NEE,Temp_C_surface,DO_sat,Chla_ugL,fdom_rfu,Flow_cms,
          #Temp_diff,
          #n2,
-         thermo.depth)
+         thermo.depth,
+         #wndspd_m_s_mean
+         )
 
 monthly_cor = as.data.frame(cor(co2_monthly,use = "complete.obs"),method=c("pearson"))
 chart.Correlation(co2_monthly,histogram = TRUE,method=c("pearson"))
-# Remove Temp_diff and N2 (correlated with surface temp)
+# Remove Temp_diff, N2, and wnd_spd (correlated with surface temp)
 
 ch4_monthly <- env_monthly %>% 
   ungroup() %>% 
   select(CH4,Temp_C_surface,DO_sat,Chla_ugL,fdom_rfu,Flow_cms,
          #Temp_diff,
          #n2,
-         thermo.depth)
+         thermo.depth,
+         #wndspd_m_s_mean
+         )
 
 all_cor <- rbind(hourly_cor,daily_cor,weekly_cor,monthly_cor)
 
 # For Table S2
-write_csv(all_cor,"./Fig_output/20220518_env_cor.csv")
+write_csv(all_cor,"./Fig_output/20221108_env_cor_wwind.csv")
 
 ###############################################################################
 
@@ -522,7 +614,7 @@ Math.cbrt <- function(x) {
 }
 
 # CO2_hourly
-for (i in 1:7){
+for (i in 1:8){
   print(colnames(co2_hourly)[i])
   var <- co2_hourly[,i]
   hist(as.matrix(var), main = colnames(co2_hourly)[i])
@@ -540,16 +632,17 @@ for (i in 1:7){
 
 # Nothing: NEE, Temp, DO_sat, fDOM, thermo.depth
 # Log: Flow
-# Cube rt: Chla
+# Cube rt: Chla, Wind speed
 
 # Scale necessary data
 co2_hourly_scale <- co2_hourly %>% 
   mutate(Chla_ugL = (Chla_ugL)^(1/3),
+         wndspd_m_s_mean = (wndspd_m_s_mean)^(1/3),
          Flow_cms = log(Flow_cms)) %>% 
   scale()
 
 # ch4_hourly
-for (i in 1:7){
+for (i in 1:8){
   print(colnames(ch4_hourly)[i])
   var <- ch4_hourly[,i]
   hist(as.matrix(var), main = colnames(ch4_hourly)[i])
@@ -571,12 +664,13 @@ for (i in 1:7){
 # Scale necessary data
 ch4_hourly_scale <- ch4_hourly %>% 
   mutate(Chla_ugL = (Chla_ugL)^(1/3),
+         wndspd_m_s_mean = (wndspd_m_s_mean)^(1/3),
          Flow_cms = log(Flow_cms)) %>% 
   scale()
 
 ## Daily
 # CO2 daily
-for (i in 1:7){
+for (i in 1:8){
   print(colnames(co2_daily)[i])
   var <- co2_daily[,i]
   hist(as.matrix(var), main = colnames(co2_daily)[i])
@@ -594,14 +688,15 @@ for (i in 1:7){
 
 # Nothing: NEE, Temp, DO_sat, fDOM, thermo.depth
 # Cube rt: Chla
-# Log: Flow
+# Log: Flow, Wnd spd
 co2_daily_scale <- co2_daily %>% 
   mutate(Chla_ugL = (Chla_ugL)^(1/3),
-         Flow_cms = log(Flow_cms)) %>% 
+         Flow_cms = log(Flow_cms),
+         wndspd_m_s_mean = log(wndspd_m_s_mean)) %>% 
   scale()
 
 # CH4 daily
-for (i in 1:7){
+for (i in 1:8){
   print(colnames(ch4_daily)[i])
   var <- ch4_daily[,i]
   hist(as.matrix(var), main = colnames(ch4_daily)[i])
@@ -621,11 +716,12 @@ for (i in 1:7){
 # Everything else the same as CO2
 ch4_daily_scale <- ch4_daily %>% 
   mutate(Chla_ugL = (Chla_ugL)^(1/3),
-         Flow_cms = log(Flow_cms)) %>% 
+         Flow_cms = log(Flow_cms),
+         wndspd_m_s_mean = log(wndspd_m_s_mean)) %>% 
   scale()
 
 ## Weekly
-for (i in 1:7){
+for (i in 1:8){
   print(colnames(co2_weekly)[i])
   var <- co2_weekly[,i]
   hist(as.matrix(var), main = colnames(co2_weekly)[i])
@@ -641,7 +737,7 @@ for (i in 1:7){
   hist(as.matrix(var), main = c("sq",colnames(co2_weekly)[i]))
 }
 
-# Nothing: NEE, Temp, DO_sat, fDOM, thermo_depth
+# Nothing: NEE, Temp, DO_sat, fDOM, thermo_depth, wnd_spd
 # Log: flow
 # Cube rt: Chla
 co2_weekly_scale <- co2_weekly %>% 
@@ -650,7 +746,7 @@ co2_weekly_scale <- co2_weekly %>%
   scale()
 
 # ch4 weekly
-for (i in 1:7){
+for (i in 1:8){
   print(colnames(ch4_weekly)[i])
   var <- ch4_weekly[,i]
   hist(as.matrix(var), main = colnames(ch4_weekly)[i])
@@ -736,7 +832,7 @@ ch4_monthly_scale <- ch4_monthly %>%
 ## CO2 Hourly
 colnames(co2_hourly_scale)
 
-cols <- c(2:7) # UPDATE THIS TO THE ENV. VARIABLES
+cols <- c(2:8) # UPDATE THIS TO THE ENV. VARIABLES
 sub.final <- NULL
 final <- NULL
 
@@ -756,13 +852,13 @@ for (i in 1:length(cols)){
       sub.sub.final[j,4] <- NA
       sub.sub.final[j,3] <- j
       sub.sub.final[j,2] <- i
-      sub.sub.final[j,1] <- "ch4_hourly"
+      sub.sub.final[j,1] <- "co2_hourly"
       next }
     
     sub.sub.final[j,4] <- fit$aicc
     sub.sub.final[j,3] <- j
     sub.sub.final[j,2] <- i
-    sub.sub.final[j,1] <- "ch4_hourly"
+    sub.sub.final[j,1] <- "co2_hourly"
   }
   
   sub.final <- rbind(sub.final,sub.sub.final)
@@ -789,8 +885,8 @@ final <- distinct(final)
 best <- final %>%
   slice(which.min(AICc))
 
-best.vars <- colnames(co2_hourly_scale)[combn(cols,4)[,9]] # UPDATE THIS FOLLOWING 'BEST'
-best.vars.cols <- combn(cols,4)[,9] # UPDATE THIS FOLLOWING 'BEST'
+best.vars <- colnames(co2_hourly_scale)[combn(cols,6)[,6]] # UPDATE THIS FOLLOWING 'BEST'
+best.vars.cols <- combn(cols,6)[,6] # UPDATE THIS FOLLOWING 'BEST'
 
 best.fit <- auto.arima(y,xreg = as.matrix(co2_hourly_scale[,best.vars.cols]),max.p = 1, max.P = 1)
 best.fit
@@ -828,7 +924,7 @@ for (i in 1:nrow(good)){
 ## CH4 Hourly
 colnames(ch4_hourly_scale)
 
-cols <- c(2:7) # UPDATE THIS TO THE ENV. VARIABLES
+cols <- c(2:8) # UPDATE THIS TO THE ENV. VARIABLES
 sub.final <- NULL
 final <- NULL
 
@@ -881,8 +977,8 @@ final <- distinct(final)
 best <- final %>%
   slice(which.min(AICc))
 
-best.vars <- colnames(ch4_hourly_scale)[combn(cols,4)[,6]] # UPDATE THIS FOLLOWING 'BEST'
-best.vars.cols <- combn(cols,4)[,6] # UPDATE THIS FOLLOWING 'BEST'
+best.vars <- colnames(ch4_hourly_scale)[combn(cols,4)[,8]] # UPDATE THIS FOLLOWING 'BEST'
+best.vars.cols <- combn(cols,4)[,8] # UPDATE THIS FOLLOWING 'BEST'
 
 best.fit <- auto.arima(y,xreg = as.matrix(ch4_hourly_scale[,best.vars.cols]),max.p = 1, max.P = 1)
 best.fit
@@ -920,7 +1016,7 @@ for (i in 1:nrow(good)){
 ## CO2 daily
 colnames(co2_daily_scale)
 
-cols <- c(2:7) # UPDATE THIS TO THE ENV. VARIABLES
+cols <- c(2:8) # UPDATE THIS TO THE ENV. VARIABLES
 sub.final <- NULL
 final <- NULL
 
@@ -973,8 +1069,8 @@ final <- distinct(final)
 best <- final %>%
   slice(which.min(AICc))
 
-best.vars <- colnames(co2_daily_scale)[combn(cols,5)[,5]] # UPDATE THIS FOLLOWING 'BEST'
-best.vars.cols <- combn(cols,5)[,5] # UPDATE THIS FOLLOWING 'BEST'
+best.vars <- colnames(co2_daily_scale)[combn(cols,5)[,11]] # UPDATE THIS FOLLOWING 'BEST'
+best.vars.cols <- combn(cols,5)[,11] # UPDATE THIS FOLLOWING 'BEST'
 
 best.fit <- auto.arima(y,xreg = as.matrix(co2_daily_scale[,best.vars.cols]),max.p = 1, max.P = 1)
 best.fit
@@ -1012,7 +1108,7 @@ for (i in 1:nrow(good)){
 ## ch4 daily
 colnames(ch4_daily_scale)
 
-cols <- c(2:7) # UPDATE THIS TO THE ENV. VARIABLES
+cols <- c(2:8) # UPDATE THIS TO THE ENV. VARIABLES
 sub.final <- NULL
 final <- NULL
 
@@ -1065,8 +1161,8 @@ final <- distinct(final)
 best <- final %>%
   slice(which.min(AICc))
 
-best.vars <- colnames(ch4_daily_scale)[combn(cols,3)[,9]] # UPDATE THIS FOLLOWING 'BEST'
-best.vars.cols <- combn(cols,3)[,9] # UPDATE THIS FOLLOWING 'BEST'
+best.vars <- colnames(ch4_daily_scale)[combn(cols,5)[,10]] # UPDATE THIS FOLLOWING 'BEST'
+best.vars.cols <- combn(cols,5)[,10] # UPDATE THIS FOLLOWING 'BEST'
 
 best.fit <- auto.arima(y,xreg = as.matrix(ch4_daily_scale[,best.vars.cols]),max.p = 1, max.P = 1)
 best.fit
@@ -1104,7 +1200,7 @@ for (i in 1:nrow(good)){
 ## CO2 weekly
 colnames(co2_weekly_scale)
 
-cols <- c(2:7) # UPDATE THIS TO THE ENV. VARIABLES
+cols <- c(2:8) # UPDATE THIS TO THE ENV. VARIABLES
 sub.final <- NULL
 final <- NULL
 
@@ -1157,8 +1253,8 @@ final <- distinct(final)
 best <- final %>%
   slice(which.min(AICc))
 
-best.vars <- colnames(co2_weekly_scale)[combn(cols,5)[,4]] # UPDATE THIS FOLLOWING 'BEST'
-best.vars.cols <- combn(cols,5)[,4] # UPDATE THIS FOLLOWING 'BEST'
+best.vars <- colnames(co2_weekly_scale)[combn(cols,5)[,7]] # UPDATE THIS FOLLOWING 'BEST'
+best.vars.cols <- combn(cols,5)[,7] # UPDATE THIS FOLLOWING 'BEST'
 
 best.fit <- auto.arima(y,xreg = as.matrix(co2_weekly_scale[,best.vars.cols]),max.p = 1, max.P = 1)
 best.fit
@@ -1196,7 +1292,7 @@ for (i in 1:nrow(good)){
 ## CH4 weekly
 colnames(ch4_weekly_scale)
 
-cols <- c(2:7) # UPDATE THIS TO THE ENV. VARIABLES
+cols <- c(2:8) # UPDATE THIS TO THE ENV. VARIABLES
 sub.final <- NULL
 final <- NULL
 
@@ -1249,8 +1345,8 @@ final <- distinct(final)
 best <- final %>%
   slice(which.min(AICc))
 
-best.vars <- colnames(ch4_weekly_scale)[combn(cols,4)[,10]] # UPDATE THIS FOLLOWING 'BEST'
-best.vars.cols <- combn(cols,4)[,10] # UPDATE THIS FOLLOWING 'BEST'
+best.vars <- colnames(ch4_weekly_scale)[combn(cols,4)[,17]] # UPDATE THIS FOLLOWING 'BEST'
+best.vars.cols <- combn(cols,4)[,17] # UPDATE THIS FOLLOWING 'BEST'
 
 best.fit <- auto.arima(y,xreg = as.matrix(ch4_weekly_scale[,best.vars.cols]),max.p = 1, max.P = 1)
 best.fit
