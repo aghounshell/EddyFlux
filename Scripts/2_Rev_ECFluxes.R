@@ -247,7 +247,9 @@ ec_turnover_year2 <- ec2 %>%
 # Fig 2
 co2_daily_year1 <- ggplot(fcr_daily) +
   geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
+  geom_vline(xintercept = as.POSIXct("2021-02-26"), col='black', size=1,linetype="dotted")+
   geom_vline(xintercept = as.POSIXct("2021-11-03 12:00"), col = "black", size = 1, linetype = "dotted")+
+  geom_vline(xintercept = as.POSIXct("2022-02-10"), col='black', size=1,linetype="dotted")+
   geom_point(ec2,mapping=aes(x=DateTime,y=NEE_uStar_orig,color="30 min EC fluxes"),alpha = 0.1)+
   geom_ribbon(mapping=aes(x=Date,y=NEE,ymin=NEE-NEE_sd,ymax=NEE+NEE_sd),fill="#E63946",alpha=0.5)+
   geom_line(aes(Date, NEE,color="Daily Mean EC"),size = 1) +
@@ -265,7 +267,9 @@ co2_daily_year1 <- ggplot(fcr_daily) +
 
 co2_daily_year2 <- ggplot(fcr_daily) +
   geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
+  geom_vline(xintercept = as.POSIXct("2021-02-26"), col='black', size=1,linetype="dotted")+
   geom_vline(xintercept = as.POSIXct("2021-11-03 12:00"), col = "black", size = 1, linetype = "dotted")+
+  geom_vline(xintercept = as.POSIXct("2022-02-10"), col='black', size=1,linetype="dotted")+
   geom_point(ec2,mapping=aes(x=DateTime,y=NEE_uStar_orig,color="30 min EC fluxes"),alpha = 0.1)+
   geom_ribbon(mapping=aes(x=Date,y=NEE,ymin=NEE-NEE_sd,ymax=NEE+NEE_sd),fill="#E63946",alpha=0.5)+
   geom_line(aes(Date, NEE,color="Daily Mean EC"),size = 1) +
@@ -304,7 +308,9 @@ ggsave("./Fig_Output/CO2_Daily_Monthly.jpg",width = 9, height=12, units="in",dpi
 ch4_daily_year1 <- fcr_daily %>% 
   ggplot() +
   geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
+  geom_vline(xintercept = as.POSIXct("2021-02-26"), col='black', size=1,linetype="dotted")+
   geom_vline(xintercept = as.POSIXct("2021-11-03 12:00"), col = "black", size = 1, linetype = "dotted")+
+  geom_vline(xintercept = as.POSIXct("2022-02-10"), col='black', size=1,linetype="dotted")+
   geom_point(ec2,mapping=aes(x=DateTime,y=ch4_flux_uStar_orig,color="30 min EC fluxes"),alpha = 0.1)+
   geom_ribbon(mapping=aes(x=Date,y=CH4,ymin=CH4-CH4_sd,ymax=CH4+CH4_sd),fill="#E63946",alpha=0.5)+
   geom_line(aes(Date, CH4,color="Daily Mean EC"),size = 1) +
@@ -323,7 +329,9 @@ ch4_daily_year1 <- fcr_daily %>%
 ch4_daily_year2 <- fcr_daily %>% 
   ggplot() +
   geom_vline(xintercept = as.POSIXct('2020-11-01 18:40:00 -5'), col = 'black', size = 1,linetype="dotted") + 
+  geom_vline(xintercept = as.POSIXct("2021-02-26"), col='black', size=1,linetype="dotted")+
   geom_vline(xintercept = as.POSIXct("2021-11-03 12:00"), col = "black", size = 1, linetype = "dotted")+
+  geom_vline(xintercept = as.POSIXct("2022-02-10"), col='black', size=1,linetype="dotted")+
   geom_point(ec2,mapping=aes(x=DateTime,y=ch4_flux_uStar_orig,color="30 min EC fluxes"),alpha = 0.1)+
   geom_ribbon(mapping=aes(x=Date,y=CH4,ymin=CH4-CH4_sd,ymax=CH4+CH4_sd),fill="#E63946",alpha=0.5)+
   geom_line(aes(Date, CH4,color="Daily Mean EC"),size = 1) +
@@ -1179,9 +1187,9 @@ wilcox.test(ch4_flux_uStar_orig ~ Ice, data=ice_fluxes_30min_comps)
 ## Plot ice on/ice off for 2021 and 2022
 # Fig. 6
 co2_year1 <- ggplot()+
-  geom_vline(xintercept = as.POSIXct("2021-01-10"), linetype = "dotted", color="blue")+
-  geom_vline(xintercept = as.POSIXct("2021-02-09"), linetype = "dotted", color="red")+
-  geom_vline(xintercept = as.POSIXct("2021-02-26"), linetype = "dotted", color="black")+
+  geom_vline(xintercept = as.POSIXct("2021-01-10"), linetype = "dotted", color="blue",size=1.3)+
+  geom_vline(xintercept = as.POSIXct("2021-02-23"), linetype = "dotted", color="red",size=1.3)+
+  geom_vline(xintercept = as.POSIXct("2021-02-26"), linetype = "dotted", color="black",size=1.3)+
   geom_point(ice_fluxes_30min,mapping=aes(x=DateTime,y=NEE_uStar_orig),alpha=0.1)+
   geom_ribbon(ice_fluxes_daily,mapping=aes(x=Date,y=NEE,ymin=NEE-NEE_sd,ymax=NEE+NEE_sd),fill="#E63946",alpha=0.5)+
   geom_line(ice_fluxes_daily,mapping=aes(x=Date,y=NEE),color="#E63946",size=1)+
@@ -1192,9 +1200,9 @@ co2_year1 <- ggplot()+
   theme_classic(base_size = 15)
 
 ch4_year1 <- ggplot()+
-  geom_vline(xintercept = as.POSIXct("2021-01-10"), linetype = "dotted", color="blue")+
-  geom_vline(xintercept = as.POSIXct("2021-02-09"), linetype = "dotted", color="red")+
-  geom_vline(xintercept = as.POSIXct("2021-02-26"), linetype = "dotted", color="black")+
+  geom_vline(xintercept = as.POSIXct("2021-01-10"), linetype = "dotted", color="blue",size=1.3)+
+  geom_vline(xintercept = as.POSIXct("2021-02-23"), linetype = "dotted", color="red",size=1.3)+
+  geom_vline(xintercept = as.POSIXct("2021-02-26"), linetype = "dotted", color="black",size=1.3)+
   geom_point(ice_fluxes_30min,mapping=aes(x=DateTime,y=ch4_flux_uStar_orig),alpha=0.1)+
   geom_ribbon(ice_fluxes_daily,mapping=aes(x=Date,y=CH4,ymin=CH4-CH4_sd,ymax=CH4+CH4_sd),fill="#E63946",alpha=0.5)+
   geom_line(ice_fluxes_daily,mapping=aes(x=Date,y=CH4),color="#E63946",size=1)+
@@ -1205,8 +1213,10 @@ ch4_year1 <- ggplot()+
   theme_classic(base_size = 15)
 
 co2_year2 <- ggplot()+
-  geom_vline(xintercept = as.POSIXct("2022-01-16"), linetype = "dotted", color="blue")+
-  geom_vline(xintercept = as.POSIXct("2022-02-10"), linetype = "dotted", color="red")+
+  geom_vline(xintercept = as.POSIXct("2022-01-11"), linetype = "dotted", color="blue",size=1.3)+
+  geom_vline(xintercept = as.POSIXct("2022-01-14"), linetype = "dotted", color="red",size=1.3)+
+  geom_vline(xintercept = as.POSIXct("2022-01-16"), linetype = "dotted", color="blue",size=1.3)+
+  geom_vline(xintercept = as.POSIXct("2022-02-10"), linetype = "dotted", color="red",size=1.3)+
   geom_point(ice_fluxes_30min,mapping=aes(x=DateTime,y=NEE_uStar_orig),alpha=0.1)+
   geom_ribbon(ice_fluxes_daily,mapping=aes(x=Date,y=NEE,ymin=NEE-NEE_sd,ymax=NEE+NEE_sd),fill="#E63946",alpha=0.5)+
   geom_line(ice_fluxes_daily,mapping=aes(x=Date,y=NEE),color="#E63946",size=1)+
@@ -1217,8 +1227,10 @@ co2_year2 <- ggplot()+
   theme_classic(base_size = 15)
 
 ch4_year2 <- ggplot()+
-  geom_vline(xintercept = as.POSIXct("2022-01-16"), linetype = "dotted", color="blue")+
-  geom_vline(xintercept = as.POSIXct("2022-02-10"), linetype = "dotted", color="red")+
+  geom_vline(xintercept = as.POSIXct("2022-01-11"), linetype = "dotted", color="blue",size=1.3)+
+  geom_vline(xintercept = as.POSIXct("2022-01-14"), linetype = "dotted", color="red",size=1.3)+
+  geom_vline(xintercept = as.POSIXct("2022-01-16"), linetype = "dotted", color="blue",size=1.3)+
+  geom_vline(xintercept = as.POSIXct("2022-02-10"), linetype = "dotted", color="red",size=1.3)+
   geom_point(ice_fluxes_30min,mapping=aes(x=DateTime,y=ch4_flux_uStar_orig),alpha=0.1)+
   geom_ribbon(ice_fluxes_daily,mapping=aes(x=Date,y=CH4,ymin=CH4-CH4_sd,ymax=CH4+CH4_sd),fill="#E63946",alpha=0.5)+
   geom_line(ice_fluxes_daily,mapping=aes(x=Date,y=CH4),color="#E63946",size=1)+
